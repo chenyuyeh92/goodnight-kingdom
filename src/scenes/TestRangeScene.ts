@@ -1,12 +1,9 @@
 import Phaser from 'phaser';
 import { DEFAULT_TUNING, MAX_DT_MS, type Tuning } from '../config/tuning';
-import { mergeIntents } from '../input/intent';
-import { PLAYER_A_KEYS, PLAYER_B_KEYS, intentFromKeys } from '../input/keyBindings';
 import { KeyboardSource } from '../input/keyboardSource';
-import { CROUCH_HITBOX, STAND_HITBOX, initialMotorState, stepMotor, type MotorState } from '../game/playerMotor';
-import { bulletVelocity, initialFireState, muzzleOffset, stepFire, type FireState } from '../game/fire';
+import { intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceCamera, minPlayerX } from '../game/camera';
-import type { PlayMode } from '../input/playMode';
+import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
 
 const VIEW_W = 960;
 const WORLD_W = 3200;
@@ -75,10 +72,7 @@ export class TestRangeScene extends Phaser.Scene {
   private keyboard!: KeyboardSource;
   private terrain!: Phaser.Physics.Arcade.StaticGroup;
   private terrainBodies = new Set<Phaser.Physics.Arcade.StaticBody>();
-  private body!: Phaser.GameObjects.Zone;
-  private sprite!: Phaser.GameObjects.Rectangle;
-  private motor: MotorState = initialMotorState();
-  private fire: FireState = initialFireState();
+  private players: PlayerEntity[] = [];
   private bullets: Bullet[] = [];
   private bulletGroup!: Phaser.Physics.Arcade.Group;
   private targetGroup!: Phaser.Physics.Arcade.StaticGroup;
@@ -98,8 +92,6 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.motor = initialMotorState();
-    this.fire = initialFireState();
     this.bullets = [];
     this.targets = [];
     this.targetsHit = 0;
@@ -123,11 +115,9 @@ export class TestRangeScene extends Phaser.Scene {
       this.targets.push({ rect, hp: TARGET_HP });
     }
 
-    this.body = this.add.zone(START_X, GROUND_Y - STAND_HITBOX.h / 2, STAND_HITBOX.w, STAND_HITBOX.h);
-    this.physics.add.existing(this.body);
-    this.playerBody().setCollideWorldBounds(false);
-    this.sprite = this.add.rectangle(START_X, GROUND_Y, STAND_HITBOX.w, STAND_HITBOX.h, COLOR.player).setOrigin(0.5, 1);
-    this.physics.add.collider(this.body, this.terrain);
+    const isTerrain = (b: unknown): boolean => this.terrainBodies.has(b as Phaser.Physics.Arcade.StaticBody);
+    this.players = [new PlayerEntity(this, { x: START_X, feetY: GROUND_Y, color: COLOR.player, label: null, isTerrain })];
+    for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
 
     this.bulletGroup = this.physics.add.group({ allowGravity: false });
     this.physics.add.collider(this.bulletGroup, this.terrain, (b) => this.removeBullet(b as Phaser.GameObjects.Arc));
@@ -149,83 +139,30 @@ export class TestRangeScene extends Phaser.Scene {
     this.publishDebug();
   }
 
-  update(_time: number, delta: number): void {
+  update(time: number, delta: number): void {
     const t = this.getTuning();
     const dtMs = Math.min(delta, MAX_DT_MS);
-    const keys = this.keyboard.pressed();
-    const intent = mergeIntents(intentFromKeys(keys, PLAYER_A_KEYS), intentFromKeys(keys, PLAYER_B_KEYS));
-    const pb = this.playerBody();
-    const grounded = pb.blocked.down || pb.touching.down;
-    const feetY = pb.bottom;
+    const intents = intentsForMode(this.keyboard.pressed(), this.mode);
 
-    const out = stepMotor(this.motor, { intent, grounded, canStand: this.canStand(pb.center.x, feetY), dtMs }, t);
-    if (out.state.crouching !== this.motor.crouching) this.resizeBody(out.state.crouching, feetY);
-    this.motor = out.state;
-
-    pb.setGravityY(t.gravity);
-    pb.setVelocity(out.vx, out.jumpVy ?? pb.velocity.y);
-
-    const shot = stepFire(this.fire, intent.shoot, dtMs, t.fireIntervalMs);
-    this.fire = shot.state;
-    if (shot.fired) this.spawnBullet(t);
+    this.players.forEach((p, i) => {
+      const shot = p.update(intents[i], dtMs, t);
+      if (shot) this.spawnBullet(shot);
+    });
     this.expireBullets();
 
-    this.scrollX = advanceCamera(this.scrollX, this.body.x, VIEW_W, WORLD_W, CAMERA_LEAD);
+    const lead = this.players[0];
+    this.scrollX = advanceCamera(this.scrollX, lead.x, VIEW_W, WORLD_W, CAMERA_LEAD);
     this.cameras.main.scrollX = this.scrollX;
-    const minX = minPlayerX(this.scrollX, SCREEN_MARGIN);
-    const maxX = this.scrollX + VIEW_W - SCREEN_MARGIN;
-    if (this.body.x < minX) this.body.x = minX;
-    if (this.body.x > maxX) this.body.x = maxX;
-
-    const h = this.motor.crouching ? CROUCH_HITBOX.h : STAND_HITBOX.h;
-    this.sprite.setPosition(this.body.x, this.body.y + h / 2);
-    this.sprite.setSize(STAND_HITBOX.w, h);
-    this.sprite.setDisplaySize(STAND_HITBOX.w, h);
+    for (const p of this.players) p.clampX(minPlayerX(this.scrollX, SCREEN_MARGIN), this.scrollX + VIEW_W - SCREEN_MARGIN);
+    for (const p of this.players) p.render(time);
 
     this.publishDebug();
   }
 
-  private playerBody(): Phaser.Physics.Arcade.Body {
-    return this.body.body as Phaser.Physics.Arcade.Body;
-  }
-
-  /** 以站姿大小檢查頭上有沒有地形。 */
-  private canStand(centerX: number, feetY: number): boolean {
-    const hits = this.physics.overlapRect(
-      centerX - STAND_HITBOX.w / 2,
-      feetY - STAND_HITBOX.h,
-      STAND_HITBOX.w,
-      STAND_HITBOX.h - 1,
-      false,
-      true,
-    );
-    return !hits.some((b) => this.terrainBodies.has(b as Phaser.Physics.Arcade.StaticBody));
-  }
-
-  /** 切換判定範圍時保持腳底位置不變。 */
-  private resizeBody(crouching: boolean, feetY: number): void {
-    const box = crouching ? CROUCH_HITBOX : STAND_HITBOX;
-    const pb = this.playerBody();
-    const vy = pb.velocity.y;
-    // reset() 會清掉著地旗標;高更新率螢幕上下一格可能沒有物理步驟重新偵測,會誤判騰空而站起來。
-    const blockedDown = pb.blocked.down;
-    const touchingDown = pb.touching.down;
-    this.body.setSize(box.w, box.h);
-    pb.setSize(box.w, box.h, true);
-    pb.reset(this.body.x, feetY - box.h / 2);
-    pb.velocity.y = vy;
-    pb.blocked.down = blockedDown;
-    pb.touching.down = touchingDown;
-  }
-
-  private spawnBullet(t: Tuning): void {
-    const m = this.motor;
-    const off = muzzleOffset(m.aim, m.facing, m.crouching);
-    const v = bulletVelocity(m.aim, m.facing, t.bulletSpeed);
-    const feetY = this.playerBody().bottom;
-    const shape = this.add.circle(this.body.x + off.x, feetY + off.y, BULLET_SIZE / 2, COLOR.bullet);
+  private spawnBullet(b: BulletSpawn): void {
+    const shape = this.add.circle(b.x, b.y, BULLET_SIZE / 2, COLOR.bullet);
     this.bulletGroup.add(shape);
-    (shape.body as Phaser.Physics.Arcade.Body).setVelocity(v.vx, v.vy);
+    (shape.body as Phaser.Physics.Arcade.Body).setVelocity(b.vx, b.vy);
     this.bullets.push({ shape, bornAt: this.time.now });
   }
 
@@ -279,23 +216,13 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private publishDebug(): void {
-    const pb = this.playerBody();
-    const player = {
-      x: this.body.x,
-      y: pb.bottom,
-      crouching: this.motor.crouching,
-      aim: this.motor.aim,
-      facing: this.motor.facing,
-      hearts: 3,
-      down: false,
-      invuln: false,
-    };
+    const players = this.players.map((p) => p.debug());
     window.__GK__ = {
       ready: true,
       screen: 'range',
       mode: this.mode,
-      player,
-      players: [player],
+      player: players[0],
+      players,
       bullets: this.bullets.length,
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
