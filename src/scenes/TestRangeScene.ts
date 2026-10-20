@@ -200,10 +200,15 @@ export class TestRangeScene extends Phaser.Scene {
     const box = crouching ? CROUCH_HITBOX : STAND_HITBOX;
     const pb = this.playerBody();
     const vy = pb.velocity.y;
+    // reset() 會清掉著地旗標;高更新率螢幕上下一格可能沒有物理步驟重新偵測,會誤判騰空而站起來。
+    const blockedDown = pb.blocked.down;
+    const touchingDown = pb.touching.down;
     this.body.setSize(box.w, box.h);
     pb.setSize(box.w, box.h, true);
     pb.reset(this.body.x, feetY - box.h / 2);
     pb.velocity.y = vy;
+    pb.blocked.down = blockedDown;
+    pb.touching.down = touchingDown;
   }
 
   private spawnBullet(t: Tuning): void {

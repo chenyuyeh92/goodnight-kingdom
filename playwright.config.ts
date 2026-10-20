@@ -8,6 +8,8 @@ const executablePath = process.env.CHROMIUM_PATH ?? (existsSync(fallbackChromium
 export default defineConfig({
   testDir: 'e2e',
   timeout: 30_000,
+  // 這些測試依賴真實時間與畫面格數,並行會互搶 CPU 造成誤判。
+  workers: 1,
   webServer: {
     command: 'npx vite preview --port 4173 --strictPort',
     url: BASE_URL,
