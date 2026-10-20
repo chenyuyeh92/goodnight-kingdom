@@ -15,15 +15,15 @@ function run(
   );
 }
 
-test('按右 → vx 180,面向 1', () => {
+test('按右 → 走路速度,面向 1', () => {
   const o = run({ right: true });
-  expect(o.vx).toBe(180);
+  expect(o.vx).toBe(DEFAULT_TUNING.walkSpeed);
   expect(o.state.facing).toBe(1);
 });
 
-test('按左 → vx -180,面向 -1', () => {
+test('按左 → 負的走路速度,面向 -1', () => {
   const o = run({ left: true });
-  expect(o.vx).toBe(-180);
+  expect(o.vx).toBe(-DEFAULT_TUNING.walkSpeed);
   expect(o.state.facing).toBe(-1);
 });
 
@@ -39,12 +39,12 @@ test('左右同時 → vx 0,面向不變', () => {
   expect(o.state.facing).toBe(1);
 });
 
-test('空中按右 → vx 150', () => {
-  expect(run({ right: true }, { grounded: false }).vx).toBe(150);
+test('空中按右 → 空中速度', () => {
+  expect(run({ right: true }, { grounded: false }).vx).toBe(DEFAULT_TUNING.airSpeed);
 });
 
-test('在地上按跳 → jumpVy -560', () => {
-  expect(run({ jump: true }).jumpVy).toBe(-560);
+test('在地上按跳 → 起跳', () => {
+  expect(run({ jump: true }).jumpVy).toBe(-DEFAULT_TUNING.jumpVelocity);
 });
 
 test('按住跳不會連跳', () => {
@@ -55,7 +55,7 @@ test('按住跳不會連跳', () => {
 test('離開平台 100ms 內仍可起跳', () => {
   let s = run({}).state;
   s = run({}, { grounded: false, dtMs: 50 }, s).state;
-  expect(run({ jump: true }, { grounded: false, dtMs: 40 }, s).jumpVy).toBe(-560);
+  expect(run({ jump: true }, { grounded: false, dtMs: 40 }, s).jumpVy).toBe(-DEFAULT_TUNING.jumpVelocity);
 });
 
 test('離開平台超過 100ms 不可起跳', () => {
@@ -65,22 +65,22 @@ test('離開平台超過 100ms 不可起跳', () => {
   expect(run({ jump: true }, { grounded: false, dtMs: 16 }, s).jumpVy).toBeNull();
 });
 
-test('落地前 120ms 內按跳,落地時起跳', () => {
+test('落地前提早按跳,落地時起跳', () => {
   const air = run({ jump: true }, { grounded: false });
   expect(air.jumpVy).toBeNull();
-  expect(run({}, { grounded: true, dtMs: 50 }, air.state).jumpVy).toBe(-560);
+  expect(run({}, { grounded: true, dtMs: 50 }, air.state).jumpVy).toBe(-DEFAULT_TUNING.jumpVelocity);
 });
 
 test('超大 dtMs 被限制為 50', () => {
   let s = run({}).state;
   s = run({}, { grounded: false, dtMs: 5000 }, s).state;
-  expect(run({ jump: true }, { grounded: false, dtMs: 16 }, s).jumpVy).toBe(-560);
+  expect(run({ jump: true }, { grounded: false, dtMs: 16 }, s).jumpVy).toBe(-DEFAULT_TUNING.jumpVelocity);
 });
 
-test('在地上按下 → 蹲下,vx 用 60,瞄準 forward', () => {
+test('在地上按下 → 蹲下,用爬行速度,瞄準 forward', () => {
   const o = run({ down: true, right: true });
   expect(o.state.crouching).toBe(true);
-  expect(o.vx).toBe(60);
+  expect(o.vx).toBe(DEFAULT_TUNING.crawlSpeed);
   expect(o.state.aim).toBe('forward');
 });
 
@@ -113,6 +113,6 @@ test('低矮處不能起跳', () => {
 test('蹲著且上方有空間時按跳 → 起跳並站起', () => {
   const crouched = run({ down: true }).state;
   const o = run({ down: true, jump: true }, { canStand: true }, crouched);
-  expect(o.jumpVy).toBe(-560);
+  expect(o.jumpVy).toBe(-DEFAULT_TUNING.jumpVelocity);
   expect(o.state.crouching).toBe(false);
 });

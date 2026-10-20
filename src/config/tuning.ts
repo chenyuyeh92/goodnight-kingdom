@@ -14,18 +14,18 @@ export interface Tuning {
 }
 
 export const DEFAULT_TUNING: Readonly<Tuning> = Object.freeze({
-  walkSpeed: 180,
-  crawlSpeed: 60,
-  airSpeed: 150,
-  jumpVelocity: 560,
-  gravity: 1500,
+  walkSpeed: 230,
+  crawlSpeed: 150,
+  airSpeed: 200,
+  jumpVelocity: 670,
+  gravity: 1550,
   coyoteMs: 100,
-  jumpBufferMs: 120,
-  fireIntervalMs: 160,
-  bulletSpeed: 620,
-  hitStopMs: 60,
-  shakeMs: 80,
-  shakeIntensity: 0.004,
+  jumpBufferMs: 220,
+  fireIntervalMs: 150,
+  bulletSpeed: 640,
+  hitStopMs: 10,
+  shakeMs: 50,
+  shakeIntensity: 0.003,
 });
 
 /** 每格時間差上限,避免卡頓或切回分頁時穿牆、一次跳過計時。 */

@@ -74,6 +74,26 @@ test.describe('測試靶場操作', () => {
     await page.keyboard.up('KeyF');
   });
 
+  for (const [label, move, jump, shoot] of [
+    ['A 組', 'KeyD', 'KeyG', 'KeyF'],
+    ['B 組', 'ArrowRight', 'Period', 'Comma'],
+  ] as const) {
+    test(`${label}:移動中同時跳躍和射擊`, async ({ page }) => {
+      const p0 = await player(page);
+      await page.keyboard.down(move);
+      await page.waitForTimeout(200);
+      await page.keyboard.down(shoot);
+      await page.keyboard.down(jump);
+      await page.waitForFunction((y) => window.__GK__!.player!.y < y - 20, p0.y, { timeout: 1000 });
+      await page.waitForFunction(() => (window.__GK__!.bullets ?? 0) > 0, undefined, { timeout: 1000 });
+      await page.waitForTimeout(200);
+      await page.keyboard.up(jump);
+      await page.keyboard.up(shoot);
+      await page.keyboard.up(move);
+      expect((await player(page)).x - p0.x).toBeGreaterThan(50);
+    });
+  }
+
   test('方向鍵也能操控', async ({ page }) => {
     const x0 = (await player(page)).x;
     await hold(page, 'ArrowRight', 500);
@@ -96,7 +116,8 @@ test.describe('手感調整面板', () => {
     await page.waitForTimeout(300);
     const x0 = (await player(page)).x;
     await hold(page, 'KeyD', 500);
-    expect((await player(page)).x - x0).toBeGreaterThan(120);
+    // 預設 230 走 500ms 約 115px,400 約 200px。
+    expect((await player(page)).x - x0).toBeGreaterThan(160);
   });
 
   test('按「重設」回到預設值', async ({ page }) => {
@@ -105,7 +126,7 @@ test.describe('手感調整面板', () => {
     await field.fill('300');
     await field.dispatchEvent('change');
     await page.locator('#tuning-panel button', { hasText: '重設' }).click();
-    await expect(field).toHaveValue('180');
+    await expect(field).toHaveValue('230');
   });
 
   test('在面板輸入時角色不會移動', async ({ page }) => {

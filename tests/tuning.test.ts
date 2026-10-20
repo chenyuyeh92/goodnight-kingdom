@@ -22,10 +22,10 @@ test('sanitizeTuning(undefined) 等於預設值', () => {
 
 test('壞值用預設、超出範圍夾住', () => {
   const t = sanitizeTuning({ walkSpeed: 'abc', gravity: -5, jumpVelocity: 99999, bulletSpeed: NaN });
-  expect(t.walkSpeed).toBe(180);
+  expect(t.walkSpeed).toBe(DEFAULT_TUNING.walkSpeed);
   expect(t.gravity).toBe(500);
   expect(t.jumpVelocity).toBe(1000);
-  expect(t.bulletSpeed).toBe(620);
+  expect(t.bulletSpeed).toBe(DEFAULT_TUNING.bulletSpeed);
 });
 
 test('多餘欄位被忽略', () => {
