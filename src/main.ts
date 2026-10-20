@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { createTuningStore, type StorageLike } from './config/tuning';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
+import { mountKeyTest } from './ui/keyTest';
 import { mountTuningPanel } from './ui/tuningPanel';
 
 export interface GkDebug {
@@ -25,20 +26,29 @@ function safeLocalStorage(): StorageLike | null {
   }
 }
 
-const tuneMode = new URLSearchParams(location.search).get('tune') === '1';
-const store = createTuningStore(tuneMode ? safeLocalStorage() : null);
-if (tuneMode) mountTuningPanel(store, document.body);
+const params = new URLSearchParams(location.search);
 
-const game = new Phaser.Game({
-  type: Phaser.AUTO,
-  width: 960,
-  height: 540,
-  parent: 'game',
-  backgroundColor: '#2a2550',
-  pixelArt: false,
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
-});
+if (params.get('keytest') === '1') {
+  mountKeyTest(document.body);
+} else {
+  startGame(params.get('tune') === '1');
+}
 
-const data: TestRangeData = { getTuning: () => store.get() };
-game.scene.add('TestRange', TestRangeScene, true, data);
+function startGame(tuneMode: boolean): void {
+  const store = createTuningStore(tuneMode ? safeLocalStorage() : null);
+  if (tuneMode) mountTuningPanel(store, document.body);
+
+  const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    width: 960,
+    height: 540,
+    parent: 'game',
+    backgroundColor: '#2a2550',
+    pixelArt: false,
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
+  });
+
+  const data: TestRangeData = { getTuning: () => store.get() };
+  game.scene.add('TestRange', TestRangeScene, true, data);
+}

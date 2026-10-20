@@ -139,3 +139,25 @@ test.describe('手感調整面板', () => {
     expect((await player(page)).x).toBe(x0);
   });
 });
+
+test.describe('鍵盤衝突測試頁', () => {
+  test('?keytest=1 顯示測試頁、不啟動遊戲', async ({ page }) => {
+    await page.goto('./?keytest=1');
+    await expect(page.locator('#key-test')).toHaveCount(1);
+    await expect(page.locator('canvas')).toHaveCount(0);
+  });
+
+  test('同時按住 D F G 會顯示按住的鍵並打勾', async ({ page }) => {
+    await page.goto('./?keytest=1');
+    await page.keyboard.down('KeyD');
+    await page.keyboard.down('KeyF');
+    await page.keyboard.down('KeyG');
+    await expect(page.locator('#key-test .held')).toContainText('D F G');
+    await expect(page.locator('#key-test [data-combo="玩家 A:右 + 射擊 + 跳躍"]')).toHaveClass(/ok/);
+    await expect(page.locator('#key-test [data-combo="玩家 B:右 + 射擊 + 跳躍"]')).not.toHaveClass(/ok/);
+    await page.keyboard.up('KeyG');
+    await page.keyboard.up('KeyF');
+    await page.keyboard.up('KeyD');
+    await expect(page.locator('#key-test .max')).toContainText('3');
+  });
+});
