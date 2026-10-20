@@ -14,8 +14,8 @@ export const PLAYER_A_KEYS: KeyBinding = {
   right: 'KeyD',
   up: 'KeyW',
   down: 'KeyS',
-  jump: 'KeyG',
-  shoot: 'KeyF',
+  jump: 'KeyV',
+  shoot: 'KeyC',
 };
 
 export const PLAYER_B_KEYS: KeyBinding = {

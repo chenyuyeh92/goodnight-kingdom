@@ -128,7 +128,7 @@ export class TestRangeScene extends Phaser.Scene {
     );
 
     this.add
-      .text(16, 12, 'A D 移動  W 上  S 蹲/下  F 射擊  G 跳躍(方向鍵 , . 也可以)', {
+      .text(16, 12, 'A D 移動  W 上  S 蹲/下  C 射擊  V 跳躍(方向鍵 , . 也可以)', {
         fontSize: '18px',
         color: '#f3e9d2',
       })

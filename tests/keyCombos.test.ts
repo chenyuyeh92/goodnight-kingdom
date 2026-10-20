@@ -22,15 +22,15 @@ test('有兩人同時按的組合,共 6 個鍵', () => {
 test('組合裡的鍵全部按住才算成功', () => {
   const combo = KEY_COMBOS.find((c) => c.name === '玩家 A:右 + 射擊 + 跳躍')!;
   const seen = new Set<string>();
-  markSeen(seen, new Set(['KeyD', 'KeyF']));
+  markSeen(seen, new Set(['KeyD', 'KeyC']));
   expect(seen.has(combo.name)).toBe(false);
-  markSeen(seen, new Set(['KeyD', 'KeyF', 'KeyG']));
+  markSeen(seen, new Set(['KeyD', 'KeyC', 'KeyV']));
   expect(seen.has(combo.name)).toBe(true);
 });
 
 test('成功過的組合放開後仍保持成功', () => {
   const seen = new Set<string>();
-  markSeen(seen, new Set(['KeyD', 'KeyF', 'KeyG']));
+  markSeen(seen, new Set(['KeyD', 'KeyC', 'KeyV']));
   markSeen(seen, new Set());
   expect(seen.has('玩家 A:右 + 射擊 + 跳躍')).toBe(true);
 });
@@ -48,15 +48,7 @@ test('組合名稱不重複', () => {
   expect(new Set(names).size).toBe(names.length);
 });
 
-test('每組候選按鍵都有 4 個組合,含兩人同時', () => {
-  for (const label of ['J K', 'V B', 'C V', 'H J']) {
-    const group = KEY_COMBOS.filter((c) => c.group === `候選:射擊與跳躍改用 ${label}`);
-    expect(group).toHaveLength(4);
-    expect(group.some((c) => c.codes.length === 6)).toBe(true);
-  }
-});
-
-test('候選 J K 的「右 + 射擊 + 跳躍」用 D J K', () => {
-  const c = KEY_COMBOS.find((x) => x.group === '候選:射擊與跳躍改用 J K' && x.codes.length === 3 && x.codes.includes('KeyD'))!;
-  expect([...c.codes].sort()).toEqual(['KeyD', 'KeyJ', 'KeyK']);
+test('玩家 A 用 C 射擊、V 跳躍(葉宸佑的筆電上 F G 會漏鍵)', () => {
+  expect(PLAYER_A_KEYS.shoot).toBe('KeyC');
+  expect(PLAYER_A_KEYS.jump).toBe('KeyV');
 });

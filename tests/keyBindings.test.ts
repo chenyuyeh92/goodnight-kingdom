@@ -3,8 +3,8 @@ import { EMPTY_INTENT, mergeIntents } from '../src/input/intent';
 import { GAME_CODES, PLAYER_A_KEYS, PLAYER_B_KEYS, intentFromKeys } from '../src/input/keyBindings';
 
 describe('intentFromKeys', () => {
-  test('玩家 A 按 D 與 F → right 與 shoot', () => {
-    expect(intentFromKeys(new Set(['KeyD', 'KeyF']), PLAYER_A_KEYS)).toEqual({ ...EMPTY_INTENT, right: true, shoot: true });
+  test('玩家 A 按 D 與 C → right 與 shoot', () => {
+    expect(intentFromKeys(new Set(['KeyD', 'KeyC']), PLAYER_A_KEYS)).toEqual({ ...EMPTY_INTENT, right: true, shoot: true });
   });
 
   test('玩家 B 按 Period → jump', () => {

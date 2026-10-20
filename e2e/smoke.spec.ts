@@ -41,11 +41,11 @@ test.describe('測試靶場操作', () => {
     expect((await player(page)).x - x0).toBeGreaterThan(50);
   });
 
-  test('按 G 會跳起來', async ({ page }) => {
+  test('按 V 會跳起來', async ({ page }) => {
     const y0 = (await player(page)).y;
-    await page.keyboard.down('KeyG');
+    await page.keyboard.down('KeyV');
     await page.waitForFunction((y) => window.__GK__!.player!.y < y - 20, y0, { timeout: 1000 });
-    await page.keyboard.up('KeyG');
+    await page.keyboard.up('KeyV');
   });
 
   test('按 S 會蹲下', async ({ page }) => {
@@ -55,10 +55,10 @@ test.describe('測試靶場操作', () => {
     await page.keyboard.up('KeyS');
   });
 
-  test('按 F 會射出子彈', async ({ page }) => {
-    await page.keyboard.down('KeyF');
+  test('按 C 會射出子彈', async ({ page }) => {
+    await page.keyboard.down('KeyC');
     await page.waitForFunction(() => (window.__GK__!.bullets ?? 0) > 0, undefined, { timeout: 1000 });
-    await page.keyboard.up('KeyF');
+    await page.keyboard.up('KeyC');
   });
 
   test('按住 W 時瞄準往上', async ({ page }) => {
@@ -69,13 +69,13 @@ test.describe('測試靶場操作', () => {
   });
 
   test('打中練習靶', async ({ page }) => {
-    await page.keyboard.down('KeyF');
+    await page.keyboard.down('KeyC');
     await page.waitForFunction(() => (window.__GK__!.targetsHit ?? 0) > 0, undefined, { timeout: 3000 });
-    await page.keyboard.up('KeyF');
+    await page.keyboard.up('KeyC');
   });
 
   for (const [label, move, jump, shoot] of [
-    ['A 組', 'KeyD', 'KeyG', 'KeyF'],
+    ['A 組', 'KeyD', 'KeyV', 'KeyC'],
     ['B 組', 'ArrowRight', 'Period', 'Comma'],
   ] as const) {
     test(`${label}:移動中同時跳躍和射擊`, async ({ page }) => {
@@ -147,16 +147,16 @@ test.describe('鍵盤衝突測試頁', () => {
     await expect(page.locator('canvas')).toHaveCount(0);
   });
 
-  test('同時按住 D F G 會顯示按住的鍵並打勾', async ({ page }) => {
+  test('同時按住 D C V 會顯示按住的鍵並打勾', async ({ page }) => {
     await page.goto('./?keytest=1');
     await page.keyboard.down('KeyD');
-    await page.keyboard.down('KeyF');
-    await page.keyboard.down('KeyG');
-    await expect(page.locator('#key-test .held')).toContainText('D F G');
+    await page.keyboard.down('KeyC');
+    await page.keyboard.down('KeyV');
+    await expect(page.locator('#key-test .held')).toContainText('D C V');
     await expect(page.locator('#key-test [data-combo="玩家 A:右 + 射擊 + 跳躍"]')).toHaveClass(/ok/);
     await expect(page.locator('#key-test [data-combo="玩家 B:右 + 射擊 + 跳躍"]')).not.toHaveClass(/ok/);
-    await page.keyboard.up('KeyG');
-    await page.keyboard.up('KeyF');
+    await page.keyboard.up('KeyV');
+    await page.keyboard.up('KeyC');
     await page.keyboard.up('KeyD');
     await expect(page.locator('#key-test .max')).toContainText('3');
   });
