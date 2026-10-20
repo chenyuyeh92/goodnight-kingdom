@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { DEFAULT_TUNING, MAX_DT_MS, type Tuning } from '../config/tuning';
 import { KeyboardSource } from '../input/keyboardSource';
 import { intentsForMode, type PlayMode } from '../input/playMode';
-import { advanceCamera, minPlayerX } from '../game/camera';
+import { advanceTeamCamera, minPlayerX } from '../game/camera';
 import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
 
 const VIEW_W = 960;
@@ -12,6 +12,7 @@ const GROUND_Y = 480;
 const SCREEN_MARGIN = 16;
 const CAMERA_LEAD = 0.4;
 const START_X = 150;
+const PARTNER_OFFSET_X = 40;
 
 const BULLET_LIFE_MS = 1000;
 const BULLET_SIZE = 10;
@@ -43,7 +44,8 @@ const TARGETS: ReadonlyArray<{ x: number; bottom: number }> = [
 
 const COLOR = {
   terrain: 0x3b3366,
-  player: 0xffd27a,
+  playerA: 0xffd27a,
+  playerB: 0x9be7c4,
   bullet: 0xbfe6ff,
   target: 0xf3e9d2,
   flash: 0xffffff,
@@ -85,10 +87,12 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private mode: PlayMode = 'single';
+  private checkpointX = START_X;
 
   init(data: TestRangeData): void {
     if (data?.getTuning) this.getTuning = data.getTuning;
     this.mode = data?.mode ?? 'single';
+    this.checkpointX = data?.checkpointX ?? START_X;
   }
 
   create(): void {
@@ -116,7 +120,15 @@ export class TestRangeScene extends Phaser.Scene {
     }
 
     const isTerrain = (b: unknown): boolean => this.terrainBodies.has(b as Phaser.Physics.Arcade.StaticBody);
-    this.players = [new PlayerEntity(this, { x: START_X, feetY: GROUND_Y, color: COLOR.player, label: null, isTerrain })];
+    const startX = this.checkpointX;
+    this.players =
+      this.mode === 'duo'
+        ? [
+            new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: 'A', isTerrain }),
+            new PlayerEntity(this, { x: startX + PARTNER_OFFSET_X, feetY: GROUND_Y, color: COLOR.playerB, label: 'B', isTerrain }),
+          ]
+        : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain })];
+    this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), WORLD_W - VIEW_W);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
 
     this.bulletGroup = this.physics.add.group({ allowGravity: false });
@@ -150,10 +162,10 @@ export class TestRangeScene extends Phaser.Scene {
     });
     this.expireBullets();
 
-    const lead = this.players[0];
-    this.scrollX = advanceCamera(this.scrollX, lead.x, VIEW_W, WORLD_W, CAMERA_LEAD);
+    const awake = this.players.filter((p) => !p.health.down);
+    this.scrollX = advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, WORLD_W, CAMERA_LEAD, SCREEN_MARGIN);
     this.cameras.main.scrollX = this.scrollX;
-    for (const p of this.players) p.clampX(minPlayerX(this.scrollX, SCREEN_MARGIN), this.scrollX + VIEW_W - SCREEN_MARGIN);
+    for (const p of awake) p.clampX(minPlayerX(this.scrollX, SCREEN_MARGIN), this.scrollX + VIEW_W - SCREEN_MARGIN);
     for (const p of this.players) p.render(time);
 
     this.publishDebug();
