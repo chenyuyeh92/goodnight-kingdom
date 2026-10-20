@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-async function openGame(page: Page, path = './'): Promise<string[]> {
+async function openGame(page: Page, path = './?mode=single'): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
@@ -30,7 +30,7 @@ async function hold(page: Page, code: string, ms: number): Promise<void> {
 test.describe('測試靶場操作', () => {
   test.beforeEach(async ({ page }) => {
     await openGame(page);
-    await page.waitForFunction(() => window.__GK__?.player !== undefined, undefined, { timeout: 5000 });
+    await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 5000 });
     await page.locator('canvas').click();
     await page.waitForTimeout(300);
   });
@@ -108,7 +108,7 @@ test.describe('手感調整面板', () => {
   });
 
   test('?tune=1 時有面板,改走路速度會生效', async ({ page }) => {
-    await openGame(page, './?tune=1');
+    await openGame(page, './?mode=single&tune=1');
     await expect(page.locator('#tuning-panel')).toHaveCount(1);
     await page.locator('#tuning-panel input[type=number][data-key=walkSpeed]').fill('400');
     await page.locator('#tuning-panel input[type=number][data-key=walkSpeed]').dispatchEvent('change');
@@ -121,7 +121,7 @@ test.describe('手感調整面板', () => {
   });
 
   test('按「重設」回到預設值', async ({ page }) => {
-    await openGame(page, './?tune=1');
+    await openGame(page, './?mode=single&tune=1');
     const field = page.locator('#tuning-panel input[type=number][data-key=walkSpeed]');
     await field.fill('300');
     await field.dispatchEvent('change');
@@ -130,7 +130,7 @@ test.describe('手感調整面板', () => {
   });
 
   test('在面板輸入時角色不會移動', async ({ page }) => {
-    await openGame(page, './?tune=1');
+    await openGame(page, './?mode=single&tune=1');
     await page.waitForFunction(() => window.__GK__?.player !== undefined);
     const field = page.locator('#tuning-panel input[type=number][data-key=walkSpeed]');
     await field.focus();

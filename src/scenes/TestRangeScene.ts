@@ -6,6 +6,7 @@ import { KeyboardSource } from '../input/keyboardSource';
 import { CROUCH_HITBOX, STAND_HITBOX, initialMotorState, stepMotor, type MotorState } from '../game/playerMotor';
 import { bulletVelocity, initialFireState, muzzleOffset, stepFire, type FireState } from '../game/fire';
 import { advanceCamera, minPlayerX } from '../game/camera';
+import type { PlayMode } from '../input/playMode';
 
 const VIEW_W = 960;
 const WORLD_W = 3200;
@@ -63,6 +64,10 @@ interface Bullet {
 
 export interface TestRangeData {
   getTuning?: () => Tuning;
+  mode?: PlayMode;
+  checkpointX?: number;
+  restarts?: number;
+  testHooks?: boolean;
 }
 
 export class TestRangeScene extends Phaser.Scene {
@@ -85,8 +90,11 @@ export class TestRangeScene extends Phaser.Scene {
     super('TestRange');
   }
 
+  private mode: PlayMode = 'single';
+
   init(data: TestRangeData): void {
     if (data?.getTuning) this.getTuning = data.getTuning;
+    this.mode = data?.mode ?? 'single';
   }
 
   create(): void {
@@ -138,7 +146,6 @@ export class TestRangeScene extends Phaser.Scene {
     this.keyboard = new KeyboardSource(window, document);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.keyboard.destroy());
 
-    window.__GK__ = { ready: true };
     this.publishDebug();
   }
 
@@ -273,15 +280,22 @@ export class TestRangeScene extends Phaser.Scene {
 
   private publishDebug(): void {
     const pb = this.playerBody();
+    const player = {
+      x: this.body.x,
+      y: pb.bottom,
+      crouching: this.motor.crouching,
+      aim: this.motor.aim,
+      facing: this.motor.facing,
+      hearts: 3,
+      down: false,
+      invuln: false,
+    };
     window.__GK__ = {
       ready: true,
-      player: {
-        x: this.body.x,
-        y: pb.bottom,
-        crouching: this.motor.crouching,
-        aim: this.motor.aim,
-        facing: this.motor.facing,
-      },
+      screen: 'range',
+      mode: this.mode,
+      player,
+      players: [player],
       bullets: this.bullets.length,
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
