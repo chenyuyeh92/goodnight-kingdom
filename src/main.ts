@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
-import { TestRangeScene } from './scenes/TestRangeScene';
+import { createTuningStore, type StorageLike } from './config/tuning';
+import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
+import { mountTuningPanel } from './ui/tuningPanel';
 
 export interface GkDebug {
   ready: boolean;
@@ -15,7 +17,19 @@ declare global {
   }
 }
 
-new Phaser.Game({
+function safeLocalStorage(): StorageLike | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+const tuneMode = new URLSearchParams(location.search).get('tune') === '1';
+const store = createTuningStore(tuneMode ? safeLocalStorage() : null);
+if (tuneMode) mountTuningPanel(store, document.body);
+
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   width: 960,
   height: 540,
@@ -24,5 +38,7 @@ new Phaser.Game({
   pixelArt: false,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
-  scene: [TestRangeScene],
 });
+
+const data: TestRangeData = { getTuning: () => store.get() };
+game.scene.add('TestRange', TestRangeScene, true, data);

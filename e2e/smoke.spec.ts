@@ -80,3 +80,41 @@ test.describe('測試靶場操作', () => {
     expect((await player(page)).x - x0).toBeGreaterThan(50);
   });
 });
+
+test.describe('手感調整面板', () => {
+  test('沒有 ?tune=1 時沒有面板', async ({ page }) => {
+    await openGame(page);
+    await expect(page.locator('#tuning-panel')).toHaveCount(0);
+  });
+
+  test('?tune=1 時有面板,改走路速度會生效', async ({ page }) => {
+    await openGame(page, './?tune=1');
+    await expect(page.locator('#tuning-panel')).toHaveCount(1);
+    await page.locator('#tuning-panel input[type=number][data-key=walkSpeed]').fill('400');
+    await page.locator('#tuning-panel input[type=number][data-key=walkSpeed]').dispatchEvent('change');
+    await page.locator('canvas').click();
+    await page.waitForTimeout(300);
+    const x0 = (await player(page)).x;
+    await hold(page, 'KeyD', 500);
+    expect((await player(page)).x - x0).toBeGreaterThan(120);
+  });
+
+  test('按「重設」回到預設值', async ({ page }) => {
+    await openGame(page, './?tune=1');
+    const field = page.locator('#tuning-panel input[type=number][data-key=walkSpeed]');
+    await field.fill('300');
+    await field.dispatchEvent('change');
+    await page.locator('#tuning-panel button', { hasText: '重設' }).click();
+    await expect(field).toHaveValue('180');
+  });
+
+  test('在面板輸入時角色不會移動', async ({ page }) => {
+    await openGame(page, './?tune=1');
+    await page.waitForFunction(() => window.__GK__?.player !== undefined);
+    const field = page.locator('#tuning-panel input[type=number][data-key=walkSpeed]');
+    await field.focus();
+    const x0 = (await player(page)).x;
+    await hold(page, 'ArrowRight', 400);
+    expect((await player(page)).x).toBe(x0);
+  });
+});
