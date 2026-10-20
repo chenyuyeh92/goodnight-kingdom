@@ -109,7 +109,7 @@ export class PlayerEntity {
     const blinking = !down && this.health.invulnMs > 0 && Math.floor(timeMs / BLINK_MS) % 2 === 0;
     this.sprite.setAlpha(down ? 0.5 : blinking ? 0.3 : 1);
     this.tag?.setPosition(this.zone.x, feetY - h - 4);
-    this.zzz.setVisible(down).setPosition(this.zone.x + 10, feetY - h - (this.tag ? 22 : 4));
+    this.zzz.setVisible(down).setPosition(this.zone.x + 28, feetY - h - 4);
   }
 
   debug(): PlayerDebug {

@@ -4,6 +4,8 @@ import { KeyboardSource } from '../input/keyboardSource';
 import { intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, minPlayerX } from '../game/camera';
 import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
+import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
+import { decideTeam, reachedCheckpoint } from '../game/team';
 
 const VIEW_W = 960;
 const WORLD_W = 3200;
@@ -32,6 +34,19 @@ const TERRAIN: ReadonlyArray<{ x: number; y: number; w: number; h: number }> = [
   { x: 1300, y: 380, w: 200, h: 64 },
 ];
 
+/** 荊棘:x 起點與寬度,貼在地面上;都不在平台正下方,跳過時不會撞頭。 */
+const THORNS: ReadonlyArray<{ x: number; w: number }> = [
+  { x: 520, w: 60 },
+  { x: 1580, w: 60 },
+  { x: 2380, w: 80 },
+];
+const THORN_H = 16;
+const THORN_BOUNCE_VY = -350;
+
+const CHECKPOINTS: readonly number[] = [150, 1200, 2000];
+/** 復活時從畫面頂端掉下來,隊友在通道裡也不會卡進地形。 */
+const REVIVE_DROP_Y = 40;
+
 /** 練習靶:底部中央座標。 */
 const TARGETS: ReadonlyArray<{ x: number; bottom: number }> = [
   { x: 450, bottom: GROUND_Y },
@@ -49,6 +64,8 @@ const COLOR = {
   bullet: 0xbfe6ff,
   target: 0xf3e9d2,
   flash: 0xffffff,
+  thorn: 0x7a4a8c,
+  checkpoint: 0x4b4380,
 };
 
 interface Target {
@@ -88,11 +105,20 @@ export class TestRangeScene extends Phaser.Scene {
 
   private mode: PlayMode = 'single';
   private checkpointX = START_X;
+  private restarts = 0;
+  private testHooks = false;
+  private initData: TestRangeData = {};
+  private maxReachedX = START_X;
+  private restarting = false;
+  private hud!: Phaser.GameObjects.Text;
 
   init(data: TestRangeData): void {
+    this.initData = data ?? {};
     if (data?.getTuning) this.getTuning = data.getTuning;
     this.mode = data?.mode ?? 'single';
     this.checkpointX = data?.checkpointX ?? START_X;
+    this.restarts = data?.restarts ?? 0;
+    this.testHooks = data?.testHooks ?? false;
   }
 
   create(): void {
@@ -130,6 +156,13 @@ export class TestRangeScene extends Phaser.Scene {
         : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain })];
     this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), WORLD_W - VIEW_W);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
+    this.maxReachedX = startX;
+    this.restarting = false;
+
+    for (const cp of CHECKPOINTS) this.add.rectangle(cp, GROUND_Y - 30, 4, 60, COLOR.checkpoint).setDepth(-1);
+    const thorns = this.physics.add.staticGroup();
+    for (const t of THORNS) thorns.add(this.add.rectangle(t.x + t.w / 2, GROUND_Y - THORN_H / 2, t.w, THORN_H, COLOR.thorn));
+    for (const p of this.players) this.physics.add.overlap(p.zone, thorns, () => this.hurtPlayer(p, true));
 
     this.bulletGroup = this.physics.add.group({ allowGravity: false });
     this.physics.add.collider(this.bulletGroup, this.terrain, (b) => this.removeBullet(b as Phaser.GameObjects.Arc));
@@ -144,6 +177,7 @@ export class TestRangeScene extends Phaser.Scene {
       })
       .setScrollFactor(0)
       .setDepth(10);
+    this.hud = this.add.text(16, 40, '', { fontSize: '20px', color: '#ffb3c7' }).setScrollFactor(0).setDepth(10);
 
     this.keyboard = new KeyboardSource(window, document);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.keyboard.destroy());
@@ -157,18 +191,60 @@ export class TestRangeScene extends Phaser.Scene {
     const intents = intentsForMode(this.keyboard.pressed(), this.mode);
 
     this.players.forEach((p, i) => {
+      p.health = tickHealth(p.health, dtMs);
       const shot = p.update(intents[i], dtMs, t);
       if (shot) this.spawnBullet(shot);
     });
     this.expireBullets();
+    this.handleTeam();
 
     const awake = this.players.filter((p) => !p.health.down);
     this.scrollX = advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, WORLD_W, CAMERA_LEAD, SCREEN_MARGIN);
     this.cameras.main.scrollX = this.scrollX;
     for (const p of awake) p.clampX(minPlayerX(this.scrollX, SCREEN_MARGIN), this.scrollX + VIEW_W - SCREEN_MARGIN);
+    for (const p of awake) this.maxReachedX = Math.max(this.maxReachedX, p.x);
     for (const p of this.players) p.render(time);
+    this.renderHud();
 
     this.publishDebug();
+  }
+
+  /** 無敵或睡著時不會受傷;碰到荊棘時小彈跳一下。 */
+  private hurtPlayer(p: PlayerEntity, bounce: boolean): void {
+    const r = applyHit(p.health);
+    p.health = r.health;
+    if (r.hit && bounce && !r.health.down) p.body().setVelocityY(THORN_BOUNCE_VY);
+  }
+
+  private handleTeam(): void {
+    if (this.restarting) return;
+    const action = decideTeam(this.players.map((p) => p.health));
+    if (action.kind === 'revive') {
+      const p = this.players[action.index];
+      const partner = this.players.find((q) => !q.health.down)!;
+      p.teleport(partner.x, REVIVE_DROP_Y);
+      p.health = freshHealth(REVIVE_INVULN_MS);
+    } else if (action.kind === 'restart') {
+      this.restarting = true;
+      this.scene.restart({
+        ...this.initData,
+        checkpointX: reachedCheckpoint(CHECKPOINTS, this.maxReachedX),
+        restarts: this.restarts + 1,
+      });
+    }
+  }
+
+  private renderHud(): void {
+    const labels = this.mode === 'duo' ? ['A', 'B'] : [''];
+    this.hud.setText(
+      this.players
+        .map((p, i) => {
+          const name = labels[i] ? `${labels[i]} ` : '';
+          if (p.health.down) return `${name}睡著了…`;
+          return name + '♥'.repeat(p.health.hearts) + '♡'.repeat(MAX_HEARTS - p.health.hearts);
+        })
+        .join('    '),
+    );
   }
 
   private spawnBullet(b: BulletSpawn): void {
@@ -235,6 +311,9 @@ export class TestRangeScene extends Phaser.Scene {
       mode: this.mode,
       player: players[0],
       players,
+      checkpointX: this.checkpointX,
+      restarts: this.restarts,
+      hurt: this.testHooks ? (i: number) => this.hurtPlayer(this.players[i], false) : undefined,
       bullets: this.bullets.length,
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,

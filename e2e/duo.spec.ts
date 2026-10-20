@@ -86,3 +86,99 @@ test.describe('雙人遊玩', () => {
     expect(s.players![1].x).toBeLessThanOrEqual(s.cameraX! + 944);
   });
 });
+
+/** 每 100ms 打一次直到睡著(無敵中的攻擊會被規則擋掉),不依賴真實時間與遊戲時間一致。 */
+async function hurtUntilDown(page: Page, indexes: number[]): Promise<void> {
+  const deadline = Date.now() + 20000;
+  while (!(await players(page)).every((p, i) => !indexes.includes(i) || p.down)) {
+    if (Date.now() > deadline) throw new Error('hurtUntilDown 逾時');
+    await page.evaluate((ids) => ids.forEach((i) => window.__GK__!.hurt!(i)), indexes);
+    await page.waitForTimeout(100);
+  }
+}
+
+/** 按住前進鍵並每 350ms 跳一下(跳過荊棘),直到條件成立。 */
+async function hopRight(page: Page, moveKeys: string[], jumpKeys: string[], until: (s: Awaited<ReturnType<typeof gk>>) => boolean): Promise<void> {
+  for (const k of moveKeys) await page.keyboard.down(k);
+  const deadline = Date.now() + 20000;
+  while (!until(await gk(page))) {
+    if (Date.now() > deadline) throw new Error('hopRight 逾時');
+    for (const k of jumpKeys) await page.keyboard.down(k);
+    await page.waitForTimeout(60);
+    for (const k of jumpKeys) await page.keyboard.up(k);
+    await page.waitForTimeout(290);
+  }
+  for (const k of moveKeys) await page.keyboard.up(k);
+}
+
+test.describe('愛心、睡著與重來', () => {
+  test('碰到荊棘會扣愛心', async ({ page }) => {
+    await openRange(page, './?mode=single');
+    await page.keyboard.down('KeyD');
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 2, undefined, { timeout: 6000 });
+    await page.keyboard.up('KeyD');
+  });
+
+  test('雙人:A 睡著,3 秒後在 B 身邊復活', async ({ page }) => {
+    await openRange(page, './?mode=duo&test=1');
+    await hurtUntilDown(page, [0]);
+    expect((await players(page))[0].down).toBe(true);
+    const x0 = (await players(page))[0].x;
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(1000);
+    await page.keyboard.up('KeyD');
+    expect((await players(page))[0].x).toBe(x0);
+    await page.waitForFunction(() => window.__GK__!.players![0].down === false, undefined, { timeout: 4500 });
+    const p = await players(page);
+    expect(p[0].hearts).toBe(3);
+    expect(p[0].invuln).toBe(true);
+    expect(Math.abs(p[0].x - p[1].x)).toBeLessThanOrEqual(1);
+  });
+
+  test('雙人:在低矮通道裡復活不會卡住', async ({ page }) => {
+    await openRange(page, './?mode=duo&test=1');
+    await hopRight(page, ['KeyD', 'ArrowRight'], ['KeyV', 'Period'], (s) => s.players![1].x > 1270);
+    await page.waitForTimeout(500);
+    await page.keyboard.down('ArrowDown');
+    await page.keyboard.down('ArrowRight');
+    await page.waitForFunction(() => window.__GK__!.players![1].x > 1360, undefined, { timeout: 5000 });
+    await page.keyboard.up('ArrowRight');
+    await hurtUntilDown(page, [0]);
+    await page.waitForFunction(() => window.__GK__!.players![0].down === false, undefined, { timeout: 4500 });
+    await page.waitForTimeout(1000);
+    const a = (await players(page))[0];
+    expect([480, 380]).toContain(Math.round(a.y));
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(300);
+    await page.keyboard.up('KeyD');
+    expect((await players(page))[0].x).not.toBe(a.x);
+    await page.keyboard.up('ArrowDown');
+  });
+
+  test('雙人:兩人都睡著就從檢查點重來', async ({ page }) => {
+    await openRange(page, './?mode=duo&test=1');
+    await hurtUntilDown(page, [0, 1]);
+    await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
+    const s = await gk(page);
+    expect(s.checkpointX).toBe(150);
+    for (const p of s.players!) {
+      expect(p.hearts).toBe(3);
+      expect(p.down).toBe(false);
+    }
+  });
+
+  test('單人:睡著會從到達過的檢查點重來,且只重來一次', async ({ page }) => {
+    await openRange(page, './?mode=single&test=1');
+    await hopRight(page, ['KeyD'], ['KeyV'], (s) => s.players![0].x > 1250);
+    await page.waitForTimeout(500);
+    await hurtUntilDown(page, [0]);
+    await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
+    await page.waitForTimeout(300);
+    const s = await gk(page);
+    expect(s.checkpointX).toBe(1200);
+    expect(Math.abs(s.players![0].x - 1200)).toBeLessThanOrEqual(5);
+    expect(s.cameraX).toBe(816);
+    await page.waitForTimeout(2000);
+    expect((await gk(page)).restarts).toBe(1);
+  });
+});
