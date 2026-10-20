@@ -182,3 +182,37 @@ test.describe('愛心、睡著與重來', () => {
     expect((await gk(page)).restarts).toBe(1);
   });
 });
+
+test('雙人:落後的人睡著時鏡頭不會瞬間跳動', async ({ page }) => {
+  await openRange(page, './?mode=duo&test=1');
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(3000);
+  await page.keyboard.up('ArrowRight');
+  // 先打到剩一顆、無敵結束,再在記錄開始的同一格打最後一下。
+  const deadline = Date.now() + 15000;
+  for (;;) {
+    const a = (await players(page))[0];
+    if (a.hearts === 1 && !a.invuln) break;
+    if (Date.now() > deadline) throw new Error('準備逾時');
+    if (a.hearts > 1) await page.evaluate(() => window.__GK__!.hurt!(0));
+    await page.waitForTimeout(100);
+  }
+  const jumps = await page.evaluate(
+    () =>
+      new Promise<number[]>((resolve) => {
+        const out: number[] = [];
+        let prev = window.__GK__!.cameraX!;
+        window.__GK__!.hurt!(0);
+        const tick = (): void => {
+          const now = window.__GK__!.cameraX!;
+          out.push(now - prev);
+          prev = now;
+          if (out.length < 90) requestAnimationFrame(tick);
+          else resolve(out);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  // 角色最快約 230px/s;一格(最多 50ms)不該超過 30px。
+  expect(Math.max(...jumps)).toBeLessThanOrEqual(30);
+});

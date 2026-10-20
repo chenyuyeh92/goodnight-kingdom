@@ -28,3 +28,8 @@ export function advanceTeamCamera(
   const wanted = advanceCamera(prevScrollX, focus, viewW, worldW, leadRatio);
   return Math.min(wanted, Math.max(prevScrollX, Math.min(...xs) - margin));
 }
+
+/** 限制鏡頭每格最多前進 maxStep,避免落後的隊友睡著時畫面瞬間跳過去。 */
+export function limitCameraStep(prevScrollX: number, targetScrollX: number, maxStep: number): number {
+  return Math.min(targetScrollX, prevScrollX + maxStep);
+}

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { DEFAULT_TUNING, MAX_DT_MS, type Tuning } from '../config/tuning';
 import { KeyboardSource } from '../input/keyboardSource';
-import { intentsForMode, type PlayMode } from '../input/playMode';
-import { advanceTeamCamera, minPlayerX } from '../game/camera';
+import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
+import { advanceTeamCamera, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
@@ -15,6 +15,8 @@ const SCREEN_MARGIN = 16;
 const CAMERA_LEAD = 0.4;
 const START_X = 150;
 const PARTNER_OFFSET_X = 40;
+/** 鏡頭最快是角色速度的 1.5 倍,平常跟得上,隊友睡著時不會瞬間跳動。 */
+const CAMERA_MAX_SPEED_RATIO = 1.5;
 
 const BULLET_LIFE_MS = 1000;
 const BULLET_SIZE = 10;
@@ -171,8 +173,8 @@ export class TestRangeScene extends Phaser.Scene {
     );
 
     this.add
-      .text(16, 12, 'A D 移動  W 上  S 蹲/下  C 射擊  V 跳躍(方向鍵 , . 也可以)', {
-        fontSize: '18px',
+      .text(16, 12, controlHint(this.mode), {
+        fontSize: this.mode === 'duo' ? '15px' : '18px',
         color: '#f3e9d2',
       })
       .setScrollFactor(0)
@@ -199,7 +201,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.handleTeam();
 
     const awake = this.players.filter((p) => !p.health.down);
-    this.scrollX = advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, WORLD_W, CAMERA_LEAD, SCREEN_MARGIN);
+    const target = advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, WORLD_W, CAMERA_LEAD, SCREEN_MARGIN);
+    const maxStep = (Math.max(t.walkSpeed, t.airSpeed) * CAMERA_MAX_SPEED_RATIO * dtMs) / 1000;
+    this.scrollX = limitCameraStep(this.scrollX, target, maxStep);
     this.cameras.main.scrollX = this.scrollX;
     for (const p of awake) p.clampX(minPlayerX(this.scrollX, SCREEN_MARGIN), this.scrollX + VIEW_W - SCREEN_MARGIN);
     for (const p of awake) this.maxReachedX = Math.max(this.maxReachedX, p.x);

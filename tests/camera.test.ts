@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { advanceCamera, advanceTeamCamera, minPlayerX } from '../src/game/camera';
+import { advanceCamera, advanceTeamCamera, limitCameraStep, minPlayerX } from '../src/game/camera';
 
 test('角色往前,鏡頭跟上', () => {
   expect(advanceCamera(0, 1000, 960, 3200, 0.4)).toBe(616);
@@ -36,5 +36,15 @@ describe('advanceTeamCamera', () => {
 
   test('不會往回', () => {
     expect(advanceTeamCamera(500, [200, 300], 960, 3200, 0.4, 16)).toBe(500);
+  });
+});
+
+describe('limitCameraStep', () => {
+  test('一格最多移動 maxStep', () => {
+    expect(limitCameraStep(1000, 1560, 10)).toBe(1010);
+  });
+
+  test('目標在範圍內就直接到', () => {
+    expect(limitCameraStep(1000, 1005, 10)).toBe(1005);
   });
 });
