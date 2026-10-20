@@ -9,6 +9,7 @@ const CSS = `
 #key-test .now { background: #2a2550; border-radius: 10px; padding: 12px; margin: 16px 0; }
 #key-test .held { font-size: 28px; min-height: 42px; letter-spacing: 2px; }
 #key-test ul { list-style: none; padding: 0; margin: 0; }
+#key-test h2 { font-size: 17px; margin: 20px 0 6px; }
 #key-test li { padding: 8px 12px; margin: 6px 0; border-radius: 8px; background: #2a2550; }
 #key-test li .keys { opacity: 0.7; margin-left: 8px; }
 #key-test li.ok { background: #2f5a45; }
@@ -43,10 +44,17 @@ export function mountKeyTest(parent: HTMLElement): void {
   const max = root.querySelector('.max') as HTMLElement;
   const list = root.querySelector('ul') as HTMLElement;
   const rows = new Map<string, HTMLElement>();
+  let group = '';
   for (const combo of KEY_COMBOS) {
+    if (combo.group !== group) {
+      group = combo.group;
+      const h = document.createElement('h2');
+      h.textContent = group;
+      list.append(h);
+    }
     const li = document.createElement('li');
     li.dataset.combo = combo.name;
-    li.textContent = combo.name;
+    li.textContent = combo.name.includes('|') ? combo.name.split('|')[1] : combo.name;
     const keys = document.createElement('span');
     keys.className = 'keys';
     keys.textContent = `(${combo.codes.map(keyLabel).join(' ')})`;

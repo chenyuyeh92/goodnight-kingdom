@@ -42,3 +42,21 @@ test('按鍵顯示名稱', () => {
   expect(keyLabel('Period')).toBe('.');
   expect(keyLabel('ShiftLeft')).toBe('ShiftLeft');
 });
+
+test('組合名稱不重複', () => {
+  const names = KEY_COMBOS.map((c) => c.name);
+  expect(new Set(names).size).toBe(names.length);
+});
+
+test('每組候選按鍵都有 4 個組合,含兩人同時', () => {
+  for (const label of ['J K', 'V B', 'C V', 'H J']) {
+    const group = KEY_COMBOS.filter((c) => c.group === `候選:射擊與跳躍改用 ${label}`);
+    expect(group).toHaveLength(4);
+    expect(group.some((c) => c.codes.length === 6)).toBe(true);
+  }
+});
+
+test('候選 J K 的「右 + 射擊 + 跳躍」用 D J K', () => {
+  const c = KEY_COMBOS.find((x) => x.group === '候選:射擊與跳躍改用 J K' && x.codes.length === 3 && x.codes.includes('KeyD'))!;
+  expect([...c.codes].sort()).toEqual(['KeyD', 'KeyJ', 'KeyK']);
+});
