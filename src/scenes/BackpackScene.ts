@@ -3,6 +3,7 @@ import { CHEST_RATES } from '../game/chest';
 import { createSaveStore } from '../game/save';
 import { MAX_STARS, SPECIAL_WEAPONS, WEAPONS, type SpecialWeaponId } from '../game/weapons';
 import type { TestRangeData } from './TestRangeScene';
+import { onMenuKey } from './menuKeys';
 
 /** 每把武器擅長對付什麼(企劃 5.2)。 */
 const BLURB: Record<SpecialWeaponId, string> = {
@@ -52,7 +53,7 @@ export class BackpackScene extends Phaser.Scene {
     const back = this.add.rectangle(480, 495, 160, 44, 0x3b3366).setInteractive({ useHandCursor: true });
     this.add.text(480, 495, '返回(Esc)', { fontSize: '20px', color: '#f3e9d2' }).setOrigin(0.5);
     back.on('pointerdown', () => this.leave());
-    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
+    onMenuKey(this, (e) => {
       if (e.code === 'Escape') this.leave();
     });
 

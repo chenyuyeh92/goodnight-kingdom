@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
 import { startLevel } from './LoadoutScene';
+import { onMenuKey } from './menuKeys';
 
 type Choice = PlayMode | 'backpack';
 
@@ -32,7 +33,7 @@ export class ModeSelectScene extends Phaser.Scene {
       bg.on('pointerout', () => bg.setFillStyle(0x3b3366));
       bg.on('pointerdown', () => this.choose(b.choice));
     }
-    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
+    onMenuKey(this, (e) => {
       const b = BUTTONS.find((x) => x.code === e.code);
       if (b) this.choose(b.choice);
     });

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { sessionData, type TestRangeData } from './TestRangeScene';
 import { startLevel } from './LoadoutScene';
+import { onMenuKey } from './menuKeys';
 
 export interface LevelCompleteData extends TestRangeData {
   levelName: string;
@@ -39,7 +40,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       bg.on('pointerout', () => bg.setFillStyle(0x3b3366));
       bg.on('pointerdown', b.go);
     }
-    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => buttons.find((b) => b.code === e.code)?.go());
+    onMenuKey(this, (e) => buttons.find((b) => b.code === e.code)?.go());
 
     window.__GK__ = { ready: true, screen: 'complete', summary: [...summary] };
   }

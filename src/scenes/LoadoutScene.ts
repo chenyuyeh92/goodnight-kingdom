@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { createSaveStore } from '../game/save';
 import { BASE_LOADOUT, SPECIAL_WEAPONS, WEAPONS, ammoCapacity, equip, type Loadout } from '../game/weapons';
 import type { TestRangeData } from './TestRangeScene';
+import { onMenuKey } from './menuKeys';
 
 const RARITY_COLOR: Record<string, string> = { R: '#ffffff', SR: '#7fb4ff', SSR: '#ffd24a', base: '#f3e9d2' };
 const ROW_H = 50;
@@ -69,8 +70,7 @@ export class LoadoutScene extends Phaser.Scene {
       .text(480, 510, '上下移動、C / 逗號 / Enter 確認,或按數字鍵、直接點選', { fontSize: '16px', color: '#f3e9d2' })
       .setOrigin(0.5);
 
-    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
-      if (e.repeat) return;
+    onMenuKey(this, (e) => {
       if (UP.has(e.code)) this.move(-1);
       else if (DOWN.has(e.code)) this.move(1);
       else if (CONFIRM.has(e.code)) this.pick(this.cursor);

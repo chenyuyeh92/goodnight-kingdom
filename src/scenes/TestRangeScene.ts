@@ -65,7 +65,9 @@ const BOSS_BAR_Y = 96;
 const BOSS_PHASE_TEXT_MS = 1500;
 /** 打倒關主後到結算畫面的時間。 */
 const BOSS_OUTRO_MS = 1500;
-const BOSS_IMPACT_SCALE = 3;
+/** 打倒關主:停頓 ×3、晃動 ×2。 */
+const BOSS_HIT_STOP_SCALE = 3;
+const BOSS_SHAKE_SCALE = 2;
 
 const THORN_H = 16;
 const THORN_BOUNCE_VY = -350;
@@ -244,8 +246,10 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.terrain = this.physics.add.staticGroup();
     const ground = { x: 0, y: GROUND_Y, w: this.level.worldW, h: WORLD_H - GROUND_Y };
+    let groundRect: Phaser.GameObjects.Rectangle | null = null;
     for (const t of [ground, ...this.level.terrain]) {
       const r = this.add.rectangle(t.x + t.w / 2, t.y + t.h / 2, t.w, t.h, COLOR.terrain);
+      groundRect ??= r;
       this.terrain.add(r);
       this.terrainBodies.add(r.body as Phaser.Physics.Arcade.StaticBody);
     }
@@ -295,8 +299,8 @@ export class TestRangeScene extends Phaser.Scene {
     for (const p of this.players) this.physics.add.overlap(p.zone, thorns, () => this.hurtPlayer(p, true));
 
     this.enemyGroup = this.physics.add.group();
-    // 貓頭鷹在空中自由飛,不被平台擋住。
-    this.physics.add.collider(this.enemyGroup, this.terrain, undefined, (e) => this.boss?.enemy.body !== e);
+    // 會飛的魔物(含貓頭鷹)只會被地面擋住,穿過平台與通道,不會卡在地形旁邊。
+    this.physics.add.collider(this.enemyGroup, this.terrain, undefined, (e, t) => !this.enemyFor(e)?.def.flying || t === groundRect);
     // 正在從地面冒出的魔物還看不見,不傷人也不會被打到。
     const solid = (_a: unknown, e: unknown): boolean => !this.enemyFor(e)?.emerging;
     for (const p of this.players) {
@@ -376,7 +380,7 @@ export class TestRangeScene extends Phaser.Scene {
       else if (r.kind === 'melee') this.performMelee(r.reach);
     });
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
-      this.enemies.filter((e) => !e.emerging).map((e) => ({ x: e.body.x, y: e.body.y })),
+      this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
     this.updateEnemies(dtMs, t);
     this.updateBoss(dtMs, time);
@@ -410,7 +414,8 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private handleTeam(): void {
-    if (this.restarting) return;
+    // 打倒關主後就算全員睡著也不重來,直接進結算。
+    if (this.restarting || this.bossDefeated) return;
     const action = decideTeam(this.players.map((p) => p.health));
     if (action.kind === 'revive') {
       const p = this.players[action.index];
@@ -747,17 +752,17 @@ export class TestRangeScene extends Phaser.Scene {
     this.removeEnemy(enemy);
   }
 
-  /** 貓頭鷹睡著:加重的效果,小怪與羽毛一起消失,稍後進入結算。 */
+  /** 貓頭鷹睡著:加重的效果,場上魔物與羽毛一起消失,稍後進入結算。 */
   private defeatBoss(boss: Boss): void {
     this.enemiesDefeated += 1;
     this.bossDefeated = true;
     this.boss = null;
     const { x, y } = boss.enemy.body;
-    this.playDefeatEffect(x, y, BOSS_IMPACT_SCALE);
+    this.playDefeatEffect(x, y, BOSS_HIT_STOP_SCALE, BOSS_SHAKE_SCALE);
     const zzz = this.add.text(x, y - 30, 'Zzz', { fontSize: '48px', color: '#f3e9d2' }).setOrigin(0.5);
     this.tweens.add({ targets: zzz, y: zzz.y - 80, alpha: 0, duration: ZZZ_MS * 2, onComplete: () => zzz.destroy() });
-    this.removeEnemy(boss.enemy);
-    for (const m of boss.minions) if (this.enemies.includes(m)) this.removeEnemy(m);
+    // 森林裡所有魔物一起睡著。
+    for (const e of [...this.enemies]) this.removeEnemy(e);
     this.shots.clear();
     this.bossName.setText('');
     this.bossBarBg.setVisible(false);
@@ -787,20 +792,20 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 打倒時的回饋:Zzz 飄走、短暫停頓、輕微晃動。 */
-  private playDefeatEffect(x: number, y: number, impactScale = 1): void {
+  private playDefeatEffect(x: number, y: number, impactScale = 1, shakeScale = impactScale): void {
     const zzz = this.add.text(x, y - 10, 'Zzz', { fontSize: '22px', color: '#f3e9d2' }).setOrigin(0.5);
     this.tweens.add({ targets: zzz, y: zzz.y - 50, alpha: 0, duration: ZZZ_MS, onComplete: () => zzz.destroy() });
-    this.impact(impactScale);
+    this.impact(impactScale, shakeScale);
   }
 
   /** 打擊停頓與畫面晃動;scale 放大揮擊的份量感。 */
-  private impact(scale: number): void {
+  private impact(scale: number, shakeScale = scale): void {
     const t = this.getTuning();
     if (t.hitStopMs > 0 && !this.physics.world.isPaused) {
       this.physics.world.pause();
       this.time.delayedCall(t.hitStopMs * scale, () => this.physics.world.resume());
     }
-    if (t.shakeMs > 0) this.cameras.main.shake(t.shakeMs * scale, t.shakeIntensity * scale);
+    if (t.shakeMs > 0) this.cameras.main.shake(t.shakeMs * shakeScale, t.shakeIntensity * shakeScale);
   }
 
   private hitTarget(target: Target, damage: number): void {

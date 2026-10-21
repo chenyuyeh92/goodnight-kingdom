@@ -24,7 +24,7 @@ const VIEW_W = 960;
 
 test('森林:三段加關主,每段開頭有檢查點', () => {
   expect(F.worldW).toBe(5600);
-  expect(F.checkpoints).toEqual([150, 1550, 3050, 4500]);
+  expect(F.checkpoints).toEqual([150, 1700, 3050, 4500]);
   expect(F.targets).toHaveLength(0);
 });
 
@@ -50,6 +50,15 @@ test('森林:低矮通道蹲得過、站不過', () => {
     const gap = 480 - (c.y + c.h);
     expect(gap).toBeGreaterThan(28);
     expect(gap).toBeLessThan(48);
+    // 跳躍高度約 145,通道頂端要高到跳不上去,只能蹲著過。
+    expect(480 - c.y).toBeGreaterThanOrEqual(170);
+  }
+});
+
+test('森林:戰鬥區鎖住時走不到下一個檢查點', () => {
+  for (const a of F.arenas) {
+    const reachable = a.lockScrollX + VIEW_W;
+    for (const cp of F.checkpoints) expect(cp <= a.lockScrollX || cp > reachable).toBe(true);
   }
 });
 

@@ -132,6 +132,40 @@ test.describe('通關結算', () => {
     expect(text).toContain('哄睡魔物 2 隻');
   });
 
+  test('最後一擊時全員睡著,還是進結算而不是重來', async ({ page }) => {
+    await openForest(page);
+    await enterBoss(page);
+    await hurtUntilDown(page);
+    await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
+    await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
+    expect((await gk(page)).summary!.join('\n')).toContain('睡著重來 0 次');
+  });
+
+  test('一擊打到 0 血直接倒下,不進入暴躁', async ({ page }) => {
+    await openForest(page);
+    await enterBoss(page);
+    await page.evaluate(() => window.__GK__!.hurtBoss!(60));
+    await page.waitForFunction(() => window.__GK__!.bossDefeated === true);
+    const s = await gk(page);
+    expect(s.bossDefeated).toBe(true);
+    expect(s.boss).toBeNull();
+  });
+
+  test('打倒貓頭鷹時場上魔物與羽毛全部消失', async ({ page }) => {
+    await openForest(page);
+    await enterBoss(page);
+    await page.waitForFunction(() => (window.__GK__!.enemyShots ?? 0) > 0, undefined, { timeout: 4000 });
+    await page.evaluate(() => {
+      window.__GK__!.spawn!('alarmBug', 4800);
+      window.__GK__!.spawn!('nightBat', 5000);
+      window.__GK__!.hurtBoss!(9999);
+    });
+    await page.waitForFunction(() => window.__GK__!.bossDefeated === true);
+    const s = await gk(page);
+    expect(s.enemies).toHaveLength(0);
+    expect(s.enemyShots).toBe(0);
+  });
+
   test('打倒貓頭鷹後不會再受傷', async ({ page }) => {
     await openForest(page);
     await enterBoss(page);
