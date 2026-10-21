@@ -19,6 +19,11 @@ export function openChest(rng: () => number, owned: Readonly<Partial<Record<Spec
   const rarity = rollRarity(rng());
   const pool = SPECIAL_WEAPONS.filter((id) => WEAPONS[id].rarity === rarity);
   const weapon = pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))];
+  return resultFor(weapon, owned);
+}
+
+/** 抽到某把武器時,依背包決定是新拿到、升星還是已滿三星。 */
+export function resultFor(weapon: SpecialWeaponId, owned: Readonly<Partial<Record<SpecialWeaponId, number>>>): ChestResult {
   const stars = owned[weapon] ?? 0;
   if (stars === 0) return { kind: 'new', weapon, stars: 1 };
   if (stars >= MAX_STARS) return { kind: 'maxed', weapon };

@@ -55,3 +55,12 @@ test('storage 為 null 時可運作', () => {
   store.setStars('sheepGun', 1);
   expect(store.get().weapons.sheepGun).toBe(1);
 });
+
+test('clear 清空背包並寫入', () => {
+  const m = memory();
+  const store = createSaveStore(m);
+  store.setStars('sheepGun', 2);
+  store.clear();
+  expect(store.get().weapons).toEqual({});
+  expect(createSaveStore(m).get().weapons).toEqual({});
+});

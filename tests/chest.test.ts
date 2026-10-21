@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { CHEST_RATES, openChest, rollRarity } from '../src/game/chest';
+import { CHEST_RATES, openChest, resultFor, rollRarity } from '../src/game/chest';
 import { SPECIAL_WEAPONS, WEAPONS } from '../src/game/weapons';
 
 function seq(...values: number[]): () => number {
@@ -41,4 +41,10 @@ test('等級內平均挑選', () => {
 
 test('機率總和為 1', () => {
   expect(CHEST_RATES.R + CHEST_RATES.SR + CHEST_RATES.SSR).toBeCloseTo(1);
+});
+
+test('resultFor:依背包決定新拿到、升星或已滿', () => {
+  expect(resultFor('moonLamp', {})).toEqual({ kind: 'new', weapon: 'moonLamp', stars: 1 });
+  expect(resultFor('moonLamp', { moonLamp: 2 })).toEqual({ kind: 'starUp', weapon: 'moonLamp', stars: 3 });
+  expect(resultFor('moonLamp', { moonLamp: 3 })).toEqual({ kind: 'maxed', weapon: 'moonLamp' });
 });

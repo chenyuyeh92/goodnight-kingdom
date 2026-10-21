@@ -30,6 +30,7 @@ export function sanitizeSave(raw: unknown): SaveData {
 export interface SaveStore {
   get(): SaveData;
   setStars(id: SpecialWeaponId, stars: number): void;
+  clear(): void;
 }
 
 /** 讀寫失敗(無痕模式、被封鎖)時照常運作,只是不保存。 */
@@ -42,15 +43,23 @@ export function createSaveStore(storage: StorageLike | null): SaveStore {
     current = emptySave();
   }
 
+  const write = (): void => {
+    try {
+      storage?.setItem(SAVE_KEY, JSON.stringify(current));
+    } catch {
+      // 不保存也能玩
+    }
+  };
+
   return {
     get: () => current,
     setStars(id, stars) {
       current = { ...current, weapons: { ...current.weapons, [id]: Math.min(Math.max(stars, 1), MAX_STARS) } };
-      try {
-        storage?.setItem(SAVE_KEY, JSON.stringify(current));
-      } catch {
-        // 不保存也能玩
-      }
+      write();
+    },
+    clear() {
+      current = emptySave();
+      write();
     },
   };
 }

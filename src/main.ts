@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createTuningStore, type StorageLike } from './config/tuning';
+import { createSaveStore } from './game/save';
 import type { EnemyPhase, EnemyType } from './game/enemies';
 import type { Aim, Facing } from './game/playerMotor';
 import type { SpecialWeaponId, WeaponId } from './game/weapons';
@@ -54,6 +55,14 @@ export interface GkDebug {
   meleeSwings?: number;
   giveWeapon?: (index: number, id: SpecialWeaponId, stars?: number) => void;
   giveItem?: (index: number, item: ItemId) => void;
+  rigChest?: (weapon: SpecialWeaponId) => void;
+  rigDrop?: (item: ItemId) => void;
+  clearSave?: () => void;
+  backpack?: Partial<Record<SpecialWeaponId, number>>;
+  chestsOpened?: number;
+  lastChest?: 'new' | 'starUp' | 'maxed' | null;
+  /** 場上的道具數。 */
+  items?: number;
   arena?: { locked: boolean; wave: number; nextArena: number };
   spawn?: (type: EnemyType, x: number, y?: number) => void;
   defeatAll?: () => void;
@@ -103,7 +112,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
   });
 
-  const data: TestRangeData = { getTuning: () => store.get(), testHooks };
+  const save = createSaveStore(safeLocalStorage());
+  const data: TestRangeData = { getTuning: () => store.get(), testHooks, save };
   game.scene.add('TestRange', TestRangeScene, false);
   game.scene.add('ModeSelect', ModeSelectScene, false);
   if (mode) game.scene.start('TestRange', { ...data, mode });

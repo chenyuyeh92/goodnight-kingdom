@@ -5,8 +5,10 @@ import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
-import { equip, type SpecialWeaponId } from '../game/weapons';
-import { applyItem, type ItemId } from '../game/items';
+import { BASE_LOADOUT, WEAPONS, equip, type Loadout, type SpecialWeaponId } from '../game/weapons';
+import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
+import { createSaveStore, type SaveStore } from '../game/save';
+import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
 import { weaponHud } from '../game/hud';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
@@ -111,6 +113,27 @@ const CHECKPOINTS: readonly number[] = [150, 1200, 2000];
 /** 復活時從畫面頂端掉下來,隊友在通道裡也不會卡進地形。 */
 const REVIVE_DROP_Y = 40;
 
+/** 寶箱:底部中央座標。隱藏寶箱在高平台上。 */
+const CHESTS: ReadonlyArray<{ x: number; bottom: number }> = [
+  { x: 900, bottom: GROUND_Y },
+  { x: 1100, bottom: 300 },
+  { x: 2600, bottom: GROUND_Y },
+];
+const CHEST_W = 32;
+const CHEST_H = 24;
+const CHEST_POPUP_MS = 2000;
+const ITEM_SIZE = 16;
+const ITEM_LIFE_MS = 8000;
+const ITEM_BLINK_MS = 2000;
+const ITEM_POPUP_MS = 1000;
+const RARITY_COLOR: Record<string, string> = { R: '#ffffff', SR: '#7fb4ff', SSR: '#ffd24a' };
+const ITEM_COLOR: Record<ItemId, number> = {
+  hotCocoa: 0x8b5e3c,
+  shootingStar: 0xffe08a,
+  smallPillow: 0xf6d6e8,
+  milkBottle: 0xffffff,
+};
+
 /** 練習靶:底部中央座標。 */
 const TARGETS: ReadonlyArray<{ x: number; bottom: number }> = [
   { x: 450, bottom: GROUND_Y },
@@ -138,7 +161,21 @@ interface Target {
 }
 
 
+interface Chest {
+  rect: Phaser.GameObjects.Rectangle;
+  opened: boolean;
+}
+
+interface ItemPickup {
+  rect: Phaser.GameObjects.Rectangle;
+  id: ItemId;
+  bornAt: number;
+}
+
 export interface TestRangeData {
+  save?: SaveStore;
+  /** 重來時保留每位玩家手上的武器與剩餘彈藥。 */
+  loadouts?: Loadout[];
   getTuning?: () => Tuning;
   mode?: PlayMode;
   checkpointX?: number;
@@ -163,6 +200,14 @@ export class TestRangeScene extends Phaser.Scene {
   private meleeHits = 0;
   private meleeSwings = 0;
   private encounters: EncounterState = initialEncounters();
+  private save: SaveStore = createSaveStore(null);
+  private chests: Chest[] = [];
+  private chestsOpened = 0;
+  private lastChest: ChestResult['kind'] | null = null;
+  private pickups: ItemPickup[] = [];
+  private pickupGroup!: Phaser.Physics.Arcade.Group;
+  private riggedChest: SpecialWeaponId | null = null;
+  private riggedDrop: ItemId | null = null;
   private lockScrollX: number | null = null;
   private arenaHud!: Phaser.GameObjects.Text;
   private goHintUntil = 0;
@@ -188,6 +233,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.checkpointX = data?.checkpointX ?? START_X;
     this.restarts = data?.restarts ?? 0;
     this.testHooks = data?.testHooks ?? false;
+    this.save = data?.save ?? createSaveStore(null);
   }
 
   create(): void {
@@ -199,6 +245,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.meleeSwings = 0;
     this.encounters = initialEncounters();
     this.lockScrollX = null;
+    this.chests = [];
+    this.chestsOpened = 0;
+    this.lastChest = null;
+    this.pickups = [];
     this.goHintUntil = 0;
     this.targetsHit = 0;
     this.scrollX = 0;
@@ -233,6 +283,20 @@ export class TestRangeScene extends Phaser.Scene {
     this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), WORLD_W - VIEW_W);
     this.encounters = initialEncounters(this.scrollX, TRICKLES);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
+    this.players.forEach((p, i) => (p.loadout = { ...(this.initData.loadouts?.[i] ?? BASE_LOADOUT) }));
+
+    const chestGroup = this.physics.add.staticGroup();
+    for (const c of CHESTS) {
+      const rect = this.add.rectangle(c.x, c.bottom - CHEST_H / 2, CHEST_W, CHEST_H, 0xc98b4f).setStrokeStyle(2, 0xffe08a);
+      chestGroup.add(rect);
+      this.chests.push({ rect, opened: false });
+    }
+    this.pickupGroup = this.physics.add.group();
+    this.physics.add.collider(this.pickupGroup, this.terrain);
+    for (const p of this.players) {
+      this.physics.add.overlap(p.zone, chestGroup, (_z, c) => this.touchChest(p, c));
+      this.physics.add.overlap(p.zone, this.pickupGroup, (_z, i) => this.touchPickup(p, i));
+    }
     this.maxReachedX = startX;
     this.restarting = false;
 
@@ -288,6 +352,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.enemies.filter((e) => !e.emerging).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
     this.updateEnemies(dtMs, t);
+    this.updatePickups(time);
     this.handleTeam();
 
     const awake = this.players.filter((p) => !p.health.down);
@@ -328,6 +393,7 @@ export class TestRangeScene extends Phaser.Scene {
         ...this.initData,
         checkpointX: reachedCheckpoint(CHECKPOINTS, this.maxReachedX),
         restarts: this.restarts + 1,
+        loadouts: this.players.map((p) => p.loadout),
       });
     }
   }
@@ -398,8 +464,72 @@ export class TestRangeScene extends Phaser.Scene {
     this.tweens.add({ targets: mound, alpha: 0, delay: EMERGE_MS, duration: EMERGE_MS, onComplete: () => mound.destroy() });
   }
 
+  /** 醒著的玩家碰到未開的寶箱就打開;同一格只有第一個處理到的人拿到。 */
+  private touchChest(p: PlayerEntity, obj: unknown): void {
+    const chest = this.chests.find((c) => c.rect === obj);
+    if (!chest || chest.opened || p.health.down) return;
+    chest.opened = true;
+    this.chestsOpened += 1;
+    chest.rect.setFillStyle(0x5a4636).setAlpha(0.6);
+
+    const owned = this.save.get().weapons;
+    const result = this.riggedChest ? resultFor(this.riggedChest, owned) : openChest(Math.random, owned);
+    this.riggedChest = null;
+    this.lastChest = result.kind;
+    if (result.kind === 'maxed') {
+      this.dropItem('milkBottle', chest.rect.x, chest.rect.y - CHEST_H);
+    } else {
+      this.save.setStars(result.weapon, result.stars);
+      p.loadout = equip(result.weapon, result.stars);
+    }
+
+    const def = WEAPONS[result.weapon];
+    const stars = result.kind === 'maxed' ? 3 : result.stars;
+    const line = `${def.rarity} ${def.name} ${'★'.repeat(stars)}${result.kind === 'maxed' ? '(已滿,改給牛奶瓶)' : ''}`;
+    const rates = `機率 R ${CHEST_RATES.R * 100}% / SR ${CHEST_RATES.SR * 100}% / SSR ${CHEST_RATES.SSR * 100}%`;
+    const title = this.add
+      .text(chest.rect.x, chest.rect.y - 96, line, { fontSize: '20px', color: RARITY_COLOR[def.rarity] })
+      .setOrigin(0.5)
+      .setDepth(8);
+    const sub = this.add.text(chest.rect.x, chest.rect.y - 74, rates, { fontSize: '12px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(8);
+    this.tweens.add({ targets: [title, sub], alpha: 0, delay: CHEST_POPUP_MS - 400, duration: 400, onComplete: () => [title, sub].forEach((o) => o.destroy()) });
+  }
+
+  private dropItem(id: ItemId, x: number, y: number): void {
+    const rect = this.add.rectangle(x, y, ITEM_SIZE, ITEM_SIZE, ITEM_COLOR[id]).setStrokeStyle(1, 0x2a2550);
+    this.pickupGroup.add(rect);
+    (rect.body as Phaser.Physics.Arcade.Body).setGravityY(this.getTuning().gravity);
+    this.pickups.push({ rect, id, bornAt: this.time.now });
+  }
+
+  private touchPickup(p: PlayerEntity, obj: unknown): void {
+    const pickup = this.pickups.find((i) => i.rect === obj);
+    if (!pickup || p.health.down) return;
+    this.applyItemTo(p, pickup.id);
+    const label = this.add
+      .text(pickup.rect.x, pickup.rect.y - 20, ITEM_NAMES[pickup.id], { fontSize: '16px', color: '#ffe08a' })
+      .setOrigin(0.5)
+      .setDepth(8);
+    this.tweens.add({ targets: label, y: label.y - 20, alpha: 0, duration: ITEM_POPUP_MS, onComplete: () => label.destroy() });
+    this.removePickup(pickup);
+  }
+
+  /** 道具 8 秒後消失,最後 2 秒閃爍。 */
+  private updatePickups(time: number): void {
+    for (const pickup of [...this.pickups]) {
+      const age = this.time.now - pickup.bornAt;
+      if (age > ITEM_LIFE_MS) this.removePickup(pickup);
+      else if (age > ITEM_LIFE_MS - ITEM_BLINK_MS) pickup.rect.setAlpha(Math.floor(time / 100) % 2 ? 0.3 : 1);
+    }
+  }
+
+  private removePickup(pickup: ItemPickup): void {
+    this.pickups = this.pickups.filter((i) => i !== pickup);
+    pickup.rect.destroy();
+  }
+
   private applyItemTo(p: PlayerEntity, item: ItemId): void {
-    const stars = 1;
+    const stars = p.loadout.special ? (this.save.get().weapons[p.loadout.special] ?? 1) : 1;
     const r = applyItem(item, { health: p.health, loadout: p.loadout, buffs: p.buffs, stars });
     p.health = r.health;
     p.loadout = r.loadout;
@@ -498,6 +628,9 @@ export class TestRangeScene extends Phaser.Scene {
   private defeatEnemy(enemy: EnemyEntity, impactScale = 1): void {
     this.enemiesDefeated += 1;
     this.playDefeatEffect(enemy.body.x, enemy.body.y, impactScale);
+    const drop = this.riggedDrop ?? rollDrop(Math.random);
+    this.riggedDrop = null;
+    if (drop) this.dropItem(drop, enemy.body.x, enemy.body.y);
     this.removeEnemy(enemy);
   }
 
@@ -563,6 +696,13 @@ export class TestRangeScene extends Phaser.Scene {
         ? (i: number, id: SpecialWeaponId, stars?: number) => void (this.players[i].loadout = equip(id, stars ?? 1))
         : undefined,
       giveItem: this.testHooks ? (i: number, item: ItemId) => this.applyItemTo(this.players[i], item) : undefined,
+      rigChest: this.testHooks ? (w: SpecialWeaponId) => void (this.riggedChest = w) : undefined,
+      rigDrop: this.testHooks ? (item: ItemId) => void (this.riggedDrop = item) : undefined,
+      clearSave: this.testHooks ? () => this.save.clear() : undefined,
+      backpack: this.save.get().weapons,
+      chestsOpened: this.chestsOpened,
+      lastChest: this.lastChest,
+      items: this.pickups.length,
       spawn: this.testHooks ? (type: EnemyType, x: number, y?: number) => void this.spawnEnemy(type, x, y) : undefined,
       defeatAll: this.testHooks ? () => [...this.enemies].forEach((e) => this.defeatEnemy(e)) : undefined,
       warp: this.testHooks ? (x: number) => this.warp(x) : undefined,

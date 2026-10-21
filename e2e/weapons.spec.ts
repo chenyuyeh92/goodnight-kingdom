@@ -134,3 +134,87 @@ test.describe('武器', () => {
     expect((await gk(page)).players![0].ammo).toBe(30);
   });
 });
+
+async function hurtUntilDown(page: Page, i = 0): Promise<void> {
+  const deadline = Date.now() + 20000;
+  while (!(await gk(page)).players![i].down) {
+    if (Date.now() > deadline) throw new Error('hurtUntilDown 逾時');
+    await page.evaluate((n) => window.__GK__!.hurt!(n), i);
+    await page.waitForTimeout(100);
+  }
+}
+
+/** 移到寶箱左邊往右走,直到開箱。 */
+async function openChestAt900(page: Page, rig: string): Promise<void> {
+  await page.evaluate((w) => window.__GK__!.rigChest!(w as never), rig);
+  const before = (await gk(page)).chestsOpened!;
+  await page.evaluate(() => window.__GK__!.warp!(860));
+  await page.keyboard.down('KeyD');
+  await page.waitForFunction((n) => window.__GK__!.chestsOpened! > n, before, { timeout: 3000 });
+  await page.keyboard.up('KeyD');
+}
+
+test.describe('寶箱、道具與背包', () => {
+  test('走到寶箱會打開並換上武器,背包記住', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => window.__GK__!.clearSave!());
+    await openChestAt900(page, 'sheepGun');
+    const s = await gk(page);
+    expect(s.players![0].weapon).toBe('sheepGun');
+    expect(s.backpack!.sheepGun).toBe(1);
+    expect(s.lastChest).toBe('new');
+    await page.reload();
+    await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
+    expect((await gk(page)).backpack!.sheepGun).toBe(1);
+  });
+
+  test('重複抽到升星,三星後改給牛奶瓶', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => window.__GK__!.clearSave!());
+    for (let round = 1; round <= 4; round++) {
+      await openChestAt900(page, 'sheepGun');
+      const s = await gk(page);
+      expect(s.backpack!.sheepGun).toBe(Math.min(round, 3));
+      expect(s.lastChest).toBe(round === 1 ? 'new' : round <= 3 ? 'starUp' : 'maxed');
+      const restarts = s.restarts!;
+      await hurtUntilDown(page);
+      await page.waitForFunction((r) => window.__GK__!.restarts === r + 1, restarts, { timeout: 3000 });
+    }
+  });
+
+  test('兩人同時碰到同一個寶箱只有一人拿到', async ({ page }) => {
+    await open(page, './?mode=duo&test=1');
+    await page.evaluate(() => window.__GK__!.rigChest!('pillowCannon'));
+    await page.evaluate(() => window.__GK__!.warp!(880));
+    await page.waitForFunction(() => window.__GK__!.chestsOpened === 1, undefined, { timeout: 3000 });
+    await page.waitForTimeout(300);
+    const s = await gk(page);
+    expect(s.chestsOpened).toBe(1);
+    expect(s.players!.filter((p) => p.weapon === 'pillowCannon')).toHaveLength(1);
+  });
+
+  test('魔物掉出的道具可以撿', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => window.__GK__!.rigDrop!('smallPillow'));
+    await page.evaluate(() => window.__GK__!.hurt!(0));
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 2);
+    await spawn(page, 'alarmBug', 330);
+    await page.keyboard.down('KeyC');
+    await page.waitForFunction(() => window.__GK__!.enemiesDefeated === 1, undefined, { timeout: 4000 });
+    await page.keyboard.up('KeyC');
+    await page.waitForFunction(() => window.__GK__!.items === 1, undefined, { timeout: 1000 });
+    await page.keyboard.down('KeyD');
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 3, undefined, { timeout: 4000 });
+    await page.keyboard.up('KeyD');
+    expect((await gk(page)).items).toBe(0);
+  });
+
+  test('存檔壞掉時遊戲照常', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('gk.save.v1', '{bad'));
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await open(page);
+    expect((await gk(page)).backpack).toEqual({});
+    expect(errors).toEqual([]);
+  });
+});
