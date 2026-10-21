@@ -218,3 +218,27 @@ test.describe('寶箱、道具與背包', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('背包畫面', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('gk.save.v1', JSON.stringify({ version: 1, weapons: { sheepGun: 2 } })));
+    await page.goto('./');
+    await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
+    await page.locator('canvas').click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press('Digit3');
+    await page.waitForFunction(() => window.__GK__?.screen === 'backpack');
+  });
+
+  test('背包顯示拿到的武器與星等', async ({ page }) => {
+    const text = (await gk(page)).backpackText!.join('\n');
+    expect(text).toContain('數羊機槍');
+    expect(text).toContain('★★☆');
+    expect(text).toContain('???');
+    expect(text).toContain('R 70%');
+  });
+
+  test('按 Escape 回到開場選單', async ({ page }) => {
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => window.__GK__?.screen === 'mode-select');
+  });
+});

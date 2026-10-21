@@ -33,7 +33,7 @@ test.describe('開場選單', () => {
     await page.goto('./');
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     const box = (await page.locator('canvas').boundingBox())!;
-    await page.mouse.click(box.x + (340 / 960) * box.width, box.y + (330 / 540) * box.height);
+    await page.mouse.click(box.x + (240 / 960) * box.width, box.y + (330 / 540) * box.height);
     await page.waitForFunction(() => window.__GK__?.screen === 'range');
     const s = await gk(page);
     expect(s.mode).toBe('single');

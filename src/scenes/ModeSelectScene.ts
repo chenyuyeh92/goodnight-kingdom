@@ -2,9 +2,12 @@ import Phaser from 'phaser';
 import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
 
-const BUTTONS: ReadonlyArray<{ mode: PlayMode; x: number; label: string; code: string }> = [
-  { mode: 'single', x: 340, label: '單人(按 1)', code: 'Digit1' },
-  { mode: 'duo', x: 620, label: '雙人(按 2)', code: 'Digit2' },
+type Choice = PlayMode | 'backpack';
+
+const BUTTONS: ReadonlyArray<{ choice: Choice; x: number; label: string; code: string }> = [
+  { choice: 'single', x: 240, label: '單人(按 1)', code: 'Digit1' },
+  { choice: 'duo', x: 480, label: '雙人(按 2)', code: 'Digit2' },
+  { choice: 'backpack', x: 720, label: '背包(按 3)', code: 'Digit3' },
 ];
 const BUTTON_Y = 330;
 
@@ -26,16 +29,17 @@ export class ModeSelectScene extends Phaser.Scene {
       this.add.text(b.x, BUTTON_Y, b.label, { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
       bg.on('pointerover', () => bg.setFillStyle(0x5a4f99));
       bg.on('pointerout', () => bg.setFillStyle(0x3b3366));
-      bg.on('pointerdown', () => this.choose(b.mode));
+      bg.on('pointerdown', () => this.choose(b.choice));
     }
     this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
       const b = BUTTONS.find((x) => x.code === e.code);
-      if (b) this.choose(b.mode);
+      if (b) this.choose(b.choice);
     });
     window.__GK__ = { ready: true, screen: 'mode-select' };
   }
 
-  private choose(mode: PlayMode): void {
-    this.scene.start('TestRange', { ...this.data_, mode });
+  private choose(choice: Choice): void {
+    if (choice === 'backpack') this.scene.start('Backpack', this.data_);
+    else this.scene.start('TestRange', { ...this.data_, mode: choice });
   }
 }

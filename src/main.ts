@@ -6,6 +6,7 @@ import type { Aim, Facing } from './game/playerMotor';
 import type { SpecialWeaponId, WeaponId } from './game/weapons';
 import type { ItemId } from './game/items';
 import { parsePlayMode, type PlayMode } from './input/playMode';
+import { BackpackScene } from './scenes/BackpackScene';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
 import { mountKeyTest } from './ui/keyTest';
@@ -40,7 +41,9 @@ export interface EnemyDebug {
 
 export interface GkDebug {
   ready: boolean;
-  screen?: 'mode-select' | 'range';
+  screen?: 'mode-select' | 'range' | 'backpack';
+  /** 背包畫面上的文字列,供測試讀取。 */
+  backpackText?: string[];
   mode?: PlayMode;
   /** 等於 players[0],保留給第一步的測試。 */
   player?: PlayerDebug;
@@ -116,6 +119,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   const data: TestRangeData = { getTuning: () => store.get(), testHooks, save };
   game.scene.add('TestRange', TestRangeScene, false);
   game.scene.add('ModeSelect', ModeSelectScene, false);
+  game.scene.add('Backpack', BackpackScene, false);
   if (mode) game.scene.start('TestRange', { ...data, mode });
   else game.scene.start('ModeSelect', data);
 }
