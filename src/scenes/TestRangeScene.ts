@@ -4,6 +4,7 @@ import { KeyboardSource } from '../input/keyboardSource';
 import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
+import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
 import { ENEMY_DEFS, bulletEffect, type EnemyType } from '../game/enemies';
@@ -42,6 +43,9 @@ const SIDE_SPAWN_MARGIN = 20;
 const TOP_SPAWN_Y = -30;
 const EMERGE_MS = 300;
 const GO_HINT_MS = 1500;
+const SWING_MS = 120;
+/** 揮擊命中的停頓與晃動比泡泡重。 */
+const MELEE_IMPACT_SCALE = 2;
 
 /** 移動途中零星出現的魔物。 */
 const TRICKLES: readonly TrickleDef[] = [
@@ -160,6 +164,8 @@ export class TestRangeScene extends Phaser.Scene {
   private enemyGroup!: Phaser.Physics.Arcade.Group;
   private enemiesDefeated = 0;
   private blockedShots = 0;
+  private meleeHits = 0;
+  private meleeSwings = 0;
   private encounters: EncounterState = initialEncounters();
   private lockScrollX: number | null = null;
   private arenaHud!: Phaser.GameObjects.Text;
@@ -194,6 +200,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.enemies = [];
     this.enemiesDefeated = 0;
     this.blockedShots = 0;
+    this.meleeHits = 0;
+    this.meleeSwings = 0;
     this.encounters = initialEncounters();
     this.lockScrollX = null;
     this.goHintUntil = 0;
@@ -285,8 +293,9 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.players.forEach((p, i) => {
       p.health = tickHealth(p.health, dtMs);
-      const shot = p.update(intents[i], dtMs, t);
-      if (shot) this.spawnBullet(shot);
+      const r = p.update(intents[i], dtMs, t, (reach) => this.findMeleeTarget(reach) !== null);
+      if (r.kind === 'bullet') this.spawnBullet(r.spawn);
+      else if (r.kind === 'melee') this.performMelee(r.reach);
     });
     this.expireBullets();
     this.updateEnemies(dtMs, t);
@@ -424,6 +433,46 @@ export class TestRangeScene extends Phaser.Scene {
     }
   }
 
+  /** 可以被揮擊的對象:已上場的魔物與還站著的練習靶。 */
+  private findMeleeTarget(reach: MeleeReach): EnemyEntity | Target | null {
+    const pool: (EnemyEntity | Target)[] = [
+      ...this.enemies.filter((e) => !e.emerging && e.hp > 0),
+      ...this.targets.filter((t) => t.hp > 0),
+    ];
+    const boxes: MeleeCandidate[] = pool.map((o) => {
+      const r = o instanceof EnemyEntity ? o.body : o.rect;
+      return { x: r.x, w: r.width, top: r.y - r.height / 2, bottom: r.y + r.height / 2 };
+    });
+    const i = meleeTarget(reach, boxes);
+    return i === null ? null : pool[i];
+  }
+
+  private performMelee(reach: MeleeReach): void {
+    const target = this.findMeleeTarget(reach);
+    if (!target) return;
+    this.meleeSwings += 1;
+    const swing = this.add
+      .ellipse(reach.x + reach.facing * (14 + MELEE_REACH / 2), reach.feetY - reach.h / 2, MELEE_REACH, reach.h, 0xffffff, 0.6)
+      .setDepth(5);
+    this.tweens.add({ targets: swing, alpha: 0, duration: SWING_MS, onComplete: () => swing.destroy() });
+
+    if (target instanceof EnemyEntity) {
+      if (bulletEffect(target.def, target.brain.facing, reach.facing, 0) === 'blocked') {
+        this.blockedShots += 1;
+        return;
+      }
+      this.meleeHits += 1;
+      target.hp = Math.max(0, target.hp - MELEE_DAMAGE);
+      target.flash();
+      if (target.hp === 0) this.defeatEnemy(target, MELEE_IMPACT_SCALE);
+      else this.impact(MELEE_IMPACT_SCALE);
+      return;
+    }
+    this.meleeHits += 1;
+    target.hp = Math.max(0, target.hp - MELEE_DAMAGE);
+    if (target.hp === 0) this.defeatTarget(target);
+  }
+
   private enemyFor(obj: unknown): EnemyEntity | undefined {
     return this.enemies.find((e) => e.body === obj);
   }
@@ -442,9 +491,9 @@ export class TestRangeScene extends Phaser.Scene {
     if (enemy.hp === 0) this.defeatEnemy(enemy);
   }
 
-  private defeatEnemy(enemy: EnemyEntity): void {
+  private defeatEnemy(enemy: EnemyEntity, impactScale = 1): void {
     this.enemiesDefeated += 1;
-    this.playDefeatEffect(enemy.body.x, enemy.body.y);
+    this.playDefeatEffect(enemy.body.x, enemy.body.y, impactScale);
     this.removeEnemy(enemy);
   }
 
@@ -454,15 +503,20 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 打倒時的回饋:Zzz 飄走、短暫停頓、輕微晃動。 */
-  private playDefeatEffect(x: number, y: number): void {
-    const t = this.getTuning();
+  private playDefeatEffect(x: number, y: number, impactScale = 1): void {
     const zzz = this.add.text(x, y - 10, 'Zzz', { fontSize: '22px', color: '#f3e9d2' }).setOrigin(0.5);
     this.tweens.add({ targets: zzz, y: zzz.y - 50, alpha: 0, duration: ZZZ_MS, onComplete: () => zzz.destroy() });
-    if (t.hitStopMs > 0) {
+    this.impact(impactScale);
+  }
+
+  /** 打擊停頓與畫面晃動;scale 放大揮擊的份量感。 */
+  private impact(scale: number): void {
+    const t = this.getTuning();
+    if (t.hitStopMs > 0 && !this.physics.world.isPaused) {
       this.physics.world.pause();
-      this.time.delayedCall(t.hitStopMs, () => this.physics.world.resume());
+      this.time.delayedCall(t.hitStopMs * scale, () => this.physics.world.resume());
     }
-    if (t.shakeMs > 0) this.cameras.main.shake(t.shakeMs, t.shakeIntensity);
+    if (t.shakeMs > 0) this.cameras.main.shake(t.shakeMs * scale, t.shakeIntensity * scale);
   }
 
   private spawnBullet(b: BulletSpawn): void {
@@ -537,6 +591,8 @@ export class TestRangeScene extends Phaser.Scene {
       enemies: this.enemies.map((e) => e.debug()),
       enemiesDefeated: this.enemiesDefeated,
       blockedShots: this.blockedShots,
+      meleeHits: this.meleeHits,
+      meleeSwings: this.meleeSwings,
       bullets: this.bullets.length,
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,

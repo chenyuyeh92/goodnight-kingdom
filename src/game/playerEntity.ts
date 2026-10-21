@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import type { Tuning } from '../config/tuning';
 import type { Intent } from '../input/intent';
 import type { PlayerDebug } from '../main';
-import { bulletVelocity, initialFireState, muzzleOffset, stepFire, type FireState } from './fire';
+import { bulletVelocity, muzzleOffset } from './fire';
+import { initialAttackState, stepAttack, type AttackState, type MeleeReach } from './melee';
 import { freshHealth, type Health } from './health';
 import { CROUCH_HITBOX, STAND_HITBOX, initialMotorState, stepMotor, type MotorState } from './playerMotor';
 
@@ -18,6 +19,11 @@ export interface PlayerEntityOptions {
   isTerrain: (body: unknown) => boolean;
 }
 
+export type AttackResult =
+  | { kind: 'none' }
+  | { kind: 'bullet'; spawn: BulletSpawn }
+  | { kind: 'melee'; reach: MeleeReach };
+
 export interface BulletSpawn {
   x: number;
   y: number;
@@ -29,7 +35,7 @@ export interface BulletSpawn {
 export class PlayerEntity {
   readonly zone: Phaser.GameObjects.Zone;
   motor: MotorState = initialMotorState();
-  fire: FireState = initialFireState();
+  attack: AttackState = initialAttackState();
   health: Health = freshHealth();
 
   private readonly sprite: Phaser.GameObjects.Rectangle;
@@ -61,13 +67,13 @@ export class PlayerEntity {
     return this.body().bottom;
   }
 
-  /** 更新動作與射擊,回傳本格要發射的子彈。睡著時不動也不射擊。 */
-  update(intent: Intent, dtMs: number, t: Tuning): BulletSpawn | null {
+  /** 更新動作與攻擊;面前有近身目標時揮擊,否則射泡泡。睡著時不動也不攻擊。 */
+  update(intent: Intent, dtMs: number, t: Tuning, hasMeleeTarget: (reach: MeleeReach) => boolean): AttackResult {
     const pb = this.body();
     pb.setGravityY(t.gravity);
     if (this.health.down) {
       pb.setVelocityX(0);
-      return null;
+      return { kind: 'none' };
     }
 
     const grounded = pb.blocked.down || pb.touching.down;
@@ -77,13 +83,22 @@ export class PlayerEntity {
     this.motor = out.state;
     pb.setVelocity(out.vx, out.jumpVy ?? pb.velocity.y);
 
-    const shot = stepFire(this.fire, intent.shoot, dtMs, t.fireIntervalMs);
-    this.fire = shot.state;
-    if (!shot.fired) return null;
     const m = this.motor;
+    const reach: MeleeReach = {
+      x: this.zone.x,
+      feetY: pb.bottom,
+      h: m.crouching ? CROUCH_HITBOX.h : STAND_HITBOX.h,
+      facing: m.facing,
+      aim: m.aim,
+    };
+    const near = intent.shoot && hasMeleeTarget(reach);
+    const r = stepAttack(this.attack, intent.shoot, near, dtMs, t.fireIntervalMs);
+    this.attack = r.state;
+    if (r.action === 'melee') return { kind: 'melee', reach };
+    if (r.action === 'none') return { kind: 'none' };
     const off = muzzleOffset(m.aim, m.facing, m.crouching);
     const v = bulletVelocity(m.aim, m.facing, t.bulletSpeed);
-    return { x: this.zone.x + off.x, y: pb.bottom + off.y, vx: v.vx, vy: v.vy };
+    return { kind: 'bullet', spawn: { x: this.zone.x + off.x, y: pb.bottom + off.y, vx: v.vx, vy: v.vy } };
   }
 
   clampX(minX: number, maxX: number): void {
@@ -95,7 +110,7 @@ export class PlayerEntity {
   teleport(x: number, feetY: number): void {
     if (this.motor.crouching) this.resizeBody(false, feetY);
     this.motor = { ...initialMotorState(), facing: this.motor.facing };
-    this.fire = initialFireState();
+    this.attack = initialAttackState();
     this.body().reset(x, feetY - STAND_HITBOX.h / 2);
   }
 

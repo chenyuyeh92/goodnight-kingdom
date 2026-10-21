@@ -42,6 +42,8 @@ export interface GkDebug {
   enemies?: EnemyDebug[];
   enemiesDefeated?: number;
   blockedShots?: number;
+  meleeHits?: number;
+  meleeSwings?: number;
   arena?: { locked: boolean; wave: number; nextArena: number };
   spawn?: (type: EnemyType, x: number, y?: number) => void;
   defeatAll?: () => void;
