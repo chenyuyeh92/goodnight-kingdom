@@ -137,12 +137,15 @@ export function mountTouchControls(parent: HTMLElement): TouchControls {
     rotate.style.display = portrait.matches ? 'flex' : 'none';
   };
   updateRotate();
-  on(portrait, 'change', updateRotate);
+  // iOS 14 以前的 MediaQueryList 沒有 addEventListener,改用舊的 addListener。
+  if (typeof portrait.addEventListener === 'function') on(portrait, 'change', updateRotate);
+  else portrait.addListener?.(updateRotate);
 
   return {
     intent: () => state.intent(),
     destroy() {
       for (const [target, type, fn] of listeners) target.removeEventListener(type, fn);
+      if (typeof portrait.addEventListener !== 'function') portrait.removeListener?.(updateRotate);
       root.remove();
       style.remove();
     },
