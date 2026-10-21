@@ -110,3 +110,20 @@ def transition(a, b, W=1440, blend=480):
 
 def save(im, path):
     os.makedirs(os.path.dirname(path), exist_ok=True); im.save(path, optimize=True)
+
+def seaweed(color, W=1440, seed=0, kelp=14, coral=8, bottom=512):
+    """近景海草（程式畫）：彎曲的海帶葉片＋圓圓的珊瑚，底部貼齊 y=bottom，左右兩端留空可接續。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    d.rectangle((0, bottom - 6, W, bottom), fill=c)  # 一條低矮的海床
+    for _ in range(kelp):
+        x0 = rnd.randint(40, W - 40); hgt = rnd.randint(26, 44); n = rnd.randint(2, 3)
+        for k in range(n):
+            ph = rnd.random() * 6; xs = x0 + (k - n / 2) * 7
+            pts = [(xs + 5 * math.sin(ph + t / 3), bottom - hgt * t / 8) for t in range(9)]
+            d.line(pts, fill=c, width=5, joint="curve")
+    for _ in range(coral):
+        x0 = rnd.randint(40, W - 40); r = rnd.randint(7, 12)
+        for dx, dy in ((0, 0), (-r * .8, r * .4), (r * .8, r * .4)):
+            d.ellipse((x0 + dx - r, bottom - 2 * r + dy, x0 + dx + r, bottom + dy), fill=c)
+    return im
