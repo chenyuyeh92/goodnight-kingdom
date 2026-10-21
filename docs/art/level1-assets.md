@@ -8,7 +8,7 @@
 | `public/assets/enemies/clockbug.png` | 吵鬧鬧鐘蟲（小怪） | 48×56 | 抱著一個鬧鐘 |
 | `public/assets/enemies/coffee-bean-sprite.png` | 咖啡豆精靈（小怪） | 39×52 | 腳下有一點咖啡渣 |
 | `public/assets/enemies/night-bat.png` | 熬夜蝙蝠（小怪） | 56×56 | 正面，拿咖啡杯；飛行時底部要高於 y=452，讓玩家蹲下能閃過 |
-| `public/assets/enemies/insomnia-hedgehog.png` | 失眠刺蝟（中階） | 80×72 | 刺在背上（企劃是正面刺盾，之後可再調） |
+| `public/assets/enemies/insomnia-hedgehog.png` | 失眠刺蝟（中階） | 57×72 | 2026-10-21 換成正面拿盾（盾在左邊、朝玩家），符合「正面刺盾」；睡著版還是舊造型，之後重畫 |
 | `public/assets/enemies/night-owl-boss.png` | 熬夜貓頭鷹（關主） | 181×200 | 戴睡帽、拿咖啡杯 |
 | `public/assets/weapons/yawn-bubble.png` | 哈欠泡泡 | 43×36 | |
 | `public/assets/weapons/sheep-machine-gun.png` | 數羊機槍 | 48×21 | |
@@ -46,9 +46,23 @@
 
 三層背景疊法：遠景 → 中景 → 近景，三張寬度不同（遠景 1440、中景 1609、近景 1396），各自重複排列就能一直捲動；寬度不同反而不容易看出重複。舊的單張背景 `insomnia-forest.png` 留著，二選一用。
 
+## 第三批（2026-10-21 補充）
+
+| 檔案 | 內容 | 實際大小（寬×高 px） | 備註 |
+|---|---|---|---|
+| `public/assets/items/treasure-chest-closed.png` | 寶箱（關著） | 40×37 | 用程式畫的（模型一直畫成打開的），顏色和打開的寶箱一樣 |
+| `public/assets/bullets/yawn-bubble.png` | 哈欠泡泡的子彈 | 12×12 | 半透明泡泡 |
+| `public/assets/bullets/sheep.png` | 數羊機槍的子彈 | 18×14 | 小羊，朝右 |
+| `public/assets/bullets/pillow.png` | 枕頭砲的子彈 | 22×12 | 小枕頭 |
+| `public/assets/bullets/milk-drop.png` | 晚安牛奶噴霧的子彈 | 8×8 | 牛奶滴，尖端朝左（往右飛）；扇形噴灑由程式排列 |
+| `public/assets/bullets/music-note.png` | 搖籃曲豎琴的子彈 | 11×14 | 音符 |
+| `public/assets/bullets/moon-beam.png` | 月亮催眠燈的光束 | 32×10 | 橫向重複接成長光束 |
+
+棉被迴力鏢的子彈就是武器圖本身（`weapons/blanket-boomerang.png`），旋轉著飛。
+
 ## 還沒做 / 已知問題
 
 - 素材是 1 倍大小，高解析度螢幕上可能有點糊；需要 2 倍版本的話跟美術說：來源大圖只在美術的電腦上，由美術改 `docs/art/tools/process_level1.py` 的尺寸重跑。
 - 貓頭鷹三個階段的差別比較小（表情、蒸氣、打翻咖啡），程式可以再加變色或抖動讓差別更明顯。
 - 魔物「打哈欠」的樣子沒做（企劃寫打哈欠「或」變小羊／Zzz，先做後兩個）。
-- 寶箱只有打開的樣子：關著的試了兩輪都畫成打開的，還沒做出來。
+- 失眠刺蝟換了新造型，睡著版（`insomnia-hedgehog-sleep.png`）還是舊的背刺造型，之後重畫。
