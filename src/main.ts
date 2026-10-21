@@ -61,6 +61,9 @@ export interface GkDebug {
   rigChest?: (weapon: SpecialWeaponId) => void;
   rigDrop?: (item: ItemId) => void;
   clearSave?: () => void;
+  resetChests?: () => void;
+  openedChests?: number[];
+  saveOk?: boolean;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
   lastChest?: 'new' | 'starUp' | 'maxed' | null;

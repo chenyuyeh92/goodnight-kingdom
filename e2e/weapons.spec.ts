@@ -144,7 +144,7 @@ async function hurtUntilDown(page: Page, i = 0): Promise<void> {
   }
 }
 
-/** 移到寶箱左邊往右走,直到開箱。 */
+/** 移到 x=960 寶箱左邊往右走,直到開箱。 */
 async function openChestAt900(page: Page, rig: string): Promise<void> {
   await page.evaluate((w) => window.__GK__!.rigChest!(w as never), rig);
   const before = (await gk(page)).chestsOpened!;
@@ -179,18 +179,55 @@ test.describe('寶箱、道具與背包', () => {
       const restarts = s.restarts!;
       await hurtUntilDown(page);
       await page.waitForFunction((r) => window.__GK__!.restarts === r + 1, restarts, { timeout: 3000 });
+      await page.evaluate(() => window.__GK__!.resetChests!());
     }
   });
 
   test('兩人同時碰到同一個寶箱只有一人拿到', async ({ page }) => {
     await open(page, './?mode=duo&test=1');
     await page.evaluate(() => window.__GK__!.rigChest!('pillowCannon'));
-    await page.evaluate(() => window.__GK__!.warp!(880));
+    await page.evaluate(() => window.__GK__!.warp!(940));
     await page.waitForFunction(() => window.__GK__!.chestsOpened === 1, undefined, { timeout: 3000 });
     await page.waitForTimeout(300);
     const s = await gk(page);
     expect(s.chestsOpened).toBe(1);
     expect(s.players!.filter((p) => p.weapon === 'pillowCannon')).toHaveLength(1);
+  });
+
+  test('睡著重來後已經開過的寶箱維持打開', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => window.__GK__!.clearSave!());
+    await openChestAt900(page, 'sheepGun');
+    await hurtUntilDown(page);
+    await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
+    expect((await gk(page)).openedChests).toEqual([0]);
+    await page.evaluate(() => window.__GK__!.warp!(860));
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(800);
+    await page.keyboard.up('KeyD');
+    const s = await gk(page);
+    expect(s.backpack!.sheepGun).toBe(1);
+    expect(s.lastChest).toBeNull();
+  });
+
+  test('刺蝟正面擋得住牛奶噴霧', async ({ page }) => {
+    await open(page);
+    await spawn(page, 'hedgehog', 240);
+    await give(page, 'milkSpray');
+    await hold(page, 'KeyC', 60);
+    await page.waitForTimeout(300);
+    const s = await gk(page);
+    expect(s.blockedShots).toBeGreaterThan(0);
+    expect(s.enemies![0].hp).toBe(6);
+  });
+
+  test('刺蝟正面擋得住豎琴音符', async ({ page }) => {
+    await open(page);
+    await spawn(page, 'hedgehog', 400);
+    await give(page, 'lullabyHarp');
+    await hold(page, 'KeyC', 600);
+    await page.waitForTimeout(500);
+    expect((await gk(page)).enemies![0].hp).toBe(6);
   });
 
   test('魔物掉出的道具可以撿', async ({ page }) => {
@@ -217,6 +254,17 @@ test.describe('寶箱、道具與背包', () => {
     expect((await gk(page)).backpack).toEqual({});
     expect(errors).toEqual([]);
   });
+});
+
+test('無法存檔時開場選單會提示', async ({ page }) => {
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new Error('blocked');
+    };
+  });
+  await page.goto('./');
+  await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
+  expect((await gk(page)).saveOk).toBe(false);
 });
 
 test.describe('背包畫面', () => {

@@ -64,3 +64,17 @@ test('clear 清空背包並寫入', () => {
   expect(store.get().weapons).toEqual({});
   expect(createSaveStore(m).get().weapons).toEqual({});
 });
+
+test('ok:可以正常存檔時為 true,讀寫失敗或沒有儲存空間時為 false', () => {
+  expect(createSaveStore(memory()).ok()).toBe(true);
+  expect(createSaveStore(null).ok()).toBe(false);
+  const readOnly: StorageLike = {
+    getItem: () => null,
+    setItem: () => {
+      throw new Error('QuotaExceeded');
+    },
+  };
+  const store = createSaveStore(readOnly);
+  store.setStars('sheepGun', 1);
+  expect(store.ok()).toBe(false);
+});

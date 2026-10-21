@@ -115,7 +115,7 @@ const REVIVE_DROP_Y = 40;
 
 /** 寶箱:底部中央座標。隱藏寶箱在高平台上。 */
 const CHESTS: ReadonlyArray<{ x: number; bottom: number }> = [
-  { x: 900, bottom: GROUND_Y },
+  { x: 960, bottom: GROUND_Y },
   { x: 1100, bottom: 300 },
   { x: 2600, bottom: GROUND_Y },
 ];
@@ -176,6 +176,8 @@ export interface TestRangeData {
   save?: SaveStore;
   /** 重來時保留每位玩家手上的武器與剩餘彈藥。 */
   loadouts?: Loadout[];
+  /** 已經開過的寶箱編號,重來後維持打開,避免反覆刷寶箱。 */
+  openedChests?: number[];
   getTuning?: () => Tuning;
   mode?: PlayMode;
   checkpointX?: number;
@@ -286,11 +288,14 @@ export class TestRangeScene extends Phaser.Scene {
     this.players.forEach((p, i) => (p.loadout = { ...(this.initData.loadouts?.[i] ?? BASE_LOADOUT) }));
 
     const chestGroup = this.physics.add.staticGroup();
-    for (const c of CHESTS) {
+    const alreadyOpened = new Set(this.initData.openedChests ?? []);
+    CHESTS.forEach((c, i) => {
       const rect = this.add.rectangle(c.x, c.bottom - CHEST_H / 2, CHEST_W, CHEST_H, 0xc98b4f).setStrokeStyle(2, 0xffe08a);
       chestGroup.add(rect);
-      this.chests.push({ rect, opened: false });
-    }
+      const chest = { rect, opened: false };
+      if (alreadyOpened.has(i)) this.markOpened(chest);
+      this.chests.push(chest);
+    });
     this.pickupGroup = this.physics.add.group();
     this.physics.add.collider(this.pickupGroup, this.terrain);
     for (const p of this.players) {
@@ -394,6 +399,7 @@ export class TestRangeScene extends Phaser.Scene {
         checkpointX: reachedCheckpoint(CHECKPOINTS, this.maxReachedX),
         restarts: this.restarts + 1,
         loadouts: this.players.map((p) => p.loadout),
+        openedChests: this.openedChestIndexes(),
       });
     }
   }
@@ -468,9 +474,8 @@ export class TestRangeScene extends Phaser.Scene {
   private touchChest(p: PlayerEntity, obj: unknown): void {
     const chest = this.chests.find((c) => c.rect === obj);
     if (!chest || chest.opened || p.health.down) return;
-    chest.opened = true;
+    this.markOpened(chest);
     this.chestsOpened += 1;
-    chest.rect.setFillStyle(0x5a4636).setAlpha(0.6);
 
     const owned = this.save.get().weapons;
     const result = this.riggedChest ? resultFor(this.riggedChest, owned) : openChest(Math.random, owned);
@@ -493,6 +498,15 @@ export class TestRangeScene extends Phaser.Scene {
       .setDepth(8);
     const sub = this.add.text(chest.rect.x, chest.rect.y - 74, rates, { fontSize: '12px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(8);
     this.tweens.add({ targets: [title, sub], alpha: 0, delay: CHEST_POPUP_MS - 400, duration: 400, onComplete: () => [title, sub].forEach((o) => o.destroy()) });
+  }
+
+  private markOpened(chest: Chest): void {
+    chest.opened = true;
+    chest.rect.setFillStyle(0x5a4636).setAlpha(0.6);
+  }
+
+  private openedChestIndexes(): number[] {
+    return this.chests.flatMap((c, i) => (c.opened ? [i] : []));
   }
 
   private dropItem(id: ItemId, x: number, y: number): void {
@@ -699,6 +713,14 @@ export class TestRangeScene extends Phaser.Scene {
       rigChest: this.testHooks ? (w: SpecialWeaponId) => void (this.riggedChest = w) : undefined,
       rigDrop: this.testHooks ? (item: ItemId) => void (this.riggedDrop = item) : undefined,
       clearSave: this.testHooks ? () => this.save.clear() : undefined,
+      resetChests: this.testHooks
+        ? () =>
+            this.chests.forEach((c) => {
+              c.opened = false;
+              c.rect.setFillStyle(0xc98b4f).setAlpha(1);
+            })
+        : undefined,
+      openedChests: this.openedChestIndexes(),
       backpack: this.save.get().weapons,
       chestsOpened: this.chestsOpened,
       lastChest: this.lastChest,

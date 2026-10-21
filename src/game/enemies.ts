@@ -136,8 +136,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
   }
 }
 
-/** 刺盾只擋從正面迎面而來的水平子彈;背後、上下都打得到。 */
+/** 刺盾擋住從正面迎面而來、偏水平(比 45 度平)的子彈,扇形與追蹤子彈也算;背後、上下都打得到。 */
 export function bulletEffect(def: EnemyDef, enemyFacing: 1 | -1, bulletVx: number, bulletVy: number): 'hit' | 'blocked' {
-  if (def.shield && bulletVy === 0 && Math.sign(bulletVx) === -enemyFacing) return 'blocked';
-  return 'hit';
+  const frontal = Math.sign(bulletVx) === -enemyFacing && Math.abs(bulletVy) < Math.abs(bulletVx);
+  return def.shield && frontal ? 'blocked' : 'hit';
 }

@@ -121,3 +121,15 @@ test('刺蝟滾過玩家後不會一停下就轉身', () => {
   expect(after.brain.phase).toBe('walk');
   expect(after.brain.facing).toBe(-1);
 });
+
+test('刺盾:帶一點斜度的迎面子彈也擋得住(扇形、追蹤)', () => {
+  const def = ENEMY_DEFS.hedgehog;
+  expect(bulletEffect(def, -1, 520, 6.4e-14)).toBe('blocked');
+  expect(bulletEffect(def, -1, 500, 140)).toBe('blocked');
+  expect(bulletEffect(def, 1, -420, -100)).toBe('blocked');
+});
+
+test('刺盾:比較接近垂直的子彈(從上方打)打得到', () => {
+  const def = ENEMY_DEFS.hedgehog;
+  expect(bulletEffect(def, -1, 200, 500)).toBe('hit');
+});

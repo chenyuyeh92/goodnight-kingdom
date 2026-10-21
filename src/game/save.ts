@@ -31,25 +31,33 @@ export interface SaveStore {
   get(): SaveData;
   setStars(id: SpecialWeaponId, stars: number): void;
   clear(): void;
+  /** 是否真的存得進去;false 時進度重新整理後會不見。 */
+  ok(): boolean;
 }
 
 /** 讀寫失敗(無痕模式、被封鎖)時照常運作,只是不保存。 */
 export function createSaveStore(storage: StorageLike | null): SaveStore {
   let current = emptySave();
+  let ok = storage !== null;
   try {
     const text = storage?.getItem(SAVE_KEY);
     if (text) current = sanitizeSave(JSON.parse(text));
-  } catch {
+  } catch (e) {
     current = emptySave();
+    // 內容壞掉不影響之後寫入;讀取本身被封鎖才算存不了。
+    if (!(e instanceof SyntaxError)) ok = false;
   }
 
   const write = (): void => {
     try {
       storage?.setItem(SAVE_KEY, JSON.stringify(current));
     } catch {
-      // 不保存也能玩
+      ok = false;
     }
   };
+
+  // 一開始就試寫一次,才能在玩之前就告訴玩家這個瀏覽器存不了檔。
+  if (storage) write();
 
   return {
     get: () => current,
@@ -61,5 +69,6 @@ export function createSaveStore(storage: StorageLike | null): SaveStore {
       current = emptySave();
       write();
     },
+    ok: () => ok,
   };
 }

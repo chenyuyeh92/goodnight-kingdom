@@ -35,7 +35,13 @@ export class ModeSelectScene extends Phaser.Scene {
       const b = BUTTONS.find((x) => x.code === e.code);
       if (b) this.choose(b.choice);
     });
-    window.__GK__ = { ready: true, screen: 'mode-select' };
+    const saveOk = this.data_.save?.ok() ?? false;
+    if (!saveOk) {
+      this.add
+        .text(480, 470, '注意:這個瀏覽器無法存檔(例如無痕模式),背包重新整理後會不見。', { fontSize: '16px', color: '#ffb3c7' })
+        .setOrigin(0.5);
+    }
+    window.__GK__ = { ready: true, screen: 'mode-select', saveOk };
   }
 
   private choose(choice: Choice): void {
