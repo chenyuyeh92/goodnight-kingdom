@@ -18,6 +18,8 @@ import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from 
 import { decideTeam, reachedCheckpoint } from '../game/team';
 import { ENEMY_DEFS, bulletEffect, type EnemyType } from '../game/enemies';
 import { EnemyEntity } from '../game/enemyEntity';
+import { EnemyShotSystem } from '../game/enemyShots';
+import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
   initialEncounters,
   stepEncounters,
@@ -50,6 +52,18 @@ const GO_HINT_MS = 1500;
 const SWING_MS = 120;
 /** 揮擊命中的停頓與晃動比泡泡重。 */
 const MELEE_IMPACT_SCALE = 2;
+
+/** 雙人時關主血量是單人的 1.5 倍。 */
+const BOSS_DUO_HP_RATIO = 1.5;
+/** 貓頭鷹盤旋範圍:鎖定畫面左右各內縮這麼多。 */
+const BOSS_ARENA_INSET = 80;
+const BOSS_BAR_W = 400;
+const BOSS_BAR_H = 12;
+const BOSS_BAR_Y = 96;
+const BOSS_PHASE_TEXT_MS = 1500;
+/** 打倒關主後到結算畫面的時間。 */
+const BOSS_OUTRO_MS = 1500;
+const BOSS_IMPACT_SCALE = 3;
 
 const THORN_H = 16;
 const THORN_BOUNCE_VY = -350;
@@ -88,6 +102,14 @@ interface Target {
   hp: number;
 }
 
+
+interface Boss {
+  enemy: EnemyEntity;
+  brain: OwlBrain;
+  maxHp: number;
+  invulnerable: boolean;
+  minions: Set<EnemyEntity>;
+}
 
 interface Chest {
   rect: Phaser.GameObjects.Rectangle;
@@ -149,6 +171,15 @@ export class TestRangeScene extends Phaser.Scene {
   private arenaHud!: Phaser.GameObjects.Text;
   private goHintUntil = 0;
   private scrollX = 0;
+  private shots!: EnemyShotSystem;
+  private boss: Boss | null = null;
+  private bossTriggered = false;
+  private bossDefeated = false;
+  private bossLock: number | null = null;
+  private bossName!: Phaser.GameObjects.Text;
+  private bossBarBg!: Phaser.GameObjects.Rectangle;
+  private bossBar!: Phaser.GameObjects.Rectangle;
+  private bossPhaseText!: Phaser.GameObjects.Text;
 
   constructor() {
     super('TestRange');
@@ -191,6 +222,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.goHintUntil = 0;
     this.targetsHit = 0;
     this.scrollX = 0;
+    this.boss = null;
+    this.bossTriggered = false;
+    this.bossDefeated = false;
+    this.bossLock = null;
     this.terrainBodies.clear();
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
@@ -249,7 +284,8 @@ export class TestRangeScene extends Phaser.Scene {
     for (const p of this.players) this.physics.add.overlap(p.zone, thorns, () => this.hurtPlayer(p, true));
 
     this.enemyGroup = this.physics.add.group();
-    this.physics.add.collider(this.enemyGroup, this.terrain);
+    // 貓頭鷹在空中自由飛,不被平台擋住。
+    this.physics.add.collider(this.enemyGroup, this.terrain, undefined, (e) => this.boss?.enemy.body !== e);
     // 正在從地面冒出的魔物還看不見,不傷人也不會被打到。
     const solid = (_a: unknown, e: unknown): boolean => !this.enemyFor(e)?.emerging;
     for (const p of this.players) {
@@ -259,6 +295,15 @@ export class TestRangeScene extends Phaser.Scene {
     this.projectiles = new ProjectileSystem(this, this.terrain, (target, hit) => this.onProjectileHit(target, hit));
     this.projectiles.addTargets(this.enemyGroup);
     this.projectiles.addTargets(this.targetGroup);
+
+    this.shots = new EnemyShotSystem(this, this.terrain);
+    for (const p of this.players) {
+      this.shots.addVictim(p.zone, () => {
+        if (p.health.down) return false;
+        this.hurtPlayer(p, false);
+        return true;
+      });
+    }
 
     this.add
       .text(16, 12, controlHint(this.mode, this.initData.touch), {
@@ -270,6 +315,29 @@ export class TestRangeScene extends Phaser.Scene {
     this.hud = this.add.text(16, 40, '', { fontSize: '20px', color: '#ffb3c7' }).setScrollFactor(0).setDepth(10);
     this.arenaHud = this.add
       .text(VIEW_W / 2, 90, '', { fontSize: '26px', color: '#ffe08a' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(10);
+    this.bossName = this.add
+      .text(VIEW_W / 2, BOSS_BAR_Y - 6, '', { fontSize: '18px', color: '#f3e9d2' })
+      .setOrigin(0.5, 1)
+      .setScrollFactor(0)
+      .setDepth(10);
+    this.bossBarBg = this.add
+      .rectangle((VIEW_W - BOSS_BAR_W) / 2, BOSS_BAR_Y, BOSS_BAR_W, BOSS_BAR_H, 0x2a2550)
+      .setOrigin(0, 0)
+      .setStrokeStyle(2, 0xf3e9d2)
+      .setScrollFactor(0)
+      .setDepth(10)
+      .setVisible(false);
+    this.bossBar = this.add
+      .rectangle((VIEW_W - BOSS_BAR_W) / 2, BOSS_BAR_Y, BOSS_BAR_W, BOSS_BAR_H, 0xffb3c7)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(10)
+      .setVisible(false);
+    this.bossPhaseText = this.add
+      .text(VIEW_W / 2, 200, '', { fontSize: '30px', color: '#ffe08a' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
@@ -300,6 +368,8 @@ export class TestRangeScene extends Phaser.Scene {
       this.enemies.filter((e) => !e.emerging).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
     this.updateEnemies(dtMs, t);
+    this.updateBoss(dtMs, time);
+    this.shots.update();
     this.updatePickups(time);
     this.handleTeam();
 
@@ -307,7 +377,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.updateEncounters(dtMs, time);
     const target = applyLock(
       advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, this.level.worldW, CAMERA_LEAD, SCREEN_MARGIN),
-      this.lockScrollX,
+      this.bossLock ?? this.lockScrollX,
     );
     const maxStep = (Math.max(t.walkSpeed, t.airSpeed) * CAMERA_MAX_SPEED_RATIO * dtMs) / 1000;
     this.scrollX = limitCameraStep(this.scrollX, target, maxStep);
@@ -396,24 +466,21 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 依進場方式決定生成位置:左右從畫面外、上方掉落、地面冒出。 */
-  private spawnFrom(spec: SpawnSpec, arena: boolean): void {
+  private spawnFrom(spec: SpawnSpec, arena: boolean): EnemyEntity {
     const def = ENEMY_DEFS[spec.type];
     if (spec.from === 'left' || spec.from === 'right') {
       const x = spec.from === 'left' ? this.scrollX - SIDE_SPAWN_MARGIN : this.scrollX + VIEW_W + SIDE_SPAWN_MARGIN;
-      this.spawnEnemy(spec.type, x, undefined, arena);
-      return;
+      return this.spawnEnemy(spec.type, x, undefined, arena);
     }
     const x = spec.x ?? this.scrollX + VIEW_W / 2;
-    if (spec.from === 'top') {
-      this.spawnEnemy(spec.type, x, TOP_SPAWN_Y, arena);
-      return;
-    }
+    if (spec.from === 'top') return this.spawnEnemy(spec.type, x, TOP_SPAWN_Y, arena);
     const enemy = this.spawnEnemy(spec.type, x, def.flying ? undefined : GROUND_Y - def.h / 2, arena);
     enemy.emerging = true;
     enemy.body.setAlpha(0);
     this.tweens.add({ targets: enemy.body, alpha: 1, duration: EMERGE_MS, onComplete: () => (enemy.emerging = false) });
     const mound = this.add.ellipse(x, GROUND_Y, def.w + 16, 12, COLOR.dirt);
     this.tweens.add({ targets: mound, alpha: 0, delay: EMERGE_MS, duration: EMERGE_MS, onComplete: () => mound.destroy() });
+    return enemy;
   }
 
   /** 醒著的玩家碰到未開的寶箱就打開;同一格只有第一個處理到的人拿到。 */
@@ -508,6 +575,7 @@ export class TestRangeScene extends Phaser.Scene {
   private updateEnemies(dtMs: number, t: Tuning): void {
     const awake = this.players.filter((p) => !p.health.down);
     for (const e of [...this.enemies]) {
+      if (e === this.boss?.enemy) continue;
       if (e.x < this.scrollX - ENEMY_DESPAWN_BEHIND || e.body.y > WORLD_H + ENEMY_FALL_OUT) {
         this.removeEnemy(e);
         continue;
@@ -521,10 +589,82 @@ export class TestRangeScene extends Phaser.Scene {
     }
   }
 
+  /** 鏡頭到關主區就開戰;之後每格由 stepOwl 控制貓頭鷹。 */
+  private updateBoss(dtMs: number, time: number): void {
+    const def = this.level.boss;
+    if (def && !this.bossTriggered && this.scrollX >= def.lockScrollX) this.startBoss(def.lockScrollX, def.spawnX);
+    const boss = this.boss;
+    if (!boss) return;
+
+    const { enemy } = boss;
+    const awake = this.players.filter((p) => !p.health.down);
+    const nearest = awake.reduce<PlayerEntity | null>(
+      (best, p) => (best === null || Math.abs(p.x - enemy.x) < Math.abs(best.x - enemy.x) ? p : best),
+      null,
+    );
+    for (const m of [...boss.minions]) if (!this.enemies.includes(m)) boss.minions.delete(m);
+    const lock = this.bossLock ?? this.scrollX;
+    const step = stepOwl(boss.brain, {
+      x: enemy.body.x,
+      y: enemy.body.y,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      arenaLeft: lock + BOSS_ARENA_INSET,
+      arenaRight: lock + VIEW_W - BOSS_ARENA_INSET,
+      timeMs: time,
+      dtMs,
+      minionsAlive: boss.minions.size,
+    });
+    boss.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.physicsBody().setVelocity(step.vx, step.vy);
+    const bottom = enemy.body.y + enemy.def.h / 2;
+    for (const f of step.feathers) this.shots.fire(enemy.body.x, bottom, f.vx, f.vy);
+    for (const side of step.summon) boss.minions.add(this.spawnFrom({ type: 'alarmBug', from: side, delayMs: 0 }, false));
+    this.renderBossBar();
+    if (step.enteredPhase) {
+      this.bossPhaseText.setText('貓頭鷹越來越暴躁了!').setAlpha(1);
+      this.tweens.add({ targets: this.bossPhaseText, alpha: 0, delay: BOSS_PHASE_TEXT_MS - 300, duration: 300 });
+      this.cameras.main.shake(300, 0.008);
+    }
+  }
+
+  private startBoss(lockScrollX: number, spawnX: number): void {
+    this.bossTriggered = true;
+    this.bossLock = lockScrollX;
+    const enemy = this.spawnEnemy('nightOwl', spawnX, OWL_HOVER_Y);
+    const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
+    enemy.hp = maxHp;
+    this.boss = { enemy, brain: initialOwlBrain(), maxHp, invulnerable: false, minions: new Set() };
+    this.bossName.setText(enemy.def.name);
+    this.bossBarBg.setVisible(true);
+    this.bossBar.setVisible(true);
+    this.renderBossBar();
+  }
+
+  private renderBossBar(): void {
+    const boss = this.boss;
+    if (!boss) return;
+    this.bossBar.width = (BOSS_BAR_W * boss.enemy.hp) / boss.maxHp;
+    this.bossBar.setFillStyle(boss.brain.phase === 3 ? 0xff5a6e : 0xffb3c7);
+  }
+
+  private isInvulnerable(e: EnemyEntity): boolean {
+    return this.boss?.enemy === e && this.boss.invulnerable;
+  }
+
+  /** 扣血;打到 0 就打倒。 */
+  private damageEnemy(enemy: EnemyEntity, amount: number, impactScale = 1): void {
+    enemy.hp = Math.max(0, enemy.hp - amount);
+    enemy.flash();
+    if (enemy.hp === 0) this.defeatEnemy(enemy, impactScale);
+    else if (impactScale !== 1) this.impact(impactScale);
+  }
+
   /** 可以被揮擊的對象:已上場的魔物與還站著的練習靶。 */
   private findMeleeTarget(reach: MeleeReach): EnemyEntity | Target | null {
     const pool: (EnemyEntity | Target)[] = [
-      ...this.enemies.filter((e) => !e.emerging && e.hp > 0),
+      ...this.enemies.filter((e) => !e.emerging && e.hp > 0 && !this.isInvulnerable(e)),
       ...this.targets.filter((t) => t.hp > 0),
     ];
     const boxes: MeleeCandidate[] = pool.map((o) => {
@@ -550,10 +690,7 @@ export class TestRangeScene extends Phaser.Scene {
         return;
       }
       this.meleeHits += 1;
-      target.hp = Math.max(0, target.hp - MELEE_DAMAGE);
-      target.flash();
-      if (target.hp === 0) this.defeatEnemy(target, MELEE_IMPACT_SCALE);
-      else this.impact(MELEE_IMPACT_SCALE);
+      this.damageEnemy(target, MELEE_DAMAGE, MELEE_IMPACT_SCALE);
       return;
     }
     this.meleeHits += 1;
@@ -569,14 +706,12 @@ export class TestRangeScene extends Phaser.Scene {
   private onProjectileHit(obj: Phaser.GameObjects.GameObject, hit: ProjectileHit): HitResult {
     const enemy = this.enemyFor(obj);
     if (enemy) {
-      if (enemy.emerging || enemy.hp <= 0) return 'ignored';
+      if (enemy.emerging || enemy.hp <= 0 || this.isInvulnerable(enemy)) return 'ignored';
       if (bulletEffect(enemy.def, enemy.brain.facing, hit.vx, hit.vy) === 'blocked') {
         this.blockedShots += 1;
         return 'blocked';
       }
-      enemy.hp = Math.max(0, enemy.hp - hit.damage);
-      enemy.flash();
-      if (enemy.hp === 0) this.defeatEnemy(enemy);
+      this.damageEnemy(enemy, hit.damage);
       return 'consumed';
     }
     const target = this.targets.find((t) => t.rect === obj);
@@ -586,6 +721,10 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private defeatEnemy(enemy: EnemyEntity, impactScale = 1): void {
+    if (enemy === this.boss?.enemy) {
+      this.defeatBoss(this.boss);
+      return;
+    }
     this.enemiesDefeated += 1;
     this.playDefeatEffect(enemy.body.x, enemy.body.y, impactScale);
     const drop = this.riggedDrop ?? rollDrop(Math.random);
@@ -593,6 +732,27 @@ export class TestRangeScene extends Phaser.Scene {
     if (drop) this.dropItem(drop, enemy.body.x, enemy.body.y);
     this.removeEnemy(enemy);
   }
+
+  /** 貓頭鷹睡著:加重的效果,小怪與羽毛一起消失,稍後進入結算。 */
+  private defeatBoss(boss: Boss): void {
+    this.enemiesDefeated += 1;
+    this.bossDefeated = true;
+    this.boss = null;
+    const { x, y } = boss.enemy.body;
+    this.playDefeatEffect(x, y, BOSS_IMPACT_SCALE);
+    const zzz = this.add.text(x, y - 30, 'Zzz', { fontSize: '48px', color: '#f3e9d2' }).setOrigin(0.5);
+    this.tweens.add({ targets: zzz, y: zzz.y - 80, alpha: 0, duration: ZZZ_MS * 2, onComplete: () => zzz.destroy() });
+    this.removeEnemy(boss.enemy);
+    for (const m of boss.minions) if (this.enemies.includes(m)) this.removeEnemy(m);
+    this.shots.clear();
+    this.bossName.setText('');
+    this.bossBarBg.setVisible(false);
+    this.bossBar.setVisible(false);
+    this.time.delayedCall(BOSS_OUTRO_MS, () => this.onLevelComplete());
+  }
+
+  /** Task 5 接上結算畫面。 */
+  private onLevelComplete(): void {}
 
   private removeEnemy(enemy: EnemyEntity): void {
     this.enemies = this.enemies.filter((e) => e !== enemy);
@@ -675,7 +835,7 @@ export class TestRangeScene extends Phaser.Scene {
       defeatAll: this.testHooks ? () => [...this.enemies].forEach((e) => this.defeatEnemy(e)) : undefined,
       warp: this.testHooks ? (x: number) => this.warp(x) : undefined,
       spawnGround: this.testHooks
-        ? (type: EnemyType, x: number) => this.spawnFrom({ type, from: 'ground', x, delayMs: 0 }, false)
+        ? (type: EnemyType, x: number) => void this.spawnFrom({ type, from: 'ground', x, delayMs: 0 }, false)
         : undefined,
       arena: {
         locked: this.lockScrollX !== null,
@@ -692,6 +852,17 @@ export class TestRangeScene extends Phaser.Scene {
       bullets: this.projectiles.count(),
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
+      boss: this.boss
+        ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: this.boss.brain.phase, mode: this.boss.brain.mode }
+        : null,
+      bossDefeated: this.bossDefeated,
+      enemyShots: this.shots.count(),
+      hurtBoss: this.testHooks
+        ? (n: number) => {
+            const e = this.boss?.enemy;
+            if (e && e.hp > 0 && !this.isInvulnerable(e)) this.damageEnemy(e, n);
+          }
+        : undefined,
     };
   }
 }

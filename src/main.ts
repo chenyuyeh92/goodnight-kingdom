@@ -6,6 +6,7 @@ import type { Aim, Facing } from './game/playerMotor';
 import type { SpecialWeaponId, WeaponId } from './game/weapons';
 import type { ItemId } from './game/items';
 import { parseLevelId, type LevelId } from './levels/levelDef';
+import type { OwlMode } from './game/owl';
 import { parsePlayMode, type PlayMode } from './input/playMode';
 import { BackpackScene } from './scenes/BackpackScene';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
@@ -69,6 +70,11 @@ export interface GkDebug {
   /** 是否顯示觸控操作。 */
   touch?: boolean;
   level?: LevelId;
+  boss?: { hp: number; maxHp: number; phase: 1 | 2 | 3; mode: OwlMode } | null;
+  bossDefeated?: boolean;
+  /** 場上魔物子彈(羽毛)數。 */
+  enemyShots?: number;
+  hurtBoss?: (amount: number) => void;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
   lastChest?: 'new' | 'starUp' | 'maxed' | null;
