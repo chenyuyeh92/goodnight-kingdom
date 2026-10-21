@@ -17,6 +17,7 @@ import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
 import { mountKeyTest } from './ui/keyTest';
 import { isTouchDevice } from './ui/touchControls';
 import { mountTuningPanel } from './ui/tuningPanel';
+import { installTextDefaults } from './ui/textDefaults';
 
 export interface PlayerDebug {
   x: number;
@@ -131,6 +132,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   const store = createTuningStore(tuneMode ? safeLocalStorage() : null);
   if (tuneMode) mountTuningPanel(store, document.body);
 
+  installTextDefaults();
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     width: 960,

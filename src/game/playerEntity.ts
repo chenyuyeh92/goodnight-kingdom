@@ -8,6 +8,7 @@ import { freshHealth, type Health } from './health';
 import { CROUCH_HITBOX, STAND_HITBOX, initialMotorState, stepMotor, type MotorState } from './playerMotor';
 import { BASE_LOADOUT, activeWeapon, canFire, coolWeapon, fireWeapon, type Loadout, type WeaponDef } from './weapons';
 import { NO_BUFFS, fireIntervalWithBuffs, tickBuffs, type Buffs } from './items';
+import { playerPose } from '../art/motion';
 
 const DOWN_HEIGHT = 20;
 /** 小綿羊守衛圖:站著 48×55,蹲下壓扁,睡著躺平。 */
@@ -146,13 +147,13 @@ export class PlayerEntity {
     this.sprite.setDisplaySize(down ? STAND_HITBOX.w + 12 : STAND_HITBOX.w, h);
     const blinking = !down && this.health.invulnMs > 0 && Math.floor(timeMs / BLINK_MS) % 2 === 0;
     this.sprite.setAlpha(down ? 0.5 : blinking ? 0.3 : 1);
-    const top = this.art ? this.renderArt(feetY, down, blinking) : h;
+    const top = this.art ? this.renderArt(feetY, down, blinking, timeMs) : h;
     this.tag?.setPosition(this.zone.x, feetY - top - 4);
     this.zzz.setVisible(down).setPosition(this.zone.x + 28, feetY - top - 4);
   }
 
   /** 畫小綿羊,回傳圖的高度(標籤放在上面)。 */
-  private renderArt(feetY: number, down: boolean, blinking: boolean): number {
+  private renderArt(feetY: number, down: boolean, blinking: boolean, timeMs: number): number {
     const art = this.art!;
     art.setFlipX(this.motor.facing < 0);
     if (down) {
@@ -161,7 +162,10 @@ export class PlayerEntity {
       return ART_STAND.w;
     }
     const size = this.motor.crouching ? ART_CROUCH : ART_STAND;
-    art.setOrigin(0.5, 1).setAngle(0).setDisplaySize(size.w, size.h).setPosition(this.zone.x, feetY);
+    const pb = this.body();
+    const pose = playerPose(timeMs, pb.velocity.x, pb.blocked.down || pb.touching.down, pb.velocity.y, this.motor.crouching);
+    art.setOrigin(0.5, 1).setAngle(pose.angle);
+    art.setDisplaySize(size.w * pose.scaleX, size.h * pose.scaleY).setPosition(this.zone.x, feetY + pose.dy);
     art.setAlpha(blinking ? 0.3 : 1);
     return size.h;
   }

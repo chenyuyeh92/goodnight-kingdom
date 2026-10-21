@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { EnemyDebug } from '../main';
 import { ENEMY_DEFS, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
 import { OWL_ART_SCALE, enemySprite, type SpriteKey } from '../art/sprites';
+import { enemyPose } from '../art/motion';
 
 const SHIELD_W = 3;
 const SHIELD_ALPHA = 0.5;
@@ -21,6 +22,8 @@ export class EnemyEntity {
   /** 美術圖;沒載入時為 null,改顯示色塊。 */
   private readonly art: Phaser.GameObjects.Image | null;
   private artFacing: 1 | -1 = -1;
+  /** 每隻魔物的動作錯開,不會整群同步擺動。 */
+  private readonly animOffset = Math.random() * 1000;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -99,7 +102,17 @@ export class EnemyEntity {
       this.artFacing = this.brain.facing;
     }
     this.art.setFlipX(this.artFacing > 0);
-    this.art.setPosition(this.body.x, this.body.y + this.def.h / 2);
+    const pb = this.physicsBody();
+    const grounded = pb ? pb.blocked.down || pb.touching.down : true;
+    const pose = enemyPose(this.def.type, this.brain.phase, this.scene.time.now + this.animOffset, pb?.velocity.x ?? 0, pb?.velocity.y ?? 0, grounded);
+    const base = this.def.type === 'nightOwl' ? OWL_ART_SCALE : 1;
+    const bottom = this.body.y + this.def.h / 2;
+    if (pose.spin) {
+      this.art.setOrigin(0.5, 0.5).setPosition(this.body.x, bottom - (this.art.height * base) / 2);
+    } else {
+      this.art.setOrigin(0.5, 1).setPosition(this.body.x, bottom + pose.dy);
+    }
+    this.art.setScale(base * pose.scaleX, base * pose.scaleY).setAngle(pose.angle);
     this.art.setAlpha(this.body.alpha);
   }
 

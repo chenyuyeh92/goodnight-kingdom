@@ -5,6 +5,8 @@ import { BOOMERANG_OUT_MS, HOMING_TURN_DEG_PER_SEC, boomerangVelocity, pelletVel
 import type { WeaponDef } from './weapons';
 
 const OFF_VIEW_MARGIN = 50;
+const BULLET_OUTLINE = 2;
+const BULLET_OUTLINE_COLOR = 0x3a2a5a;
 /** 迴力鏢飛回主人身邊這麼近就收回。 */
 const BOOMERANG_CATCH_DIST = 24;
 
@@ -62,7 +64,8 @@ export class ProjectileSystem {
         ? pelletVelocities(owner.motor.aim, owner.motor.facing, speed, def.pellets, def.spreadDeg ?? 0)
         : [dir];
     for (const v of velocities) {
-      const shape = this.scene.add.circle(spawn.x, spawn.y, def.size / 2, def.color);
+      // 深紫外框讓子彈在亮色天空與深色樹林前都看得清楚。
+      const shape = this.scene.add.circle(spawn.x, spawn.y, def.size / 2 + 1, def.color).setStrokeStyle(BULLET_OUTLINE, BULLET_OUTLINE_COLOR).setDepth(4);
       this.group.add(shape);
       (shape.body as Phaser.Physics.Arcade.Body).setVelocity(v.vx, v.vy);
       this.projectiles.push({ shape, owner, def, bornAt: this.scene.time.now, initial: v, hits: new Set(), blockedOut: new Set() });

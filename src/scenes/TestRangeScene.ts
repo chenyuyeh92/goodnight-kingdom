@@ -79,6 +79,8 @@ const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 
 const THORN_H = 16;
+/** 荊棘畫得比判定高一點,比較顯眼。 */
+const THORN_ART_H = 22;
 const THORN_BOUNCE_VY = -350;
 
 /** 復活時從畫面頂端掉下來,隊友在通道裡也不會卡進地形。 */
@@ -123,7 +125,9 @@ const COLOR = {
   angry: 0xff9a9a,
   target: 0xf3e9d2,
   flash: 0xffffff,
-  thorn: 0x7a4a8c,
+  /** 荊棘要在深色地面與草叢剪影前一眼看出來:亮桃紅加奶油色尖端。 */
+  thorn: 0xff5c8a,
+  thornTip: 0xfff6e5,
   dirt: 0x6b4f3a,
 };
 
@@ -489,8 +493,10 @@ export class TestRangeScene extends Phaser.Scene {
     const step = w / n;
     for (let i = 0; i < n; i++) {
       const left = x + i * step;
-      g.fillStyle(COLOR.outline).fillTriangle(left - 1, GROUND_Y, left + step / 2, GROUND_Y - THORN_H - 2, left + step + 1, GROUND_Y);
-      g.fillStyle(COLOR.thorn).fillTriangle(left + 1, GROUND_Y, left + step / 2, GROUND_Y - THORN_H + 1, left + step - 1, GROUND_Y);
+      const tip = GROUND_Y - THORN_ART_H;
+      g.fillStyle(COLOR.outline).fillTriangle(left - 2, GROUND_Y, left + step / 2, tip - 3, left + step + 2, GROUND_Y);
+      g.fillStyle(COLOR.thorn).fillTriangle(left + 1, GROUND_Y, left + step / 2, tip, left + step - 1, GROUND_Y);
+      g.fillStyle(COLOR.thornTip).fillTriangle(left + step / 2 - 3, tip + 8, left + step / 2, tip, left + step / 2 + 3, tip + 8);
     }
   }
 
@@ -985,7 +991,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (!art || !this.textures.exists(key)) return;
     const img = this.add
       .image(art.x, art.y, key)
-      .setOrigin(0.5, 1)
+      .setOrigin(art.originX, art.originY)
       .setScale(art.scaleX, art.scaleY)
       .setFlipX(art.flipX)
       .setDepth(art.depth);
