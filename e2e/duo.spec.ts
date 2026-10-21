@@ -48,7 +48,7 @@ async function players(page: Page) {
 
 test.describe('雙人遊玩', () => {
   test.beforeEach(async ({ page }) => {
-    await openRange(page, './?mode=duo');
+    await openRange(page, './?level=range&mode=duo');
   });
 
   test('兩人各自移動', async ({ page }) => {
@@ -113,14 +113,14 @@ async function hopRight(page: Page, moveKeys: string[], jumpKeys: string[], unti
 
 test.describe('愛心、睡著與重來', () => {
   test('碰到荊棘會扣愛心', async ({ page }) => {
-    await openRange(page, './?mode=single');
+    await openRange(page, './?level=range&mode=single');
     await page.keyboard.down('KeyD');
     await page.waitForFunction(() => window.__GK__!.players![0].hearts === 2, undefined, { timeout: 6000 });
     await page.keyboard.up('KeyD');
   });
 
   test('雙人:A 睡著,3 秒後在 B 身邊復活', async ({ page }) => {
-    await openRange(page, './?mode=duo&test=1');
+    await openRange(page, './?level=range&mode=duo&test=1');
     await hurtUntilDown(page, [0]);
     expect((await players(page))[0].down).toBe(true);
     const x0 = (await players(page))[0].x;
@@ -136,7 +136,7 @@ test.describe('愛心、睡著與重來', () => {
   });
 
   test('雙人:在低矮通道裡復活不會卡住', async ({ page }) => {
-    await openRange(page, './?mode=duo&test=1');
+    await openRange(page, './?level=range&mode=duo&test=1');
     await hopRight(page, ['KeyD', 'ArrowRight'], ['KeyV', 'Period'], (s) => s.players![1].x > 1270);
     await page.waitForTimeout(500);
     await page.keyboard.down('ArrowDown');
@@ -156,7 +156,7 @@ test.describe('愛心、睡著與重來', () => {
   });
 
   test('雙人:兩人都睡著就從檢查點重來', async ({ page }) => {
-    await openRange(page, './?mode=duo&test=1');
+    await openRange(page, './?level=range&mode=duo&test=1');
     await hurtUntilDown(page, [0, 1]);
     await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
     const s = await gk(page);
@@ -168,7 +168,7 @@ test.describe('愛心、睡著與重來', () => {
   });
 
   test('單人:睡著會從到達過的檢查點重來,且只重來一次', async ({ page }) => {
-    await openRange(page, './?mode=single&test=1');
+    await openRange(page, './?level=range&mode=single&test=1');
     await hopRight(page, ['KeyD'], ['KeyV'], (s) => s.players![0].x > 1250);
     await page.waitForTimeout(500);
     await hurtUntilDown(page, [0]);
@@ -184,7 +184,7 @@ test.describe('愛心、睡著與重來', () => {
 });
 
 test('雙人:落後的人睡著時鏡頭不會瞬間跳動', async ({ page }) => {
-  await openRange(page, './?mode=duo&test=1');
+  await openRange(page, './?level=range&mode=duo&test=1');
   await page.keyboard.down('ArrowRight');
   await page.waitForTimeout(3000);
   await page.keyboard.up('ArrowRight');

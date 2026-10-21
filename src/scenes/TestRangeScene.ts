@@ -11,6 +11,8 @@ import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
 import { weaponHud } from '../game/hud';
 import { mountTouchControls, type TouchControls } from '../ui/touchControls';
+import { GROUND_Y, WORLD_H, type LevelDef, type LevelId } from '../levels/levelDef';
+import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
@@ -19,16 +21,11 @@ import { EnemyEntity } from '../game/enemyEntity';
 import {
   initialEncounters,
   stepEncounters,
-  type ArenaDef,
   type EncounterState,
   type SpawnSpec,
-  type TrickleDef,
 } from '../game/encounters';
 
 const VIEW_W = 960;
-const WORLD_W = 3200;
-const WORLD_H = 540;
-const GROUND_Y = 480;
 const SCREEN_MARGIN = 16;
 const CAMERA_LEAD = 0.4;
 const START_X = 150;
@@ -43,6 +40,8 @@ const FLASH_MS = 80;
 const ZZZ_MS = 800;
 /** 落在鏡頭左邊這麼遠的魔物直接移除。 */
 const ENEMY_DESPAWN_BEHIND = 200;
+/** 掉到世界下方這麼遠的魔物直接移除。 */
+const ENEMY_FALL_OUT = 100;
 const FLYING_SPAWN_Y = 320;
 const SIDE_SPAWN_MARGIN = 20;
 const TOP_SPAWN_Y = -30;
@@ -52,74 +51,12 @@ const SWING_MS = 120;
 /** 揮擊命中的停頓與晃動比泡泡重。 */
 const MELEE_IMPACT_SCALE = 2;
 
-/** 移動途中零星出現的魔物。 */
-const TRICKLES: readonly TrickleDef[] = [
-  { triggerScrollX: 300, spawn: { type: 'alarmBug', from: 'right', delayMs: 0 } },
-  { triggerScrollX: 700, spawn: { type: 'nightBat', from: 'right', delayMs: 0 } },
-];
-
-/** 戰鬥區:鏡頭鎖住,魔物一波波從各方向出現,清完才解鎖。 */
-const ARENAS: readonly ArenaDef[] = [
-  {
-    lockScrollX: 1500,
-    waves: [
-      [
-        { type: 'alarmBug', from: 'right', delayMs: 0 },
-        { type: 'alarmBug', from: 'right', delayMs: 500 },
-        { type: 'alarmBug', from: 'right', delayMs: 1000 },
-      ],
-      [
-        { type: 'nightBat', from: 'left', delayMs: 0 },
-        { type: 'nightBat', from: 'right', delayMs: 300 },
-        { type: 'coffeeBean', from: 'top', x: 1980, delayMs: 600 },
-      ],
-      [
-        { type: 'hedgehog', from: 'right', delayMs: 0 },
-        { type: 'coffeeBean', from: 'ground', x: 1700, delayMs: 800 },
-      ],
-    ],
-  },
-  {
-    lockScrollX: 2240,
-    waves: [
-      [
-        { type: 'coffeeBean', from: 'ground', x: 2600, delayMs: 0 },
-        { type: 'coffeeBean', from: 'ground', x: 2850, delayMs: 400 },
-        { type: 'alarmBug', from: 'left', delayMs: 800 },
-      ],
-    ],
-  },
-];
-
-/** 平台與天花板:左上角 (x, y) 與寬高。 */
-const TERRAIN: ReadonlyArray<{ x: number; y: number; w: number; h: number }> = [
-  { x: 0, y: GROUND_Y, w: WORLD_W, h: WORLD_H - GROUND_Y },
-  { x: 600, y: 380, w: 200, h: 20 },
-  { x: 1000, y: 300, w: 200, h: 20 },
-  { x: 1700, y: 380, w: 240, h: 20 },
-  // 低矮通道的天花板,底部 y=444,與地面間距 36。
-  { x: 1300, y: 380, w: 200, h: 64 },
-];
-
-/** 荊棘:x 起點與寬度,貼在地面上;都不在平台正下方,跳過時不會撞頭。 */
-const THORNS: ReadonlyArray<{ x: number; w: number }> = [
-  { x: 520, w: 60 },
-  { x: 1580, w: 60 },
-  { x: 2380, w: 80 },
-];
 const THORN_H = 16;
 const THORN_BOUNCE_VY = -350;
 
-const CHECKPOINTS: readonly number[] = [150, 1200, 2000];
 /** 復活時從畫面頂端掉下來,隊友在通道裡也不會卡進地形。 */
 const REVIVE_DROP_Y = 40;
 
-/** 寶箱:底部中央座標。隱藏寶箱在高平台上。 */
-const CHESTS: ReadonlyArray<{ x: number; bottom: number }> = [
-  { x: 960, bottom: GROUND_Y },
-  { x: 1100, bottom: 300 },
-  { x: 2600, bottom: GROUND_Y },
-];
 const CHEST_W = 32;
 const CHEST_H = 24;
 const CHEST_POPUP_MS = 2000;
@@ -134,16 +71,6 @@ const ITEM_COLOR: Record<ItemId, number> = {
   smallPillow: 0xf6d6e8,
   milkBottle: 0xffffff,
 };
-
-/** 練習靶:底部中央座標。 */
-const TARGETS: ReadonlyArray<{ x: number; bottom: number }> = [
-  { x: 450, bottom: GROUND_Y },
-  { x: 900, bottom: GROUND_Y },
-  { x: 2100, bottom: GROUND_Y },
-  { x: 2300, bottom: GROUND_Y },
-  { x: 2500, bottom: GROUND_Y },
-  { x: 1100, bottom: 220 },
-];
 
 const COLOR = {
   terrain: 0x3b3366,
@@ -177,6 +104,8 @@ export interface TestRangeData {
   save?: SaveStore;
   /** 重來時保留每位玩家手上的武器與剩餘彈藥。 */
   loadouts?: Loadout[];
+  /** 要玩的關卡,預設失眠森林。 */
+  level?: LevelId;
   /** 顯示手機觸控操作。 */
   touch?: boolean;
   /** 已經開過的寶箱編號,重來後維持打開,避免反覆刷寶箱。 */
@@ -224,6 +153,7 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private mode: PlayMode = 'single';
+  private level: LevelDef = LEVELS.forest;
   private checkpointX = START_X;
   private restarts = 0;
   private testHooks = false;
@@ -236,6 +166,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.initData = data ?? {};
     if (data?.getTuning) this.getTuning = data.getTuning;
     this.mode = data?.mode ?? 'single';
+    this.level = LEVELS[data?.level ?? 'forest'];
     this.checkpointX = data?.checkpointX ?? START_X;
     this.restarts = data?.restarts ?? 0;
     this.testHooks = data?.testHooks ?? false;
@@ -260,18 +191,19 @@ export class TestRangeScene extends Phaser.Scene {
     this.scrollX = 0;
     this.terrainBodies.clear();
 
-    this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H + 200);
-    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+    this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
+    this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
 
     this.terrain = this.physics.add.staticGroup();
-    for (const t of TERRAIN) {
+    const ground = { x: 0, y: GROUND_Y, w: this.level.worldW, h: WORLD_H - GROUND_Y };
+    for (const t of [ground, ...this.level.terrain]) {
       const r = this.add.rectangle(t.x + t.w / 2, t.y + t.h / 2, t.w, t.h, COLOR.terrain);
       this.terrain.add(r);
       this.terrainBodies.add(r.body as Phaser.Physics.Arcade.StaticBody);
     }
 
     this.targetGroup = this.physics.add.staticGroup();
-    for (const t of TARGETS) {
+    for (const t of this.level.targets) {
       const rect = this.add.rectangle(t.x, t.bottom - TARGET_SIZE / 2, TARGET_SIZE, TARGET_SIZE, COLOR.target);
       this.targetGroup.add(rect);
       this.targets.push({ rect, hp: TARGET_HP });
@@ -286,14 +218,14 @@ export class TestRangeScene extends Phaser.Scene {
             new PlayerEntity(this, { x: startX + PARTNER_OFFSET_X, feetY: GROUND_Y, color: COLOR.playerB, label: 'B', isTerrain }),
           ]
         : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain })];
-    this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), WORLD_W - VIEW_W);
-    this.encounters = initialEncounters(this.scrollX, TRICKLES);
+    this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), this.level.worldW - VIEW_W);
+    this.encounters = initialEncounters(this.scrollX, this.level.trickles);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
     this.players.forEach((p, i) => (p.loadout = { ...(this.initData.loadouts?.[i] ?? BASE_LOADOUT) }));
 
     const chestGroup = this.physics.add.staticGroup();
     const alreadyOpened = new Set(this.initData.openedChests ?? []);
-    CHESTS.forEach((c, i) => {
+    this.level.chests.forEach((c, i) => {
       const rect = this.add.rectangle(c.x, c.bottom - CHEST_H / 2, CHEST_W, CHEST_H, 0xc98b4f).setStrokeStyle(2, 0xffe08a);
       chestGroup.add(rect);
       const chest = { rect, opened: false };
@@ -309,9 +241,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.maxReachedX = startX;
     this.restarting = false;
 
-    for (const cp of CHECKPOINTS) this.add.rectangle(cp, GROUND_Y - 30, 4, 60, COLOR.checkpoint).setDepth(-1);
+    for (const cp of this.level.checkpoints) this.add.rectangle(cp, GROUND_Y - 30, 4, 60, COLOR.checkpoint).setDepth(-1);
     const thorns = this.physics.add.staticGroup();
-    for (const t of THORNS) thorns.add(this.add.rectangle(t.x + t.w / 2, GROUND_Y - THORN_H / 2, t.w, THORN_H, COLOR.thorn));
+    for (const t of this.level.thorns) thorns.add(this.add.rectangle(t.x + t.w / 2, GROUND_Y - THORN_H / 2, t.w, THORN_H, COLOR.thorn));
     for (const p of this.players) this.physics.add.overlap(p.zone, thorns, () => this.hurtPlayer(p, true));
 
     this.enemyGroup = this.physics.add.group();
@@ -372,7 +304,7 @@ export class TestRangeScene extends Phaser.Scene {
     const awake = this.players.filter((p) => !p.health.down);
     this.updateEncounters(dtMs, time);
     const target = applyLock(
-      advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, WORLD_W, CAMERA_LEAD, SCREEN_MARGIN),
+      advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, this.level.worldW, CAMERA_LEAD, SCREEN_MARGIN),
       this.lockScrollX,
     );
     const maxStep = (Math.max(t.walkSpeed, t.airSpeed) * CAMERA_MAX_SPEED_RATIO * dtMs) / 1000;
@@ -405,7 +337,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.restarting = true;
       this.scene.restart({
         ...this.initData,
-        checkpointX: reachedCheckpoint(CHECKPOINTS, this.maxReachedX),
+        checkpointX: reachedCheckpoint(this.level.checkpoints, this.maxReachedX),
         restarts: this.restarts + 1,
         loadouts: this.players.map((p) => p.loadout),
         openedChests: this.openedChestIndexes(),
@@ -430,7 +362,9 @@ export class TestRangeScene extends Phaser.Scene {
   spawnEnemy(type: EnemyType, x: number, y?: number, arena = false): EnemyEntity {
     const def = ENEMY_DEFS[type];
     const feetY = y !== undefined ? y + def.h / 2 : def.flying ? FLYING_SPAWN_Y + def.h / 2 : GROUND_Y;
-    const enemy = new EnemyEntity(this, type, x, feetY, arena);
+    // 生成位置夾在世界內,避免掉出世界讓戰鬥區永遠清不完。
+    const clampedX = Math.min(Math.max(x, def.w / 2), this.level.worldW - def.w / 2);
+    const enemy = new EnemyEntity(this, type, clampedX, feetY, arena);
     this.enemyGroup.add(enemy.body);
     enemy.physicsBody().setAllowGravity(!def.flying);
     this.enemies.push(enemy);
@@ -439,7 +373,7 @@ export class TestRangeScene extends Phaser.Scene {
 
   private updateEncounters(dtMs: number, time: number): void {
     const wasLocked = this.lockScrollX !== null;
-    const step = stepEncounters(this.encounters, ARENAS, TRICKLES, {
+    const step = stepEncounters(this.encounters, this.level.arenas, this.level.trickles, {
       scrollX: this.scrollX,
       arenaEnemiesAlive: this.enemies.filter((e) => e.arena).length,
       dtMs,
@@ -451,7 +385,7 @@ export class TestRangeScene extends Phaser.Scene {
 
     const active = this.encounters.active;
     if (active) {
-      const total = ARENAS[this.encounters.nextArena].waves.length;
+      const total = this.level.arenas[this.encounters.nextArena].waves.length;
       this.arenaHud.setText(`清除魔物!(第 ${active.wave + 1} / ${total} 波)`);
     } else {
       this.arenaHud.setText(time < this.goHintUntil ? '前進 →' : '');
@@ -564,14 +498,14 @@ export class TestRangeScene extends Phaser.Scene {
     this.players.forEach((p, i) => {
       if (!p.health.down) p.teleport(x + i * PARTNER_OFFSET_X, GROUND_Y);
     });
-    this.scrollX = Math.min(Math.max(x - VIEW_W * CAMERA_LEAD, this.scrollX), WORLD_W - VIEW_W);
+    this.scrollX = Math.min(Math.max(x - VIEW_W * CAMERA_LEAD, this.scrollX), this.level.worldW - VIEW_W);
     this.maxReachedX = Math.max(this.maxReachedX, x);
   }
 
   private updateEnemies(dtMs: number, t: Tuning): void {
     const awake = this.players.filter((p) => !p.health.down);
     for (const e of [...this.enemies]) {
-      if (e.x < this.scrollX - ENEMY_DESPAWN_BEHIND) {
+      if (e.x < this.scrollX - ENEMY_DESPAWN_BEHIND || e.body.y > WORLD_H + ENEMY_FALL_OUT) {
         this.removeEnemy(e);
         continue;
       }
@@ -749,6 +683,7 @@ export class TestRangeScene extends Phaser.Scene {
       enemiesDefeated: this.enemiesDefeated,
       blockedShots: this.blockedShots,
       touch: this.touchControls !== null,
+      level: this.level.id,
       meleeHits: this.meleeHits,
       meleeSwings: this.meleeSwings,
       bullets: this.projectiles.count(),

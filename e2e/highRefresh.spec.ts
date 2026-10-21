@@ -9,7 +9,7 @@ test.use({
 });
 
 test('高更新率螢幕:按住 S 時一直維持蹲下,不會閃爍', async ({ page }) => {
-  await page.goto('./?mode=single');
+  await page.goto('./?level=range&mode=single');
   await page.waitForFunction(() => window.__GK__?.player !== undefined);
   await page.locator('canvas').click();
   await page.waitForTimeout(300);

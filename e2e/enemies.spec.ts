@@ -19,7 +19,7 @@ async function spawn(page: Page, type: string, x: number, y?: number): Promise<v
 
 test.describe('魔物', () => {
   test.beforeEach(async ({ page }) => {
-    await openRange(page, './?mode=single&test=1');
+    await openRange(page, './?level=range&mode=single&test=1');
   });
 
   test('鬧鐘蟲會朝玩家走過來,碰到扣愛心', async ({ page }) => {
@@ -88,7 +88,7 @@ async function enterArena1(page: Page): Promise<number> {
 
 test.describe('戰鬥區與零星魔物', () => {
   test('走過 300 會有鬧鐘蟲從右邊出現', async ({ page }) => {
-    await openRange(page, './?mode=single');
+    await openRange(page, './?level=range&mode=single');
     await page.keyboard.down('KeyD');
     await page.waitForFunction(() => window.__GK__!.cameraX! >= 300, undefined, { timeout: 10000 });
     await page.keyboard.up('KeyD');
@@ -100,7 +100,7 @@ test.describe('戰鬥區與零星魔物', () => {
   });
 
   test('戰鬥區鎖住鏡頭,清完才解鎖', async ({ page }) => {
-    await openRange(page, './?mode=single&test=1');
+    await openRange(page, './?level=range&mode=single&test=1');
     const lockedX = await enterArena1(page);
     await page.keyboard.down('KeyD');
     await page.waitForTimeout(1500);
@@ -119,7 +119,7 @@ test.describe('戰鬥區與零星魔物', () => {
   });
 
   test('戰鬥中重來不殘留戰鬥區魔物', async ({ page }) => {
-    await openRange(page, './?mode=single&test=1');
+    await openRange(page, './?level=range&mode=single&test=1');
     await enterArena1(page);
     await page.waitForFunction(() => window.__GK__!.enemies!.some((e) => e.arena), undefined, { timeout: 3000 });
     await hurtUntilDown(page);
@@ -135,7 +135,7 @@ test.describe('戰鬥區與零星魔物', () => {
 });
 
 test('從地面冒出的魔物在完全出現前不會傷人', async ({ page }) => {
-  await openRange(page, './?mode=single&test=1');
+  await openRange(page, './?level=range&mode=single&test=1');
   const x = (await gk(page)).players![0].x;
   await page.evaluate((px) => window.__GK__!.spawnGround!('alarmBug', px), x);
   await page.waitForTimeout(200);
@@ -144,7 +144,7 @@ test('從地面冒出的魔物在完全出現前不會傷人', async ({ page }) 
 });
 
 test('繞到刺蝟背後打得到', async ({ page }) => {
-  await openRange(page, './?mode=single&test=1');
+  await openRange(page, './?level=range&mode=single&test=1');
   await page.evaluate(() => window.__GK__!.spawn!('hedgehog', 320));
   await page.waitForFunction(() => window.__GK__!.enemies!.length === 1);
   await page.evaluate(() => window.__GK__!.warp!(420));
@@ -156,4 +156,19 @@ test('繞到刺蝟背後打得到', async ({ page }) => {
   await page.keyboard.up('KeyC');
   const s = await gk(page);
   expect(s.enemies![0].hp).toBeLessThan(6);
+});
+
+test.describe('世界邊界', () => {
+  test('掉出世界的魔物會被移除', async ({ page }) => {
+    await openRange(page, './?level=range&mode=single&test=1');
+    await page.evaluate(() => window.__GK__!.spawn!('alarmBug', 1000, 700));
+    await page.waitForTimeout(500);
+    expect((await gk(page)).enemies).toHaveLength(0);
+  });
+
+  test('在世界右邊外生成的魔物會被夾回世界內', async ({ page }) => {
+    await openRange(page, './?level=range&mode=single&test=1');
+    await spawn(page, 'alarmBug', 5000);
+    expect((await gk(page)).enemies![0].x).toBeLessThanOrEqual(3200);
+  });
 });

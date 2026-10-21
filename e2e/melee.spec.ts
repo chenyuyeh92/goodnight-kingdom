@@ -5,7 +5,7 @@ async function gk(page: Page) {
 }
 
 async function open(page: Page): Promise<void> {
-  await page.goto('./?mode=single&test=1');
+  await page.goto('./?level=range&mode=single&test=1');
   await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
   await page.locator('canvas').click();
   await page.waitForTimeout(300);

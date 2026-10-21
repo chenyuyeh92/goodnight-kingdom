@@ -4,7 +4,7 @@ async function gk(page: Page) {
   return page.evaluate(() => window.__GK__!);
 }
 
-async function open(page: Page, path = './?mode=single&test=1'): Promise<void> {
+async function open(page: Page, path = './?level=range&mode=single&test=1'): Promise<void> {
   await page.goto(path);
   await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
   await page.locator('canvas').click();
@@ -95,7 +95,7 @@ test.describe('武器', () => {
   });
 
   test('迴力鏢主人睡著時不會永遠飛著', async ({ page }) => {
-    await open(page, './?mode=duo&test=1');
+    await open(page, './?level=range&mode=duo&test=1');
     await give(page, 'blanketBoomerang');
     await hold(page, 'KeyC', 60);
     const deadline = Date.now() + 10000;
@@ -184,7 +184,7 @@ test.describe('寶箱、道具與背包', () => {
   });
 
   test('兩人同時碰到同一個寶箱只有一人拿到', async ({ page }) => {
-    await open(page, './?mode=duo&test=1');
+    await open(page, './?level=range&mode=duo&test=1');
     await page.evaluate(() => window.__GK__!.rigChest!('pillowCannon'));
     await page.evaluate(() => window.__GK__!.warp!(940));
     await page.waitForFunction(() => window.__GK__!.chestsOpened === 1, undefined, { timeout: 3000 });

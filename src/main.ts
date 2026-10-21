@@ -5,6 +5,7 @@ import type { EnemyPhase, EnemyType } from './game/enemies';
 import type { Aim, Facing } from './game/playerMotor';
 import type { SpecialWeaponId, WeaponId } from './game/weapons';
 import type { ItemId } from './game/items';
+import { parseLevelId, type LevelId } from './levels/levelDef';
 import { parsePlayMode, type PlayMode } from './input/playMode';
 import { BackpackScene } from './scenes/BackpackScene';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
@@ -67,6 +68,7 @@ export interface GkDebug {
   saveOk?: boolean;
   /** 是否顯示觸控操作。 */
   touch?: boolean;
+  level?: LevelId;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
   lastChest?: 'new' | 'starUp' | 'maxed' | null;
@@ -123,7 +125,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
 
   const save = createSaveStore(safeLocalStorage());
   const touch = params.get('touch') === '1' || isTouchDevice();
-  const data: TestRangeData = { getTuning: () => store.get(), testHooks, save, touch };
+  const level = parseLevelId(params.get('level'));
+  const data: TestRangeData = { getTuning: () => store.get(), testHooks, save, touch, level };
   game.scene.add('TestRange', TestRangeScene, false);
   game.scene.add('ModeSelect', ModeSelectScene, false);
   game.scene.add('Backpack', BackpackScene, false);

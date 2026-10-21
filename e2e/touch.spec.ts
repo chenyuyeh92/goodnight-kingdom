@@ -32,14 +32,14 @@ async function pointer(page: Page, selector: string, type: string, id: number, x
 }
 
 test('桌機沒有 ?touch=1 時沒有觸控元素', async ({ page }) => {
-  await openRange(page, './?mode=single');
+  await openRange(page, './?level=range&mode=single');
   await expect(page.locator('#touch-controls')).toHaveCount(0);
   expect((await gk(page)).touch).toBe(false);
 });
 
 test.describe('觸控操作', () => {
   test.beforeEach(async ({ page }) => {
-    await openRange(page, './?mode=single&touch=1');
+    await openRange(page, './?level=range&mode=single&touch=1');
   });
 
   test('拖曳搖桿往右,角色往右走', async ({ page }) => {
