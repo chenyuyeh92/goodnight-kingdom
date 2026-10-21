@@ -104,6 +104,8 @@ export interface TestRangeData {
   save?: SaveStore;
   /** 重來時保留每位玩家手上的武器與剩餘彈藥。 */
   loadouts?: Loadout[];
+  /** 重來前已經清完的戰鬥區數量。 */
+  arenasCleared?: number;
   /** 要玩的關卡,預設失眠森林。 */
   level?: LevelId;
   /** 顯示手機觸控操作。 */
@@ -219,7 +221,7 @@ export class TestRangeScene extends Phaser.Scene {
           ]
         : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain })];
     this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), this.level.worldW - VIEW_W);
-    this.encounters = initialEncounters(this.scrollX, this.level.trickles);
+    this.encounters = initialEncounters(this.scrollX, this.level.trickles, this.initData.arenasCleared ?? 0);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
     this.players.forEach((p, i) => (p.loadout = { ...(this.initData.loadouts?.[i] ?? BASE_LOADOUT) }));
 
@@ -341,6 +343,7 @@ export class TestRangeScene extends Phaser.Scene {
         restarts: this.restarts + 1,
         loadouts: this.players.map((p) => p.loadout),
         openedChests: this.openedChestIndexes(),
+        arenasCleared: this.encounters.nextArena,
       });
     }
   }

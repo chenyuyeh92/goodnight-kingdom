@@ -158,6 +158,26 @@ test('繞到刺蝟背後打得到', async ({ page }) => {
   expect(s.enemies![0].hp).toBeLessThan(6);
 });
 
+test('清完的戰鬥區,睡著重來後不會再鎖住', async ({ page }) => {
+  await openRange(page, './?level=range&mode=single&test=1');
+  await enterArena1(page);
+  const deadline = Date.now() + 20000;
+  while (!(await page.evaluate(() => window.__GK__!.arena!.nextArena === 1))) {
+    if (Date.now() > deadline) throw new Error('戰鬥區沒有解鎖');
+    await page.evaluate(() => window.__GK__!.defeatAll!());
+    await page.waitForTimeout(300);
+  }
+  await page.evaluate(() => window.__GK__!.warp!(2100));
+  await page.waitForTimeout(300);
+  await hurtUntilDown(page);
+  await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
+  await page.waitForTimeout(500);
+  const s = await gk(page);
+  expect(s.checkpointX).toBe(2000);
+  expect(s.arena!.locked).toBe(false);
+  expect(s.arena!.nextArena).toBe(1);
+});
+
 test.describe('世界邊界', () => {
   test('掉出世界的魔物會被移除', async ({ page }) => {
     await openRange(page, './?level=range&mode=single&test=1');

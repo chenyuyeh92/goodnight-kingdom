@@ -90,3 +90,9 @@ test('從檢查點重來時,鏡頭已經走過的零星魔物不會再出現', (
 test('從頭開始時零星魔物照常出現', () => {
   expect(initialEncounters(0, T).tricklesFired).toBe(0);
 });
+
+test('重來時已經清完的戰鬥區不會再觸發', () => {
+  const s = initialEncounters(1616, [], 1);
+  expect(s.nextArena).toBe(1);
+  expect(step(s, 1616, 0, 50, []).lockScrollX).toBeNull();
+});
