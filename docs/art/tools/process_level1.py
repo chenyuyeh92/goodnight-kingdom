@@ -1,9 +1,10 @@
 """把 ComfyUI 產生的第一關候選圖，去背、翻轉、縮成遊戲大小，輸出到 public/assets/。
 
-用法：python -I docs/art/tools/process_level1.py <ComfyUI output/gk1 資料夾> <專案根目錄>
+用法：C:/ai-studio/ComfyUI_windows_portable/python_embeded/python.exe -I docs/art/tools/process_level1.py <ComfyUI output/gk1 資料夾> <專案根目錄>
+注意：來源圖（ComfyUI 輸出）只在美術的電腦上，沒有放進 repo。
 """
 import os, sys
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 SRC, ROOT = sys.argv[1], sys.argv[2]
 
@@ -40,23 +41,31 @@ def cutout(path):
         for x in range(w):
             if px[x, y][:3] == key:
                 px[x, y] = (255, 255, 255, 0)
-    return rgba.crop(rgba.getbbox())
+    return rgba.crop(rgba.getchannel("A").getbbox())
 
 def fit(im, box):
     s = min(box[0] / im.width, box[1] / im.height)
     size = (max(1, round(im.width * s)), max(1, round(im.height * s)))
-    return im.convert("RGBa").resize(size, Image.LANCZOS).convert("RGBA")  # 先乘 alpha 再縮，邊緣才不會有白邊
+    return im.resize(size, Image.LANCZOS)
 
 for cat, name, src, flip, box in PICKS:
     im = cutout(os.path.join(SRC, cat, src))
     if flip:
         im = im.transpose(Image.FLIP_LEFT_RIGHT)
     out = os.path.join(ROOT, "public", "assets", cat); os.makedirs(out, exist_ok=True)
-    fit(im, box).save(os.path.join(out, name + ".png"), optimize=True)
+    im = fit(im, box)
+    if name == "practice-target":  # 交接規格是 40×40，置中放進 40×40 透明畫布
+        canvas = Image.new("RGBA", (40, 40), (255, 255, 255, 0))
+        canvas.alpha_composite(im, ((40 - im.width) // 2, 40 - im.height)); im = canvas
+    im.save(os.path.join(out, name + ".png"), optimize=True)
 
-# 背景：用右邊一塊草地蓋掉模型自己加的小動物，再縮成 960×540
+# 背景：模型自己在地面中間加了一隻小動物，用右邊同高度的地面、邊緣羽化的橢圓補丁蓋掉，再縮成 960×540
 bg = Image.open(os.path.join(SRC, "backgrounds", "insomnia-forest_00007_.png")).convert("RGB")
-bg.paste(bg.crop((820, 580, 960, 700)), (610, 580))
+box = (605, 540, 765, 725)  # 小動物的位置（原圖 1344×768 座標）
+w, h = box[2] - box[0], box[3] - box[1]
+patch = bg.crop((box[0] + 130, box[1], box[2] + 130, box[3]))
+mask = Image.new("L", (w, h), 0); ImageDraw.Draw(mask).ellipse((8, 8, w - 8, h - 8), fill=255)
+bg.paste(patch, box[:2], mask.filter(ImageFilter.GaussianBlur(8)))
 out = os.path.join(ROOT, "public", "assets", "backgrounds"); os.makedirs(out, exist_ok=True)
 bg.resize((960, 540), Image.LANCZOS).save(os.path.join(out, "insomnia-forest.png"), optimize=True)
 print("ok")

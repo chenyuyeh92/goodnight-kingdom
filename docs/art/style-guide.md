@@ -52,7 +52,7 @@
 
 - 底模：Nova Cartoon XL v6.0（`novaCartoonXL_v60.safetensors`，Illustrious 系列，Civitai model 1570391）
 - 畫風 LoRA：Chibi Animal Characters「Illustrious: V2」版（`Chibi_Animal_V2.safetensors`，Civitai model 1481162，version 2842389）
-- 強度：魔物 0.9、武器道具 0.4、背景 0.5
+- 強度：魔物 0.9、道具 0.4、預設角色 0.5；**武器、背景、睡衣小人輪廓不加 LoRA**（加了會冒出小動物，武器會變成「小熊拿武器」）
 - 設定：28 步、CFG 5.5、euler_ancestral、normal
 
 **共用風格詞（每張都加在最後）：**
