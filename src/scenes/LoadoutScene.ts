@@ -1,18 +1,20 @@
 import Phaser from 'phaser';
 import { createSaveStore } from '../game/save';
-import { BASE_LOADOUT, SPECIAL_WEAPONS, WEAPONS, ammoCapacity, equip, type Loadout } from '../game/weapons';
+import { BASE_LOADOUT, SPECIAL_WEAPONS, WEAPONS, ammoCapacity, equip, type Loadout, type WeaponId } from '../game/weapons';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
+import { iconOrNothing } from './menuIcons';
 
 const RARITY_COLOR: Record<string, string> = { R: '#ffffff', SR: '#7fb4ff', SSR: '#ffd24a', base: '#f3e9d2' };
 const ROW_H = 50;
 const FIRST_ROW_Y = 140;
-const ROW_W = 560;
+const ROW_W = 680;
 const UP = new Set(['KeyW', 'ArrowUp']);
 const DOWN = new Set(['KeyS', 'ArrowDown']);
 const CONFIRM = new Set(['KeyC', 'Comma', 'Enter', 'Space']);
 
 interface Option {
+  id: WeaponId;
   label: string;
   color: string;
   loadout: Loadout;
@@ -47,14 +49,14 @@ export class LoadoutScene extends Phaser.Scene {
   create(): void {
     const owned = (this.data_.save ?? createSaveStore(null)).get().weapons;
     this.options = [
-      { label: '只帶哈欠泡泡', color: RARITY_COLOR.base, loadout: { ...BASE_LOADOUT } },
+      { id: 'yawnBubble', label: '只帶哈欠泡泡', color: RARITY_COLOR.base, loadout: { ...BASE_LOADOUT } },
       ...SPECIAL_WEAPONS.flatMap((id) => {
         const stars = owned[id] ?? 0;
         if (stars <= 0) return [];
         const def = WEAPONS[id];
         const ammo = ammoCapacity(id, stars);
         const label = `${def.rarity} ${def.name} ${'★'.repeat(stars)}  ${ammo === null ? '不限彈藥,連射會過熱' : `彈藥 ${ammo}`}`;
-        return [{ label, color: RARITY_COLOR[def.rarity], loadout: equip(id, stars) }];
+        return [{ id, label, color: RARITY_COLOR[def.rarity], loadout: equip(id, stars) }];
       }),
     ];
 
@@ -62,7 +64,9 @@ export class LoadoutScene extends Phaser.Scene {
     this.rows = this.options.map((o, i) => {
       const y = FIRST_ROW_Y + i * ROW_H;
       const bg = this.add.rectangle(480, y, ROW_W, ROW_H - 8, 0x3b3366).setInteractive({ useHandCursor: true });
-      this.add.text(480 - ROW_W / 2 + 20, y, `${i + 1}. ${o.label}`, { fontSize: '22px', color: o.color }).setOrigin(0, 0.5);
+      const left = 480 - ROW_W / 2 + 20;
+      const hasIcon = iconOrNothing(this, left + 16, y, o.id);
+      this.add.text(hasIcon ? left + 40 : left, y, `${i + 1}. ${o.label}`, { fontSize: '22px', color: o.color }).setOrigin(0, 0.5);
       bg.on('pointerdown', () => this.pick(i));
       return bg;
     });

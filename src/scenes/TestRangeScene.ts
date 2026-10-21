@@ -5,7 +5,7 @@ import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
-import { BASE_LOADOUT, WEAPONS, equip, type Loadout, type SpecialWeaponId } from '../game/weapons';
+import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId } from '../game/weapons';
 import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
@@ -21,7 +21,7 @@ import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
-import { artStatus, enemySprite } from '../art/sprites';
+import { artStatus, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
 import { ParallaxBackground } from '../game/background';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
@@ -87,6 +87,9 @@ const REVIVE_DROP_Y = 40;
 const CHEST_W = 32;
 const CHEST_H = 24;
 const CHEST_POPUP_MS = 2000;
+/** 打開寶箱時蓋子往上飛走。 */
+const LID_FLY = 30;
+const LID_MS = 400;
 const ITEM_SIZE = 16;
 const ITEM_LIFE_MS = 8000;
 const ITEM_BLINK_MS = 2000;
@@ -99,6 +102,9 @@ const ITEM_COLOR: Record<ItemId, number> = {
   milkBottle: 0xffffff,
 };
 
+/** HUD:每位玩家一列,前面是武器小圖示。 */
+const HUD_ROW_W = 470;
+const HUD_ICON = 28;
 /** HUD 文字加深色描邊,在亮背景上也看得清楚。 */
 const HUD_STROKE = { stroke: '#2b2a6b', strokeThickness: 4 };
 
@@ -124,6 +130,8 @@ const COLOR = {
 interface Target {
   rect: Phaser.GameObjects.Rectangle;
   hp: number;
+  /** 練習靶的圖;沒有圖時顯示色塊。 */
+  art: Phaser.GameObjects.Image | null;
 }
 
 
@@ -139,12 +147,16 @@ interface Boss {
 interface Chest {
   rect: Phaser.GameObjects.Rectangle;
   opened: boolean;
+  /** 寶箱圖(只有打開的樣子)與程式畫的蓋子;沒有圖時都是 null。 */
+  art: Phaser.GameObjects.Image | null;
+  lid: Phaser.GameObjects.Graphics | null;
 }
 
 interface ItemPickup {
   rect: Phaser.GameObjects.Rectangle;
   id: ItemId;
   bornAt: number;
+  art: Phaser.GameObjects.Image | null;
 }
 
 export interface TestRangeData {
@@ -228,7 +240,7 @@ export class TestRangeScene extends Phaser.Scene {
   private initData: TestRangeData = {};
   private maxReachedX = START_X;
   private restarting = false;
-  private hud!: Phaser.GameObjects.Text;
+  private hudRows: { icon: Phaser.GameObjects.Image | null; text: Phaser.GameObjects.Text }[] = [];
 
   init(data: TestRangeData): void {
     this.initData = data ?? {};
@@ -283,7 +295,9 @@ export class TestRangeScene extends Phaser.Scene {
     for (const t of this.level.targets) {
       const rect = this.add.rectangle(t.x, t.bottom - TARGET_SIZE / 2, TARGET_SIZE, TARGET_SIZE, COLOR.target);
       this.targetGroup.add(rect);
-      this.targets.push({ rect, hp: TARGET_HP });
+      const art = this.textures.exists('target') ? this.add.image(t.x, rect.y, 'target') : null;
+      if (art) rect.setVisible(false);
+      this.targets.push({ rect, hp: TARGET_HP, art });
     }
 
     const isTerrain = (b: unknown): boolean => this.terrainBodies.has(b as Phaser.Physics.Arcade.StaticBody);
@@ -305,8 +319,11 @@ export class TestRangeScene extends Phaser.Scene {
     this.level.chests.forEach((c, i) => {
       const rect = this.add.rectangle(c.x, c.bottom - CHEST_H / 2, CHEST_W, CHEST_H, 0xc98b4f).setStrokeStyle(2, 0xffe08a);
       chestGroup.add(rect);
-      const chest = { rect, opened: false };
-      if (alreadyOpened.has(i)) this.markOpened(chest);
+      const art = this.textures.exists('chest') ? this.add.image(c.x, c.bottom, 'chest').setOrigin(0.5, 1) : null;
+      const lid = art ? this.drawChestLid(c.x, c.bottom) : null;
+      if (art) rect.setVisible(false);
+      const chest: Chest = { rect, opened: false, art, lid };
+      if (alreadyOpened.has(i)) this.markOpened(chest, false);
       this.chests.push(chest);
     });
     this.pickupGroup = this.physics.add.group();
@@ -356,7 +373,17 @@ export class TestRangeScene extends Phaser.Scene {
       })
       .setScrollFactor(0)
       .setDepth(10);
-    this.hud = this.add.text(16, 40, '', { fontSize: '20px', color: '#ffb3c7', ...HUD_STROKE }).setScrollFactor(0).setDepth(10);
+    this.hudRows = this.players.map((_, i) => {
+      const x = 16 + i * HUD_ROW_W;
+      const icon = this.textures.exists(weaponIcon('yawnBubble'))
+        ? this.add.image(x + HUD_ICON / 2, 52, weaponIcon('yawnBubble')).setScrollFactor(0).setDepth(10)
+        : null;
+      const text = this.add
+        .text(icon ? x + HUD_ICON + 6 : x, 40, '', { fontSize: '20px', color: '#ffb3c7', ...HUD_STROKE })
+        .setScrollFactor(0)
+        .setDepth(10);
+      return { icon, text };
+    });
     this.arenaHud = this.add
       .text(VIEW_W / 2, 90, '', { fontSize: '26px', color: '#ffe08a', ...HUD_STROKE })
       .setOrigin(0.5)
@@ -507,16 +534,18 @@ export class TestRangeScene extends Phaser.Scene {
 
   private renderHud(): void {
     const labels = this.mode === 'duo' ? ['A', 'B'] : [''];
-    this.hud.setText(
-      this.players
-        .map((p, i) => {
-          const name = labels[i] ? `${labels[i]} ` : '';
-          if (p.health.down) return `${name}睡著了…`;
-          const hearts = '♥'.repeat(p.health.hearts) + '♡'.repeat(MAX_HEARTS - p.health.hearts);
-          return `${name}${hearts} ${weaponHud(p.loadout, p.buffs)}`;
-        })
-        .join('    '),
-    );
+    this.players.forEach((p, i) => {
+      const row = this.hudRows[i];
+      const name = labels[i] ? `${labels[i]} ` : '';
+      const hearts = '♥'.repeat(p.health.hearts) + '♡'.repeat(MAX_HEARTS - p.health.hearts);
+      row.text.setText(p.health.down ? `${name}睡著了…` : `${name}${hearts} ${weaponHud(p.loadout, p.buffs)}`);
+      if (!row.icon) return;
+      const key = weaponIcon(activeWeapon(p.loadout).id);
+      if (this.textures.exists(key) && row.icon.texture.key !== key) row.icon.setTexture(key);
+      const src = row.icon.frame;
+      const scale = Math.min(HUD_ICON / src.width, HUD_ICON / src.height);
+      row.icon.setScale(scale).setAlpha(p.health.down ? 0.4 : 1);
+    });
   }
 
   spawnEnemy(type: EnemyType, x: number, y?: number, arena = false): EnemyEntity {
@@ -574,7 +603,7 @@ export class TestRangeScene extends Phaser.Scene {
   private touchChest(p: PlayerEntity, obj: unknown): void {
     const chest = this.chests.find((c) => c.rect === obj);
     if (!chest || chest.opened || p.health.down) return;
-    this.markOpened(chest);
+    this.markOpened(chest, true);
     this.chestsOpened += 1;
 
     const owned = this.save.get().weapons;
@@ -601,9 +630,40 @@ export class TestRangeScene extends Phaser.Scene {
     this.tweens.add({ targets: [title, sub], alpha: 0, delay: CHEST_POPUP_MS - 400, duration: 400, onComplete: () => [title, sub].forEach((o) => o.destroy()) });
   }
 
-  private markOpened(chest: Chest): void {
+  /** 打開寶箱:有圖時蓋子飛走(animate)或直接消失;沒有圖時色塊變暗。 */
+  private markOpened(chest: Chest, animate: boolean): void {
     chest.opened = true;
-    chest.rect.setFillStyle(0x5a4636).setAlpha(0.6);
+    if (!chest.lid) {
+      chest.rect.setFillStyle(0x5a4636).setAlpha(0.6);
+      return;
+    }
+    const lid = chest.lid;
+    this.tweens.killTweensOf(lid);
+    if (!animate) {
+      lid.setVisible(false);
+      return;
+    }
+    this.tweens.add({ targets: lid, y: lid.y - LID_FLY, angle: -25, alpha: 0, duration: LID_MS, onComplete: () => lid.setVisible(false) });
+  }
+
+  private closeChest(chest: Chest): void {
+    chest.opened = false;
+    if (!chest.lid) {
+      chest.rect.setFillStyle(0xc98b4f).setAlpha(1);
+      return;
+    }
+    this.tweens.killTweensOf(chest.lid);
+    chest.lid.setVisible(true).setAlpha(1).setAngle(0).setPosition(chest.rect.x, chest.art!.y);
+  }
+
+  /** 美術還沒有關著的寶箱圖:在打開的圖上畫一個蓋子和一點閃光。 */
+  private drawChestLid(x: number, bottom: number): Phaser.GameObjects.Graphics {
+    const g = this.add.graphics({ x, y: bottom }).setDepth(1);
+    g.fillStyle(COLOR.outline).fillRoundedRect(-22, -38, 44, 22, 8);
+    g.fillStyle(0xc98b4f).fillRoundedRect(-20, -36, 40, 18, 7);
+    g.fillStyle(0xf8e08e).fillRect(-20, -27, 40, 4).fillRect(-3, -30, 6, 10);
+    g.fillStyle(0xfff6e5).fillTriangle(14, -44, 16, -38, 18, -44).fillTriangle(12, -41, 16, -40, 20, -41);
+    return g;
   }
 
   private openedChestIndexes(): number[] {
@@ -614,7 +674,10 @@ export class TestRangeScene extends Phaser.Scene {
     const rect = this.add.rectangle(x, y, ITEM_SIZE, ITEM_SIZE, ITEM_COLOR[id]).setStrokeStyle(1, 0x2a2550);
     this.pickupGroup.add(rect);
     (rect.body as Phaser.Physics.Arcade.Body).setGravityY(this.getTuning().gravity);
-    this.pickups.push({ rect, id, bornAt: this.time.now });
+    const key = itemSprite(id);
+    const art = this.textures.exists(key) ? this.add.image(x, y, key).setOrigin(0.5, 1) : null;
+    if (art) rect.setVisible(false);
+    this.pickups.push({ rect, id, bornAt: this.time.now, art });
   }
 
   private touchPickup(p: PlayerEntity, obj: unknown): void {
@@ -633,14 +696,19 @@ export class TestRangeScene extends Phaser.Scene {
   private updatePickups(time: number): void {
     for (const pickup of [...this.pickups]) {
       const age = this.time.now - pickup.bornAt;
-      if (age > ITEM_LIFE_MS) this.removePickup(pickup);
-      else if (age > ITEM_LIFE_MS - ITEM_BLINK_MS) pickup.rect.setAlpha(Math.floor(time / 100) % 2 ? 0.3 : 1);
+      if (age > ITEM_LIFE_MS) {
+        this.removePickup(pickup);
+        continue;
+      }
+      if (age > ITEM_LIFE_MS - ITEM_BLINK_MS) pickup.rect.setAlpha(Math.floor(time / 100) % 2 ? 0.3 : 1);
+      pickup.art?.setPosition(pickup.rect.x, pickup.rect.y + ITEM_SIZE / 2).setAlpha(pickup.rect.alpha);
     }
   }
 
   private removePickup(pickup: ItemPickup): void {
     this.pickups = this.pickups.filter((i) => i !== pickup);
     pickup.rect.destroy();
+    pickup.art?.destroy();
   }
 
   private applyItemTo(p: PlayerEntity, item: ItemId): void {
@@ -913,26 +981,32 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private hitTarget(target: Target, damage: number): void {
-    const { rect } = target;
+    const { rect, art } = target;
     this.targetsHit += 1;
     target.hp = Math.max(0, target.hp - damage);
 
     rect.setFillStyle(COLOR.flash);
-    this.time.delayedCall(FLASH_MS, () => rect.setFillStyle(COLOR.target));
-    this.tweens.add({ targets: rect, scaleX: 1.2, scaleY: 0.8, duration: FLASH_MS, yoyo: true });
+    art?.setTint(COLOR.flash).setTintMode(Phaser.TintModes.FILL);
+    this.time.delayedCall(FLASH_MS, () => {
+      rect.setFillStyle(COLOR.target);
+      art?.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+    });
+    this.tweens.add({ targets: art ?? rect, scaleX: 1.2, scaleY: 0.8, duration: FLASH_MS, yoyo: true });
 
     if (target.hp === 0) this.defeatTarget(target);
   }
 
   private defeatTarget(target: Target): void {
-    const { rect } = target;
+    const { rect, art } = target;
     rect.setVisible(false);
+    art?.setVisible(false);
     (rect.body as Phaser.Physics.Arcade.StaticBody).enable = false;
     this.playDefeatEffect(rect.x, rect.y);
 
     this.time.delayedCall(TARGET_RESPAWN_MS, () => {
       target.hp = TARGET_HP;
-      rect.setVisible(true).setScale(1).setFillStyle(COLOR.target);
+      rect.setVisible(!art).setScale(1).setFillStyle(COLOR.target);
+      art?.setVisible(true).setScale(1);
       (rect.body as Phaser.Physics.Arcade.StaticBody).enable = true;
     });
   }
@@ -957,10 +1031,7 @@ export class TestRangeScene extends Phaser.Scene {
       clearSave: this.testHooks ? () => this.save.clear() : undefined,
       resetChests: this.testHooks
         ? () =>
-            this.chests.forEach((c) => {
-              c.opened = false;
-              c.rect.setFillStyle(0xc98b4f).setAlpha(1);
-            })
+            this.chests.forEach((c) => this.closeChest(c))
         : undefined,
       openedChests: this.openedChestIndexes(),
       backpack: this.save.get().weapons,

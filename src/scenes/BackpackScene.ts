@@ -4,6 +4,7 @@ import { createSaveStore } from '../game/save';
 import { MAX_STARS, SPECIAL_WEAPONS, WEAPONS, type SpecialWeaponId } from '../game/weapons';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
+import { iconOrNothing } from './menuIcons';
 
 /** 每把武器擅長對付什麼(企劃 5.2)。 */
 const BLURB: Record<SpecialWeaponId, string> = {
@@ -43,7 +44,8 @@ export class BackpackScene extends Phaser.Scene {
           : `${def.rarity} ???`;
       lines.push(line);
       this.add.rectangle(480, y, 760, 44, 0x3b3366, stars > 0 ? 1 : 0.5);
-      this.add.text(120, y, line, { fontSize: '20px', color: stars > 0 ? RARITY_COLOR[def.rarity] : LOCKED_COLOR }).setOrigin(0, 0.5);
+      if (stars > 0) iconOrNothing(this, 130, y, id);
+      this.add.text(160, y, line, { fontSize: '20px', color: stars > 0 ? RARITY_COLOR[def.rarity] : LOCKED_COLOR }).setOrigin(0, 0.5);
     });
 
     const rates = `寶箱機率 R ${CHEST_RATES.R * 100}% / SR ${CHEST_RATES.SR * 100}% / SSR ${CHEST_RATES.SSR * 100}%`;
