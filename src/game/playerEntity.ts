@@ -6,6 +6,8 @@ import { bulletVelocity, muzzleOffset } from './fire';
 import { initialAttackState, stepAttack, type AttackState, type MeleeReach } from './melee';
 import { freshHealth, type Health } from './health';
 import { CROUCH_HITBOX, STAND_HITBOX, initialMotorState, stepMotor, type MotorState } from './playerMotor';
+import { BASE_LOADOUT, activeWeapon, canFire, coolWeapon, fireWeapon, type Loadout, type WeaponDef } from './weapons';
+import { NO_BUFFS, fireIntervalWithBuffs, tickBuffs, type Buffs } from './items';
 
 const DOWN_HEIGHT = 20;
 const BLINK_MS = 100;
@@ -21,7 +23,7 @@ export interface PlayerEntityOptions {
 
 export type AttackResult =
   | { kind: 'none' }
-  | { kind: 'bullet'; spawn: BulletSpawn }
+  | { kind: 'bullet'; spawn: BulletSpawn; weapon: WeaponDef }
   | { kind: 'melee'; reach: MeleeReach };
 
 export interface BulletSpawn {
@@ -37,6 +39,8 @@ export class PlayerEntity {
   motor: MotorState = initialMotorState();
   attack: AttackState = initialAttackState();
   health: Health = freshHealth();
+  loadout: Loadout = { ...BASE_LOADOUT };
+  buffs: Buffs = { ...NO_BUFFS };
 
   private readonly sprite: Phaser.GameObjects.Rectangle;
   private readonly tag: Phaser.GameObjects.Text | null;
@@ -71,6 +75,8 @@ export class PlayerEntity {
   update(intent: Intent, dtMs: number, t: Tuning, hasMeleeTarget: (reach: MeleeReach) => boolean): AttackResult {
     const pb = this.body();
     pb.setGravityY(t.gravity);
+    this.loadout = coolWeapon(this.loadout, dtMs);
+    this.buffs = tickBuffs(this.buffs, dtMs);
     if (this.health.down) {
       pb.setVelocityX(0);
       return { kind: 'none' };
@@ -91,14 +97,19 @@ export class PlayerEntity {
       facing: m.facing,
       aim: m.aim,
     };
+    // 過熱時不能射擊,但枕頭揮擊照常可用。
     const near = intent.shoot && hasMeleeTarget(reach);
-    const r = stepAttack(this.attack, intent.shoot, near, dtMs, t.fireIntervalMs);
+    const shooting = near || (intent.shoot && canFire(this.loadout));
+    const weapon = activeWeapon(this.loadout);
+    const interval = fireIntervalWithBuffs(weapon.fireIntervalMs ?? t.fireIntervalMs, this.buffs);
+    const r = stepAttack(this.attack, shooting, near, dtMs, interval);
     this.attack = r.state;
     if (r.action === 'melee') return { kind: 'melee', reach };
     if (r.action === 'none') return { kind: 'none' };
+    this.loadout = fireWeapon(this.loadout, this.buffs.starMs > 0);
     const off = muzzleOffset(m.aim, m.facing, m.crouching);
-    const v = bulletVelocity(m.aim, m.facing, t.bulletSpeed);
-    return { kind: 'bullet', spawn: { x: this.zone.x + off.x, y: pb.bottom + off.y, vx: v.vx, vy: v.vy } };
+    const v = bulletVelocity(m.aim, m.facing, weapon.speed ?? t.bulletSpeed);
+    return { kind: 'bullet', weapon, spawn: { x: this.zone.x + off.x, y: pb.bottom + off.y, vx: v.vx, vy: v.vy } };
   }
 
   clampX(minX: number, maxX: number): void {
@@ -137,6 +148,12 @@ export class PlayerEntity {
       hearts: this.health.hearts,
       down: this.health.down,
       invuln: this.health.invulnMs > 0,
+      weapon: activeWeapon(this.loadout).id,
+      ammo: this.loadout.ammo,
+      heat: this.loadout.heat,
+      overheated: this.loadout.overheated,
+      cocoa: this.buffs.cocoaMs > 0,
+      star: this.buffs.starMs > 0,
     };
   }
 

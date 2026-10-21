@@ -16,9 +16,13 @@ export function stepFire(
   dtMs: number,
   intervalMs: number,
 ): { state: FireState; fired: boolean } {
-  const cooldownMs = Math.max(0, s.cooldownMs - Math.min(dtMs, MAX_DT_MS));
-  if (shootHeld && cooldownMs === 0) return { state: { cooldownMs: intervalMs }, fired: true };
-  return { state: { cooldownMs }, fired: false };
+  const remaining = s.cooldownMs - Math.min(dtMs, MAX_DT_MS);
+  if (shootHeld && remaining <= 0) {
+    // 連射中把不到一格的剩餘時間帶到下一發,射速才不會隨畫面更新率改變;剛按下時從頭算。
+    const carry = s.cooldownMs > 0 ? remaining : 0;
+    return { state: { cooldownMs: Math.max(0, carry + intervalMs) }, fired: true };
+  }
+  return { state: { cooldownMs: Math.max(0, remaining) }, fired: false };
 }
 
 export function bulletVelocity(aim: Aim, facing: Facing, speed: number): { vx: number; vy: number } {

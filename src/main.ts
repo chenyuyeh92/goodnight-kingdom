@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { createTuningStore, type StorageLike } from './config/tuning';
 import type { EnemyPhase, EnemyType } from './game/enemies';
 import type { Aim, Facing } from './game/playerMotor';
+import type { SpecialWeaponId, WeaponId } from './game/weapons';
+import type { ItemId } from './game/items';
 import { parsePlayMode, type PlayMode } from './input/playMode';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
@@ -17,6 +19,12 @@ export interface PlayerDebug {
   hearts: number;
   down: boolean;
   invuln: boolean;
+  weapon: WeaponId;
+  ammo: number | null;
+  heat: number;
+  overheated: boolean;
+  cocoa: boolean;
+  star: boolean;
 }
 
 export interface EnemyDebug {
@@ -44,6 +52,8 @@ export interface GkDebug {
   blockedShots?: number;
   meleeHits?: number;
   meleeSwings?: number;
+  giveWeapon?: (index: number, id: SpecialWeaponId, stars?: number) => void;
+  giveItem?: (index: number, item: ItemId) => void;
   arena?: { locked: boolean; wave: number; nextArena: number };
   spawn?: (type: EnemyType, x: number, y?: number) => void;
   defeatAll?: () => void;

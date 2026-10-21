@@ -44,3 +44,22 @@ test('down 子彈往下', () => {
 test('蹲下 forward 面向 -1 的槍口', () => {
   expect(muzzleOffset('forward', -1, true)).toEqual({ x: -16, y: -14 });
 });
+
+test('連射時保留剩餘時間,射速不受畫面更新率影響', () => {
+  const count = (frameMs: number) => {
+    let s = initialFireState();
+    let n = 0;
+    for (let t = 0; t < 700; t += frameMs) {
+      const r = stepFire(s, true, frameMs, 35);
+      s = r.state;
+      if (r.fired) n++;
+    }
+    return n;
+  };
+  // 700ms ÷ 35ms = 20 發;畫面格數不同只允許差 1 發(第一發與最後一格的取整)。
+  const at60 = count(1000 / 60);
+  const at165 = count(1000 / 165);
+  expect(at60).toBeGreaterThanOrEqual(19);
+  expect(at60).toBeLessThanOrEqual(21);
+  expect(Math.abs(at60 - at165)).toBeLessThanOrEqual(1);
+});

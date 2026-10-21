@@ -3,7 +3,11 @@ import { DEFAULT_TUNING, MAX_DT_MS, type Tuning } from '../config/tuning';
 import { KeyboardSource } from '../input/keyboardSource';
 import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
-import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
+import { PlayerEntity } from '../game/playerEntity';
+import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
+import { equip, type SpecialWeaponId } from '../game/weapons';
+import { applyItem, type ItemId } from '../game/items';
+import { weaponHud } from '../game/hud';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
@@ -29,8 +33,6 @@ const PARTNER_OFFSET_X = 40;
 /** 鏡頭最快是角色速度的 1.5 倍,平常跟得上,隊友睡著時不會瞬間跳動。 */
 const CAMERA_MAX_SPEED_RATIO = 1.5;
 
-const BULLET_LIFE_MS = 1000;
-const BULLET_SIZE = 10;
 const TARGET_SIZE = 40;
 const TARGET_HP = 3;
 const TARGET_RESPAWN_MS = 2000;
@@ -123,7 +125,6 @@ const COLOR = {
   terrain: 0x3b3366,
   playerA: 0xffd27a,
   playerB: 0x9be7c4,
-  bullet: 0xbfe6ff,
   target: 0xf3e9d2,
   flash: 0xffffff,
   thorn: 0x7a4a8c,
@@ -136,10 +137,6 @@ interface Target {
   hp: number;
 }
 
-interface Bullet {
-  shape: Phaser.GameObjects.Arc;
-  bornAt: number;
-}
 
 export interface TestRangeData {
   getTuning?: () => Tuning;
@@ -155,8 +152,7 @@ export class TestRangeScene extends Phaser.Scene {
   private terrain!: Phaser.Physics.Arcade.StaticGroup;
   private terrainBodies = new Set<Phaser.Physics.Arcade.StaticBody>();
   private players: PlayerEntity[] = [];
-  private bullets: Bullet[] = [];
-  private bulletGroup!: Phaser.Physics.Arcade.Group;
+  private projectiles!: ProjectileSystem;
   private targetGroup!: Phaser.Physics.Arcade.StaticGroup;
   private targets: Target[] = [];
   private targetsHit = 0;
@@ -195,7 +191,6 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.bullets = [];
     this.targets = [];
     this.enemies = [];
     this.enemiesDefeated = 0;
@@ -254,17 +249,9 @@ export class TestRangeScene extends Phaser.Scene {
       this.physics.add.overlap(p.zone, this.enemyGroup, () => this.hurtPlayer(p, true), solid);
     }
 
-    this.bulletGroup = this.physics.add.group({ allowGravity: false });
-    this.physics.add.overlap(
-      this.bulletGroup,
-      this.enemyGroup,
-      (b, e) => this.hitEnemy(b as Phaser.GameObjects.Arc, e as Phaser.GameObjects.Rectangle),
-      solid,
-    );
-    this.physics.add.collider(this.bulletGroup, this.terrain, (b) => this.removeBullet(b as Phaser.GameObjects.Arc));
-    this.physics.add.overlap(this.bulletGroup, this.targetGroup, (b, t) =>
-      this.hitTarget(b as Phaser.GameObjects.Arc, t as Phaser.GameObjects.Rectangle),
-    );
+    this.projectiles = new ProjectileSystem(this, this.terrain, (target, hit) => this.onProjectileHit(target, hit));
+    this.projectiles.addTargets(this.enemyGroup);
+    this.projectiles.addTargets(this.targetGroup);
 
     this.add
       .text(16, 12, controlHint(this.mode), {
@@ -294,10 +281,12 @@ export class TestRangeScene extends Phaser.Scene {
     this.players.forEach((p, i) => {
       p.health = tickHealth(p.health, dtMs);
       const r = p.update(intents[i], dtMs, t, (reach) => this.findMeleeTarget(reach) !== null);
-      if (r.kind === 'bullet') this.spawnBullet(r.spawn);
+      if (r.kind === 'bullet') this.projectiles.fire(p, r.weapon, r.spawn, t);
       else if (r.kind === 'melee') this.performMelee(r.reach);
     });
-    this.expireBullets();
+    this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
+      this.enemies.filter((e) => !e.emerging).map((e) => ({ x: e.body.x, y: e.body.y })),
+    );
     this.updateEnemies(dtMs, t);
     this.handleTeam();
 
@@ -350,7 +339,8 @@ export class TestRangeScene extends Phaser.Scene {
         .map((p, i) => {
           const name = labels[i] ? `${labels[i]} ` : '';
           if (p.health.down) return `${name}睡著了…`;
-          return name + '♥'.repeat(p.health.hearts) + '♡'.repeat(MAX_HEARTS - p.health.hearts);
+          const hearts = '♥'.repeat(p.health.hearts) + '♡'.repeat(MAX_HEARTS - p.health.hearts);
+          return `${name}${hearts} ${weaponHud(p.loadout, p.buffs)}`;
         })
         .join('    '),
     );
@@ -406,6 +396,14 @@ export class TestRangeScene extends Phaser.Scene {
     this.tweens.add({ targets: enemy.body, alpha: 1, duration: EMERGE_MS, onComplete: () => (enemy.emerging = false) });
     const mound = this.add.ellipse(x, GROUND_Y, def.w + 16, 12, COLOR.dirt);
     this.tweens.add({ targets: mound, alpha: 0, delay: EMERGE_MS, duration: EMERGE_MS, onComplete: () => mound.destroy() });
+  }
+
+  private applyItemTo(p: PlayerEntity, item: ItemId): void {
+    const stars = 1;
+    const r = applyItem(item, { health: p.health, loadout: p.loadout, buffs: p.buffs, stars });
+    p.health = r.health;
+    p.loadout = r.loadout;
+    p.buffs = r.buffs;
   }
 
   /** 測試用:把醒著的角色與鏡頭一起移到 x。 */
@@ -477,18 +475,24 @@ export class TestRangeScene extends Phaser.Scene {
     return this.enemies.find((e) => e.body === obj);
   }
 
-  private hitEnemy(shape: Phaser.GameObjects.Arc, rect: Phaser.GameObjects.Rectangle): void {
-    const enemy = this.enemies.find((e) => e.body === rect);
-    if (!enemy || enemy.hp <= 0) return;
-    const v = (shape.body as Phaser.Physics.Arcade.Body).velocity;
-    this.removeBullet(shape);
-    if (bulletEffect(enemy.def, enemy.brain.facing, v.x, v.y) === 'blocked') {
-      this.blockedShots += 1;
-      return;
+  /** 子彈命中:刺盾擋下、扣血、打倒;正在冒出的魔物與已倒下的靶不算。 */
+  private onProjectileHit(obj: Phaser.GameObjects.GameObject, hit: ProjectileHit): HitResult {
+    const enemy = this.enemyFor(obj);
+    if (enemy) {
+      if (enemy.emerging || enemy.hp <= 0) return 'ignored';
+      if (bulletEffect(enemy.def, enemy.brain.facing, hit.vx, hit.vy) === 'blocked') {
+        this.blockedShots += 1;
+        return 'blocked';
+      }
+      enemy.hp = Math.max(0, enemy.hp - hit.damage);
+      enemy.flash();
+      if (enemy.hp === 0) this.defeatEnemy(enemy);
+      return 'consumed';
     }
-    enemy.hp -= 1;
-    enemy.flash();
-    if (enemy.hp === 0) this.defeatEnemy(enemy);
+    const target = this.targets.find((t) => t.rect === obj);
+    if (!target || target.hp <= 0) return 'ignored';
+    this.hitTarget(target, hit.damage);
+    return 'consumed';
   }
 
   private defeatEnemy(enemy: EnemyEntity, impactScale = 1): void {
@@ -519,32 +523,10 @@ export class TestRangeScene extends Phaser.Scene {
     if (t.shakeMs > 0) this.cameras.main.shake(t.shakeMs * scale, t.shakeIntensity * scale);
   }
 
-  private spawnBullet(b: BulletSpawn): void {
-    const shape = this.add.circle(b.x, b.y, BULLET_SIZE / 2, COLOR.bullet);
-    this.bulletGroup.add(shape);
-    (shape.body as Phaser.Physics.Arcade.Body).setVelocity(b.vx, b.vy);
-    this.bullets.push({ shape, bornAt: this.time.now });
-  }
-
-  private expireBullets(): void {
-    const now = this.time.now;
-    for (const b of [...this.bullets]) {
-      const outOfView = b.shape.x < this.scrollX - 50 || b.shape.x > this.scrollX + VIEW_W + 50;
-      if (now - b.bornAt > BULLET_LIFE_MS || outOfView) this.removeBullet(b.shape);
-    }
-  }
-
-  private removeBullet(shape: Phaser.GameObjects.Arc): void {
-    this.bullets = this.bullets.filter((b) => b.shape !== shape);
-    shape.destroy();
-  }
-
-  private hitTarget(shape: Phaser.GameObjects.Arc, rect: Phaser.GameObjects.Rectangle): void {
-    const target = this.targets.find((t) => t.rect === rect);
-    if (!target || target.hp <= 0) return;
-    this.removeBullet(shape);
+  private hitTarget(target: Target, damage: number): void {
+    const { rect } = target;
     this.targetsHit += 1;
-    target.hp -= 1;
+    target.hp = Math.max(0, target.hp - damage);
 
     rect.setFillStyle(COLOR.flash);
     this.time.delayedCall(FLASH_MS, () => rect.setFillStyle(COLOR.target));
@@ -577,6 +559,10 @@ export class TestRangeScene extends Phaser.Scene {
       checkpointX: this.checkpointX,
       restarts: this.restarts,
       hurt: this.testHooks ? (i: number) => this.hurtPlayer(this.players[i], false) : undefined,
+      giveWeapon: this.testHooks
+        ? (i: number, id: SpecialWeaponId, stars?: number) => void (this.players[i].loadout = equip(id, stars ?? 1))
+        : undefined,
+      giveItem: this.testHooks ? (i: number, item: ItemId) => this.applyItemTo(this.players[i], item) : undefined,
       spawn: this.testHooks ? (type: EnemyType, x: number, y?: number) => void this.spawnEnemy(type, x, y) : undefined,
       defeatAll: this.testHooks ? () => [...this.enemies].forEach((e) => this.defeatEnemy(e)) : undefined,
       warp: this.testHooks ? (x: number) => this.warp(x) : undefined,
@@ -593,7 +579,7 @@ export class TestRangeScene extends Phaser.Scene {
       blockedShots: this.blockedShots,
       meleeHits: this.meleeHits,
       meleeSwings: this.meleeSwings,
-      bullets: this.bullets.length,
+      bullets: this.projectiles.count(),
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
     };
