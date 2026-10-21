@@ -228,6 +228,7 @@ export class TestRangeScene extends Phaser.Scene {
           ]
         : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain })];
     this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), WORLD_W - VIEW_W);
+    this.encounters = initialEncounters(this.scrollX, TRICKLES);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
     this.maxReachedX = startX;
     this.restarting = false;
@@ -239,13 +240,18 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.enemyGroup = this.physics.add.group();
     this.physics.add.collider(this.enemyGroup, this.terrain);
+    // 正在從地面冒出的魔物還看不見,不傷人也不會被打到。
+    const solid = (_a: unknown, e: unknown): boolean => !this.enemyFor(e)?.emerging;
     for (const p of this.players) {
-      this.physics.add.overlap(p.zone, this.enemyGroup, () => this.hurtPlayer(p, true));
+      this.physics.add.overlap(p.zone, this.enemyGroup, () => this.hurtPlayer(p, true), solid);
     }
 
     this.bulletGroup = this.physics.add.group({ allowGravity: false });
-    this.physics.add.overlap(this.bulletGroup, this.enemyGroup, (b, e) =>
-      this.hitEnemy(b as Phaser.GameObjects.Arc, e as Phaser.GameObjects.Rectangle),
+    this.physics.add.overlap(
+      this.bulletGroup,
+      this.enemyGroup,
+      (b, e) => this.hitEnemy(b as Phaser.GameObjects.Arc, e as Phaser.GameObjects.Rectangle),
+      solid,
     );
     this.physics.add.collider(this.bulletGroup, this.terrain, (b) => this.removeBullet(b as Phaser.GameObjects.Arc));
     this.physics.add.overlap(this.bulletGroup, this.targetGroup, (b, t) =>
@@ -386,8 +392,9 @@ export class TestRangeScene extends Phaser.Scene {
       return;
     }
     const enemy = this.spawnEnemy(spec.type, x, def.flying ? undefined : GROUND_Y - def.h / 2, arena);
+    enemy.emerging = true;
     enemy.body.setAlpha(0);
-    this.tweens.add({ targets: enemy.body, alpha: 1, duration: EMERGE_MS });
+    this.tweens.add({ targets: enemy.body, alpha: 1, duration: EMERGE_MS, onComplete: () => (enemy.emerging = false) });
     const mound = this.add.ellipse(x, GROUND_Y, def.w + 16, 12, COLOR.dirt);
     this.tweens.add({ targets: mound, alpha: 0, delay: EMERGE_MS, duration: EMERGE_MS, onComplete: () => mound.destroy() });
   }
@@ -415,6 +422,10 @@ export class TestRangeScene extends Phaser.Scene {
       e.update(nearest ? nearest.x : null, dtMs, t.gravity);
       e.render();
     }
+  }
+
+  private enemyFor(obj: unknown): EnemyEntity | undefined {
+    return this.enemies.find((e) => e.body === obj);
   }
 
   private hitEnemy(shape: Phaser.GameObjects.Arc, rect: Phaser.GameObjects.Rectangle): void {
@@ -515,6 +526,9 @@ export class TestRangeScene extends Phaser.Scene {
       spawn: this.testHooks ? (type: EnemyType, x: number, y?: number) => void this.spawnEnemy(type, x, y) : undefined,
       defeatAll: this.testHooks ? () => [...this.enemies].forEach((e) => this.defeatEnemy(e)) : undefined,
       warp: this.testHooks ? (x: number) => this.warp(x) : undefined,
+      spawnGround: this.testHooks
+        ? (type: EnemyType, x: number) => this.spawnFrom({ type, from: 'ground', x, delayMs: 0 }, false)
+        : undefined,
       arena: {
         locked: this.lockScrollX !== null,
         wave: this.encounters.active?.wave ?? 0,

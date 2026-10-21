@@ -96,3 +96,28 @@ test('刺盾:只擋迎面的水平子彈', () => {
   expect(bulletEffect(def, -1, 0, 640)).toBe('hit');
   expect(bulletEffect(ENEMY_DEFS.alarmBug, -1, 640, 0)).toBe('hit');
 });
+
+test('刺蝟不會瞬間轉身:玩家在背後超過 700ms 才轉過來', () => {
+  // 刺蝟在 500 面向左,玩家跳到背後 900。
+  let brain = stepEnemy('hedgehog', initialBrain('hedgehog'), sense()).brain;
+  expect(brain.facing).toBe(-1);
+  for (let t = 0; t < 650; t += 50) brain = stepEnemy('hedgehog', brain, sense({ targetX: 900, dtMs: 50 })).brain;
+  expect(brain.facing).toBe(-1);
+  for (let t = 0; t < 100; t += 50) brain = stepEnemy('hedgehog', brain, sense({ targetX: 900, dtMs: 50 })).brain;
+  expect(brain.facing).toBe(1);
+});
+
+test('刺蝟轉身計時在玩家回到正面時重算', () => {
+  let brain = stepEnemy('hedgehog', initialBrain('hedgehog'), sense()).brain;
+  for (let t = 0; t < 600; t += 50) brain = stepEnemy('hedgehog', brain, sense({ targetX: 900, dtMs: 50 })).brain;
+  brain = stepEnemy('hedgehog', brain, sense({ targetX: 200, dtMs: 50 })).brain;
+  for (let t = 0; t < 600; t += 50) brain = stepEnemy('hedgehog', brain, sense({ targetX: 900, dtMs: 50 })).brain;
+  expect(brain.facing).toBe(-1);
+});
+
+test('刺蝟滾過玩家後不會一停下就轉身', () => {
+  const rolling = run('hedgehog', 3000, { dtMs: 50 });
+  const after = run('hedgehog', 1000, { dtMs: 50, targetX: 900 }, rolling.brain);
+  expect(after.brain.phase).toBe('walk');
+  expect(after.brain.facing).toBe(-1);
+});

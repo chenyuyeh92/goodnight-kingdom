@@ -13,6 +13,8 @@ export class EnemyEntity {
   readonly body: Phaser.GameObjects.Rectangle;
   brain: EnemyBrain;
   hp: number;
+  /** 正在從地面冒出,還不算上場。 */
+  emerging = false;
   private readonly shield: Phaser.GameObjects.Rectangle | null;
 
   constructor(

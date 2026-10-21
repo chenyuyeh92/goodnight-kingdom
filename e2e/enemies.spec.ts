@@ -129,6 +129,31 @@ test.describe('戰鬥區與零星魔物', () => {
     expect(s.checkpointX).toBe(1200);
     expect(s.cameraX).toBe(816);
     expect(s.arena!.locked).toBe(false);
-    expect(s.enemies!.filter((e) => e.arena)).toHaveLength(0);
+    // 檢查點之前的零星魔物(300、700)鏡頭已經走過,不會再出現。
+    expect(s.enemies).toHaveLength(0);
   });
+});
+
+test('從地面冒出的魔物在完全出現前不會傷人', async ({ page }) => {
+  await openRange(page, './?mode=single&test=1');
+  const x = (await gk(page)).players![0].x;
+  await page.evaluate((px) => window.__GK__!.spawnGround!('alarmBug', px), x);
+  await page.waitForTimeout(200);
+  expect((await gk(page)).players![0].hearts).toBe(3);
+  await page.waitForFunction(() => window.__GK__!.players![0].hearts === 2, undefined, { timeout: 3000 });
+});
+
+test('繞到刺蝟背後打得到', async ({ page }) => {
+  await openRange(page, './?mode=single&test=1');
+  await page.evaluate(() => window.__GK__!.spawn!('hedgehog', 320));
+  await page.waitForFunction(() => window.__GK__!.enemies!.length === 1);
+  await page.evaluate(() => window.__GK__!.warp!(420));
+  await page.keyboard.down('KeyA');
+  await page.waitForTimeout(40);
+  await page.keyboard.up('KeyA');
+  await page.keyboard.down('KeyC');
+  await page.waitForTimeout(400);
+  await page.keyboard.up('KeyC');
+  const s = await gk(page);
+  expect(s.enemies![0].hp).toBeLessThan(6);
 });

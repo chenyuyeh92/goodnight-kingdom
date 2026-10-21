@@ -40,8 +40,10 @@ export interface EncounterStep {
   lockScrollX: number | null;
 }
 
-export function initialEncounters(): EncounterState {
-  return { nextArena: 0, active: null, tricklesFired: 0 };
+/** startScrollX:從檢查點重來時鏡頭的起點,已經走過的零星魔物不再出現。 */
+export function initialEncounters(startScrollX = 0, trickles: readonly TrickleDef[] = []): EncounterState {
+  const passed = trickles.filter((t) => t.triggerScrollX < startScrollX).length;
+  return { nextArena: 0, active: null, tricklesFired: passed };
 }
 
 /** 零星魔物依鏡頭位置出現;戰鬥區鎖住鏡頭,一波波生成,全部清完才解鎖。 */

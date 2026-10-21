@@ -45,6 +45,8 @@ export interface GkDebug {
   arena?: { locked: boolean; wave: number; nextArena: number };
   spawn?: (type: EnemyType, x: number, y?: number) => void;
   defeatAll?: () => void;
+  /** 測試用:讓魔物從地面冒出。 */
+  spawnGround?: (type: EnemyType, x: number) => void;
   /** 測試用:把醒著的角色移到 x(站在地面上)。 */
   warp?: (x: number) => void;
   bullets?: number;

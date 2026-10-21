@@ -80,3 +80,13 @@ test('還有魔物時不前進', () => {
 test('從戰鬥區中間重來不會把鏡頭往回拉', () => {
   expect(step(initialEncounters(), 1616, 0, 50, []).lockScrollX).toBe(1616);
 });
+
+test('從檢查點重來時,鏡頭已經走過的零星魔物不會再出現', () => {
+  const s = initialEncounters(816, T);
+  expect(s.tricklesFired).toBe(1);
+  expect(step(s, 820).spawns).toHaveLength(0);
+});
+
+test('從頭開始時零星魔物照常出現', () => {
+  expect(initialEncounters(0, T).tricklesFired).toBe(0);
+});
