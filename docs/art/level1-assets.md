@@ -27,9 +27,28 @@
 | `public/assets/characters/pajama-outline.png` | 睡衣小人輪廓（給玩家畫） | 289×512 | 沒有臉、身體白色填滿（睡帽內有一小塊是透明的），玩家在上面畫；腮紅要程式或玩家另外加；負責人 2026-10-21 確認用人形 |
 | `public/assets/backgrounds/insomnia-forest.png` | 失眠森林背景 | 960×540 | 單張，還沒分視差圖層 |
 
+## 第二批（2026-10-21 補充）
+
+| 檔案 | 內容 | 實際大小（寬×高 px） | 備註 |
+|---|---|---|---|
+| `public/assets/enemies/night-owl-boss-phase2.png` | 熬夜貓頭鷹 第二階段 | 183×200 | 頭上冒蒸氣、更臭臉 |
+| `public/assets/enemies/night-owl-boss-phase3.png` | 熬夜貓頭鷹 第三階段 | 176×200 | 咖啡打翻、身邊冒火花；第一階段用 night-owl-boss.png |
+| `public/assets/enemies/clockbug-sleep.png` | 鬧鐘蟲 睡著 | 47×56 | 被哄睡後換成這張 |
+| `public/assets/enemies/coffee-bean-sprite-sleep.png` | 咖啡豆精靈 睡著 | 38×52 |  |
+| `public/assets/enemies/night-bat-sleep.png` | 熬夜蝙蝠 睡著 | 54×56 |  |
+| `public/assets/enemies/insomnia-hedgehog-sleep.png` | 失眠刺蝟 睡著 | 81×72 |  |
+| `public/assets/enemies/night-owl-boss-sleep.png` | 熬夜貓頭鷹 睡著 | 184×200 | 打倒關主後 |
+| `public/assets/fx/zzz.png` | Zzz 特效 | 31×32 | 程式畫的字，可以往上飄、淡出 |
+| `public/assets/fx/dream-sheep.png` | 變成小羊特效 | 40×36 | 半透明小羊在雲上，魔物睡著後飄走用 |
+| `public/assets/backgrounds/forest-far.png` | 三層背景：遠景（天空、月亮） | 1440×540 | 不透明；左右可無縫接續，捲動最慢 |
+| `public/assets/backgrounds/forest-mid.png` | 三層背景：中景（樹林剪影） | 1440×540 | 透明；左右可無縫接續，捲動中等 |
+| `public/assets/backgrounds/forest-near.png` | 三層背景：近景（草叢剪影） | 1440×540 | 透明；左右可無縫接續，捲動最快，草叢在地面線附近 |
+
+三層背景疊法：遠景 → 中景 → 近景，三張寬度都是 1440（一個半畫面），重複排列就能一直捲動。舊的單張背景 `insomnia-forest.png` 留著，二選一用。
+
 ## 還沒做 / 已知問題
 
 - 素材是 1 倍大小，高解析度螢幕上可能有點糊；需要 2 倍版本的話跟美術說：來源大圖只在美術的電腦上，由美術改 `docs/art/tools/process_level1.py` 的尺寸重跑。
-- 背景是單張，不是遠景／中景／前景三層。
-- 熬夜貓頭鷹的三個階段、魔物被哄睡的樣子（打哈欠、變小羊、Zzz）還沒畫。
-- 寶箱只有打開的樣子，沒有關著的。
+- 貓頭鷹三個階段的差別比較小（表情、蒸氣、打翻咖啡），程式可以再加變色或抖動讓差別更明顯。
+- 魔物「打哈欠」的樣子沒做（企劃寫打哈欠「或」變小羊／Zzz，先做後兩個）。
+- 寶箱只有打開的樣子：關著的試了兩輪都畫成打開的，還沒做出來。

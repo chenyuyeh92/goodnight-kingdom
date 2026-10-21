@@ -24,5 +24,9 @@
 | `public/assets/items/*.png`（熱可可、流星、小枕頭、牛奶瓶、寶箱、練習靶） | 同上 | Nova Cartoon XL v6.0＋Chibi Animal V2（強度 0.4） | 見上表 | 2026-10-21 |
 | `public/assets/characters/default-guard.png`、`pajama-outline.png` | 同上（輪廓不加 LoRA） | Nova Cartoon XL v6.0（守衛加 Chibi Animal V2 強度 0.5） | 見上表 | 2026-10-21 |
 | `public/assets/backgrounds/insomnia-forest.png` | 同上，用旁邊草地蓋掉模型自己加的小動物，縮成 960×540 | Nova Cartoon XL v6.0（不加 LoRA） | 見上表 | 2026-10-21 |
+| `public/assets/enemies/*-phase2.png`、`*-phase3.png`、`*-sleep.png` | 本機 ComfyUI 以第一批魔物圖為底「照原圖修改」（img2img），`docs/art/tools/process_level1b.py` 去背縮圖 | Nova Cartoon XL v6.0＋Chibi Animal V2（強度 0.9） | 見上表 | 2026-10-21 |
+| `public/assets/fx/dream-sheep.png` | 本機 ComfyUI 生成，同上處理 | Nova Cartoon XL v6.0＋Chibi Animal V2（強度 0.9） | 見上表 | 2026-10-21 |
+| `public/assets/fx/zzz.png` | 程式繪製（Pillow），字型 Windows 內建 Arial Bold | 無 | 字形做成圖片使用；Windows 字型授權允許把文字輸出成圖片 | 2026-10-21 |
+| `public/assets/backgrounds/forest-far.png`、`forest-mid.png`、`forest-near.png` | 本機 ComfyUI 生成；中景、近景是白底黑剪影，用程式依深淺轉透明並染成夜空色；頭尾交叉淡化成可無縫接續 | Nova Cartoon XL v6.0（不加 LoRA） | 見上表 | 2026-10-21 |
 
 備註：純 AI 生成的圖，著作權保護在各國都還不明確（見企劃文件 8.3）。
