@@ -4,7 +4,9 @@
 
 | 模型 | 檔名 | 來源 | 授權 |
 |---|---|---|---|
-| Animagine XL 4.0 opt | `animagine-xl-4.0-opt.safetensors` | https://huggingface.co/cagliostrolab/animagine-xl-4.0 | CreativeML Open RAIL++-M，允許商用生成圖 |
+| Animagine XL 4.0 opt（v0.1 用，已不用） | `animagine-xl-4.0-opt.safetensors` | https://huggingface.co/cagliostrolab/animagine-xl-4.0 | CreativeML Open RAIL++-M，允許商用生成圖 |
+| Nova Cartoon XL v6.0（v0.2 底模） | `novaCartoonXL_v60.safetensors` | https://civitai.com/models/1570391 （version 2329740） | Civitai 授權欄：allowCommercialUse = Image, RentCivit, Rent（允許賣生成圖） |
+| Chibi Animal Characters, Illustrious V2（v0.2 畫風 LoRA） | `Chibi_Animal_V2.safetensors` | https://civitai.com/models/1481162 （version 2842389） | Civitai 授權欄：allowCommercialUse = Image, RentCivit（允許賣生成圖）；allowNoCredit = true；allowDerivatives = false（不能拿它做衍生模型再發布） |
 
 ## 素材清單
 
@@ -14,5 +16,9 @@
 | `docs/art/style-sample/pillow-cannon.png` | 同上，再左右翻轉 | Animagine XL 4.0 opt | 見上表 | 2026-10-21 |
 | `docs/art/style-sample/insomnia-forest.png` | 本機 ComfyUI 生成，縮成 960×540 | Animagine XL 4.0 opt | 見上表 | 2026-10-21 |
 | `docs/art/style-sample/style-sample-gamescale.png`、`style-sample-closeup.png` | 用上面三張合成 | Animagine XL 4.0 opt（來源素材） | 見上表 | 2026-10-21 |
+
+| `docs/art/style-sample-v2/clockbug.png`、`pillow-cannon.png` | 本機 ComfyUI 生成，四角填色去背（枕頭砲左右翻轉） | Nova Cartoon XL v6.0＋Chibi Animal V2 | 見上表 | 2026-10-21 |
+| `docs/art/style-sample-v2/insomnia-forest.png` | 本機 ComfyUI 生成，縮成 960×540 | Nova Cartoon XL v6.0＋Chibi Animal V2 | 見上表 | 2026-10-21 |
+| `docs/art/style-sample-v2/style-sample-gamescale.png`、`style-sample-closeup.png` | 用上面三張合成 | 同上（來源素材） | 見上表 | 2026-10-21 |
 
 備註：純 AI 生成的圖，著作權保護在各國都還不明確（見企劃文件 8.3）。

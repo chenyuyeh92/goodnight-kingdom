@@ -1,10 +1,10 @@
-# 《晚安王國》美術風格指南（草案 v0.1）
+# 《晚安王國》美術風格指南（v0.2）
 
-2026-10-21 建立。所有美術素材都照這份文件生成；改這份文件＝改全遊戲的風格，要先經葉宸佑同意。
+2026-10-21 建立；同日改版 v0.2：葉宸佑從 Civitai 選定「Q版動物角色」畫風（原本 v0.1 的粉彩水彩風作廢，留在第 8 節當紀錄）。所有美術素材都照這份文件生成；改這份文件＝改全遊戲的風格，要先經葉宸佑同意。
 
 ## 1. 一句話風格
 
-**粉彩水彩感的可愛夜晚世界**：清楚的深紫色外框、平塗加淡淡水彩暈染、圓滾滾的造型、腮紅。搞笑、療癒、溫暖，但線條乾淨、配色統一，避免廉價感。
+**Q版動物卡通風的夜晚世界**：清楚的深色外框、乾淨平塗、圓滾滾的 Q 版比例、半閉眼的「沒睡飽」表情加腮紅。背景是側面視角的夜晚森林，遊戲區（地面附近）乾淨不雜亂。搞笑、療癒、溫暖，避免廉價感。
 
 ## 2. 固定調色盤
 
@@ -50,25 +50,29 @@
 
 ## 5. 生成方式（本機 ComfyUI）
 
-- 模型：Animagine XL 4.0 opt（授權 CreativeML Open RAIL++-M，允許商用生成圖）
-- 設定：28 步、CFG 5、euler_ancestral、normal
+- 底模：Nova Cartoon XL v6.0（`novaCartoonXL_v60.safetensors`，Illustrious 系列，Civitai model 1570391）
+- 畫風 LoRA：Chibi Animal Characters「Illustrious: V2」版（`Chibi_Animal_V2.safetensors`，Civitai model 1481162，version 2842389）
+- 強度：魔物 0.9、武器道具 0.4、背景 0.5
+- 設定：28 步、CFG 5.5、euler_ancestral、normal
 
 **共用風格詞（每張都加在最後）：**
 ```
-watercolor (medium), thick outlines, dark purple outline, flat color, pastel colors, cute, chibi, round, blush, moonlight yellow and cream white and lavender, masterpiece, high score, great score, absurdres
+chibi, cute, round, blush, soft colors, pastel night palette, lavender, moonlight yellow, cream white, masterpiece, best quality, amazing quality
 ```
 
 **共用負面詞：**
 ```
-lowres, worst quality, low quality, bad anatomy, text, signature, watermark, username, blurry, jpeg artifacts, realistic, photo, 3d, scary, gore, human, 1girl, 1boy, book, open book, paper
+lowres, worst quality, low quality, bad anatomy, text, signature, watermark, username, blurry, jpeg artifacts, photo, realistic, scary, gore, human, 1girl, 1boy, nsfw
 ```
 
 **各類型開頭：**
-- 魔物：`no humans, <物種與特徵>, grumpy, sleepy eyes, eye bags, blush stickers, full body, from side, white background, simple background, ...`
-- 武器／道具：`no humans, object focus, weapon, <外型>, from side, white background, simple background, ...`
-- 背景：`no humans, scenery, <場景>, night, side view, wide shot, landscape, ...`（負面另加 `character, creature`）
+- 魔物：`no humans, creature, <物種與特徵>, grumpy, sleepy half-closed eyes, eye bags, single creature, full body, from side, facing left, white background, simple background, ...`（負面另加 `multiple objects`）
+- 武器／道具：`no humans, object focus, plush toy <外型>, soft fabric, stuffed toy, stitches, rounded, from side, white background, simple background, ...`（負面另加 `gun, rifle, bazooka, metal, scope, realistic weapon`，不然會畫成真槍）
+- 背景：`no humans, scenery, <場景>, night, flat grassy ground, side view, horizontal, 2D platformer background, wide shot, ...`（負面另加 `character, creature`）
 
-注意：Animagine 是看「標籤」的模型，要用英文短詞、逗號分開；寫「storybook」之類的字會被當成真的「書」畫進去。
+注意：
+- 這是看「標籤」的模型，要用英文短詞、逗號分開；寫「storybook」之類的字會被當成真的「書」畫進去。
+- LoRA 會讓武器上多出小動物（例如枕頭砲上睡覺的小熊），好笑可以保留，但不能擋住武器外型。
 
 ## 6. 去背與檔名
 
@@ -76,9 +80,17 @@ lowres, worst quality, low quality, bad anatomy, text, signature, watermark, use
 - 檔名用英文小寫加連字號，例如 `enemies/clockbug.png`、`weapons/pillow-cannon.png`、`backgrounds/insomnia-forest-far.png`。
 - 遊戲要用的素材放在 `public/assets/` 底下（會跟著遊戲上線，記得縮到遊戲大小、控制檔案大小）；參考用的圖放 `docs/art/`。來源與授權記在 `docs/assets-licenses.md`。
 
-## 7. 風格樣板圖（v0.1）的檢討
+## 7. 風格樣板圖（v0.2）的檢討
 
-檔案：`docs/art/style-sample/`（只是參考，不進遊戲）
+檔案：`docs/art/style-sample-v2/`（只是參考，不進遊戲）
+- 背景：側面視角、地面平、遊戲區乾淨，方向對了。但畫面正中間有一隻蘑菇小人，玩家可能誤以為是 NPC 或魔物；量產背景時負面詞要加 `creature` 並把 LoRA 強度降低或拿掉。
+- 鬧鐘蟲：Q版、沒睡飽的表情對了；鬧鐘只在頭上，還不夠明顯，可以再試「鬧鐘當身體」。
+- 枕頭砲：是枕頭加紫色砲管，上面有隻睡覺的小熊；已左右翻轉成朝右。
+- 外框顏色（v0.2 是深灰紫）和第 2 節調色盤的「外框深紫 #3A2A5A」接近，量產時再確認一致。
+
+## 8. 舊版紀錄：v0.1（粉彩水彩風，已作廢）
+
+v0.1 用 Animagine XL 4.0 opt、粉彩水彩加深紫外框；檔案：`docs/art/style-sample/`（只是參考，不進遊戲）
 - `style-sample-closeup.png`：放大看細節
 - `style-sample-gamescale.png`：照遊戲實際大小（白框＝玩家判定 28×48，白線＝地面 y=480）
 
