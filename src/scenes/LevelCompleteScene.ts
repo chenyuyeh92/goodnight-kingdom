@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { sessionData, type TestRangeData } from './TestRangeScene';
+import { startLevel } from './LoadoutScene';
 
 export interface LevelCompleteData extends TestRangeData {
   levelName: string;
@@ -44,7 +45,7 @@ export class LevelCompleteScene extends Phaser.Scene {
   }
 
   private replay(): void {
-    this.scene.start('TestRange', sessionData(this.data_));
+    startLevel(this, sessionData(this.data_));
   }
 
   private menu(): void {

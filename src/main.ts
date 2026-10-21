@@ -10,6 +10,7 @@ import type { OwlMode } from './game/owl';
 import { parsePlayMode, type PlayMode } from './input/playMode';
 import { BackpackScene } from './scenes/BackpackScene';
 import { LevelCompleteScene } from './scenes/LevelCompleteScene';
+import { LoadoutScene } from './scenes/LoadoutScene';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
 import { mountKeyTest } from './ui/keyTest';
@@ -48,6 +49,9 @@ export interface GkDebug {
   screen?: 'mode-select' | 'range' | 'backpack' | 'complete' | 'loadout';
   /** 通關結算的文字列。 */
   summary?: string[];
+  /** 選武器畫面:正在選的玩家與選項文字。 */
+  loadoutFor?: 'A' | 'B';
+  loadoutOptions?: string[];
   /** 背包畫面上的文字列,供測試讀取。 */
   backpackText?: string[];
   mode?: PlayMode;
@@ -140,6 +144,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('ModeSelect', ModeSelectScene, false);
   game.scene.add('Backpack', BackpackScene, false);
   game.scene.add('LevelComplete', LevelCompleteScene, false);
+  game.scene.add('Loadout', LoadoutScene, false);
   if (mode) game.scene.start('TestRange', { ...data, mode });
   else game.scene.start('ModeSelect', data);
 }

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
+import { startLevel } from './LoadoutScene';
 
 type Choice = PlayMode | 'backpack';
 
@@ -46,6 +47,6 @@ export class ModeSelectScene extends Phaser.Scene {
 
   private choose(choice: Choice): void {
     if (choice === 'backpack') this.scene.start('Backpack', this.data_);
-    else this.scene.start('TestRange', { ...this.data_, mode: choice });
+    else startLevel(this, { ...this.data_, mode: choice });
   }
 }

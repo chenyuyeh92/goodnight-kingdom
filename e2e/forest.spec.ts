@@ -143,3 +143,88 @@ test.describe('通關結算', () => {
     await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
   });
 });
+
+async function openMenu(page: Page, save: string | null): Promise<void> {
+  await page.addInitScript((s) => {
+    if (s === null) localStorage.removeItem('gk.save.v1');
+    else localStorage.setItem('gk.save.v1', s);
+  }, save);
+  await page.goto('./?test=1');
+  await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
+  await page.locator('canvas').click({ position: { x: 5, y: 5 } });
+}
+
+const SHEEP_SAVE = JSON.stringify({ version: 1, weapons: { sheepGun: 2 } });
+
+test.describe('出發前選武器', () => {
+  test('背包沒有武器時直接進森林', async ({ page }) => {
+    await openMenu(page, null);
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
+    expect((await gk(page)).level).toBe('forest');
+  });
+
+  test('存檔壞掉時也直接進森林', async ({ page }) => {
+    await openMenu(page, '{bad');
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
+  });
+
+  test('單人選武器後帶著上場', async ({ page }) => {
+    await openMenu(page, SHEEP_SAVE);
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
+    const s = await gk(page);
+    expect(s.loadoutFor).toBe('A');
+    expect(s.loadoutOptions![0]).toContain('哈欠泡泡');
+    expect(s.loadoutOptions![1]).toContain('數羊機槍');
+    await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
+    const p = (await gk(page)).players![0];
+    expect(p.weapon).toBe('sheepGun');
+    expect(p.ammo).toBe(150);
+  });
+
+  test('雙人兩人可以選同一把', async ({ page }) => {
+    await openMenu(page, SHEEP_SAVE);
+    await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
+    await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__!.loadoutFor === 'B');
+    await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
+    const ps = (await gk(page)).players!;
+    expect(ps.map((p) => [p.weapon, p.ammo])).toEqual([
+      ['sheepGun', 150],
+      ['sheepGun', 150],
+    ]);
+  });
+
+  test('選只帶哈欠泡泡', async ({ page }) => {
+    await openMenu(page, SHEEP_SAVE);
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
+    expect((await gk(page)).players![0].weapon).toBe('yawnBubble');
+  });
+
+  test('用上下鍵移動再確認', async ({ page }) => {
+    await openMenu(page, SHEEP_SAVE);
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
+    await page.keyboard.press('KeyS');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
+    expect((await gk(page)).players![0].weapon).toBe('sheepGun');
+  });
+
+  test('通關後再玩一次會先選武器', async ({ page }) => {
+    await page.addInitScript((s) => localStorage.setItem('gk.save.v1', s), SHEEP_SAVE);
+    await openForest(page);
+    await enterBoss(page);
+    await defeatBoss(page);
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
+  });
+});
