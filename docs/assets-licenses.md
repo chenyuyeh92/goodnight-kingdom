@@ -16,7 +16,6 @@
 | `docs/art/style-sample/pillow-cannon.png` | 同上，再左右翻轉 | Animagine XL 4.0 opt | 見上表 | 2026-10-21 |
 | `docs/art/style-sample/insomnia-forest.png` | 本機 ComfyUI 生成，縮成 960×540 | Animagine XL 4.0 opt | 見上表 | 2026-10-21 |
 | `docs/art/style-sample/style-sample-gamescale.png`、`style-sample-closeup.png` | 用上面三張合成 | Animagine XL 4.0 opt（來源素材） | 見上表 | 2026-10-21 |
-
 | `docs/art/style-sample-v2/clockbug.png`、`pillow-cannon.png` | 本機 ComfyUI 生成，四角填色去背（枕頭砲左右翻轉） | Nova Cartoon XL v6.0＋Chibi Animal V2 | 見上表 | 2026-10-21 |
 | `docs/art/style-sample-v2/insomnia-forest.png` | 本機 ComfyUI 生成，縮成 960×540 | Nova Cartoon XL v6.0＋Chibi Animal V2 | 見上表 | 2026-10-21 |
 | `docs/art/style-sample-v2/style-sample-gamescale.png`、`style-sample-closeup.png` | 用上面三張合成 | 同上（來源素材） | 見上表 | 2026-10-21 |
