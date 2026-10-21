@@ -10,6 +10,7 @@ import { BackpackScene } from './scenes/BackpackScene';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
 import { mountKeyTest } from './ui/keyTest';
+import { isTouchDevice } from './ui/touchControls';
 import { mountTuningPanel } from './ui/tuningPanel';
 
 export interface PlayerDebug {
@@ -64,6 +65,8 @@ export interface GkDebug {
   resetChests?: () => void;
   openedChests?: number[];
   saveOk?: boolean;
+  /** 是否顯示觸控操作。 */
+  touch?: boolean;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
   lastChest?: 'new' | 'starUp' | 'maxed' | null;
@@ -119,7 +122,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   });
 
   const save = createSaveStore(safeLocalStorage());
-  const data: TestRangeData = { getTuning: () => store.get(), testHooks, save };
+  const touch = params.get('touch') === '1' || isTouchDevice();
+  const data: TestRangeData = { getTuning: () => store.get(), testHooks, save, touch };
   game.scene.add('TestRange', TestRangeScene, false);
   game.scene.add('ModeSelect', ModeSelectScene, false);
   game.scene.add('Backpack', BackpackScene, false);

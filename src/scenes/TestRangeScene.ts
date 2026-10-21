@@ -10,6 +10,7 @@ import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/che
 import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
 import { weaponHud } from '../game/hud';
+import { mountTouchControls, type TouchControls } from '../ui/touchControls';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
@@ -176,6 +177,8 @@ export interface TestRangeData {
   save?: SaveStore;
   /** 重來時保留每位玩家手上的武器與剩餘彈藥。 */
   loadouts?: Loadout[];
+  /** 顯示手機觸控操作。 */
+  touch?: boolean;
   /** 已經開過的寶箱編號,重來後維持打開,避免反覆刷寶箱。 */
   openedChests?: number[];
   getTuning?: () => Tuning;
@@ -210,6 +213,7 @@ export class TestRangeScene extends Phaser.Scene {
   private pickupGroup!: Phaser.Physics.Arcade.Group;
   private riggedChest: SpecialWeaponId | null = null;
   private riggedDrop: ItemId | null = null;
+  private touchControls: TouchControls | null = null;
   private lockScrollX: number | null = null;
   private arenaHud!: Phaser.GameObjects.Text;
   private goHintUntil = 0;
@@ -323,7 +327,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.projectiles.addTargets(this.targetGroup);
 
     this.add
-      .text(16, 12, controlHint(this.mode), {
+      .text(16, 12, controlHint(this.mode, this.initData.touch), {
         fontSize: this.mode === 'duo' ? '15px' : '18px',
         color: '#f3e9d2',
       })
@@ -337,7 +341,12 @@ export class TestRangeScene extends Phaser.Scene {
       .setDepth(10);
 
     this.keyboard = new KeyboardSource(window, document);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.keyboard.destroy());
+    this.touchControls = this.initData.touch ? mountTouchControls(document.body) : null;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.keyboard.destroy();
+      this.touchControls?.destroy();
+      this.touchControls = null;
+    });
 
     this.publishDebug();
   }
@@ -345,7 +354,7 @@ export class TestRangeScene extends Phaser.Scene {
   update(time: number, delta: number): void {
     const t = this.getTuning();
     const dtMs = Math.min(delta, MAX_DT_MS);
-    const intents = intentsForMode(this.keyboard.pressed(), this.mode);
+    const intents = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent());
 
     this.players.forEach((p, i) => {
       p.health = tickHealth(p.health, dtMs);
@@ -739,6 +748,7 @@ export class TestRangeScene extends Phaser.Scene {
       enemies: this.enemies.map((e) => e.debug()),
       enemiesDefeated: this.enemiesDefeated,
       blockedShots: this.blockedShots,
+      touch: this.touchControls !== null,
       meleeHits: this.meleeHits,
       meleeSwings: this.meleeSwings,
       bullets: this.projectiles.count(),

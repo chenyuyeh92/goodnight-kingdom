@@ -34,3 +34,24 @@ test('雙人提示分開列出兩位玩家的按鍵', () => {
   expect(hint).toContain('B:← → 移動  ↑ 上  ↓ 蹲/下  , 射擊  . 跳躍');
   expect(hint).not.toContain('也可以');
 });
+
+test('觸控 Intent 合併給玩家 A(單人)', () => {
+  const touch = { left: false, right: true, up: false, down: false, jump: false, shoot: true };
+  const r = intentsForMode(new Set(), 'single', touch);
+  expect(r[0].right).toBe(true);
+  expect(r[0].shoot).toBe(true);
+});
+
+test('觸控 Intent 合併給玩家 A(雙人),玩家 B 不受影響', () => {
+  const touch = { left: false, right: true, up: false, down: false, jump: true, shoot: false };
+  const r = intentsForMode(new Set(['Comma']), 'duo', touch);
+  expect(r[0].right).toBe(true);
+  expect(r[0].jump).toBe(true);
+  expect(r[1].right).toBe(false);
+  expect(r[1].jump).toBe(false);
+  expect(r[1].shoot).toBe(true);
+});
+
+test('觸控版操作提示', () => {
+  expect(controlHint('single', true)).toBe('左邊拖曳:移動/往上瞄準/蹲下   右邊:射擊、跳躍');
+});
