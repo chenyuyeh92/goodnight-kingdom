@@ -59,6 +59,7 @@
 | `public/assets/bullets/moon-beam.png` | 月亮催眠燈的光束 | 32×10 | 橫向重複接成長光束 |
 
 棉被迴力鏢的子彈就是武器圖本身（`weapons/blanket-boomerang.png`），旋轉著飛。
+| `public/assets/enemies/insomnia-hedgehog-roll.png` | 失眠刺蝟 滾球（滾動撞人時用） | 48×48 | 程式畫；可以讓程式旋轉 |
 
 ## 還沒做 / 已知問題
 
