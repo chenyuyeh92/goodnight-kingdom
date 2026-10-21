@@ -96,7 +96,8 @@ export const FOREST: LevelDef = {
     ...wave(3700, [['nightBat', 'right', 2]]),
     ...wave(3950, [['alarmBug', 'right', 2]]),
     ...wave(4200, [['coffeeBean', 'right', 1], ['nightBat', 'right', 1]]),
-    ...wave(4600, [['alarmBug', 'left', 2]]),
+    // 從左邊來的要生在樹洞(4500–4760)之後,不會卡在天花板裡。
+    ...wave(4850, [['alarmBug', 'left', 2]]),
     ...wave(4900, [['nightBat', 'right', 2]]),
     ...wave(5100, [['coffeeBean', 'right', 2]]),
     // 4 刺蝟谷
@@ -106,16 +107,13 @@ export const FOREST: LevelDef = {
     ...wave(6550, [['nightBat', 'right', 2], ['alarmBug', 'left', 1]]),
     ...wave(6850, [['hedgehog', 'right', 1], ['alarmBug', 'right', 2]]),
     ...wave(7100, [['coffeeBean', 'ground', 1], ['nightBat', 'right', 1]], 7900),
-    // 5 貓頭鷹之巢前:前後夾擊
+    // 5 貓頭鷹之巢前:前後夾擊;最後一組在關主鎖定點前一個畫面結束
     ...wave(7700, [['alarmBug', 'right', 2], ['alarmBug', 'left', 1]]),
     ...wave(7950, [['hedgehog', 'right', 1], ['nightBat', 'right', 1]]),
     ...wave(8200, [['coffeeBean', 'right', 2], ['nightBat', 'left', 1]]),
     ...wave(8450, [['alarmBug', 'right', 3]]),
     ...wave(8700, [['hedgehog', 'left', 1], ['nightBat', 'right', 1]]),
     ...wave(8950, [['coffeeBean', 'right', 1], ['alarmBug', 'left', 2]]),
-    ...wave(9200, [['nightBat', 'right', 2], ['hedgehog', 'right', 1]]),
-    ...wave(9450, [['alarmBug', 'right', 3], ['coffeeBean', 'left', 1]]),
-    ...wave(9700, [['nightBat', 'right', 1], ['coffeeBean', 'ground', 1]], 10400),
   ],
   arenas: [
     {

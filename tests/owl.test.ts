@@ -107,3 +107,7 @@ test('貓頭鷹俯衝最低點不鑽進地面', () => {
 test('貓頭鷹盤旋時判定頂端在畫面內', () => {
   expect(OWL_HOVER_Y - ENEMY_DEFS.nightOwl.h / 2).toBeGreaterThanOrEqual(60);
 });
+
+test('貓頭鷹俯衝最低時,站在關主區踏板(y 360)上躲得過', () => {
+  expect(OWL_SWOOP_Y - ENEMY_DEFS.nightOwl.h / 2).toBeGreaterThan(360);
+});

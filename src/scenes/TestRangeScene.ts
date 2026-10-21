@@ -379,7 +379,7 @@ export class TestRangeScene extends Phaser.Scene {
         ? this.add.image(x + HUD_ICON / 2, 52, weaponIcon('yawnBubble')).setScrollFactor(0).setDepth(10)
         : null;
       const text = this.add
-        .text(icon ? x + HUD_ICON + 6 : x, 40, '', { fontSize: '20px', color: '#ffb3c7', ...HUD_STROKE })
+        .text(icon ? x + HUD_ICON + 6 : x, 40, '', { fontSize: this.mode === 'duo' ? '16px' : '20px', color: '#ffb3c7', ...HUD_STROKE })
         .setScrollFactor(0)
         .setDepth(10);
       return { icon, text };
@@ -415,7 +415,10 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.keyboard = new KeyboardSource(window, document);
     this.touchControls = this.initData.touch ? mountTouchControls(document.body) : null;
+    // 物理移動完才把美術圖對到判定上,圖不會落後一格。
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.renderEnemyArt, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.renderEnemyArt, this);
       this.keyboard.destroy();
       this.touchControls?.destroy();
       this.touchControls = null;
@@ -427,6 +430,8 @@ export class TestRangeScene extends Phaser.Scene {
   update(time: number, delta: number): void {
     const t = this.getTuning();
     const dtMs = Math.min(delta, MAX_DT_MS);
+    // 卡頓時物理也只前進 MAX_DT_MS,不會一次衝過頭(例如蝙蝠俯衝低到打到蹲著的人)。
+    this.physics.world.update(time, dtMs);
     const intents = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent());
 
     this.players.forEach((p, i) => {
@@ -593,6 +598,7 @@ export class TestRangeScene extends Phaser.Scene {
     const enemy = this.spawnEnemy(spec.type, x, def.flying ? undefined : GROUND_Y - def.h / 2, arena);
     enemy.emerging = true;
     enemy.body.setAlpha(0);
+    enemy.render();
     this.tweens.add({ targets: enemy.body, alpha: 1, duration: EMERGE_MS, onComplete: () => (enemy.emerging = false) });
     const mound = this.add.ellipse(x, GROUND_Y, def.w + 16, 12, COLOR.dirt);
     this.tweens.add({ targets: mound, alpha: 0, delay: EMERGE_MS, duration: EMERGE_MS, onComplete: () => mound.destroy() });
@@ -756,6 +762,10 @@ export class TestRangeScene extends Phaser.Scene {
     }
   }
 
+  private renderEnemyArt(): void {
+    for (const e of this.enemies) e.render();
+  }
+
   /** 鏡頭到關主區就開戰;之後每格由 stepOwl 控制貓頭鷹。 */
   private updateBoss(dtMs: number, time: number): void {
     const def = this.level.boss;
@@ -786,7 +796,7 @@ export class TestRangeScene extends Phaser.Scene {
     boss.invulnerable = step.invulnerable;
     enemy.setArt(enemySprite('nightOwl', 'awake', boss.brain.phase));
     const art = enemy.artImage();
-    if (art && step.brain.mode === 'angry') art.setTint(COLOR.angry);
+    if (art && step.brain.mode === 'angry') art.setTint(COLOR.angry).setTintMode(Phaser.TintModes.MULTIPLY);
     else if (art && step.enteredPhase === null && boss.wasAngry) art.clearTint();
     boss.wasAngry = step.brain.mode === 'angry';
     enemy.physicsBody().setVelocity(step.vx, step.vy);
@@ -804,6 +814,11 @@ export class TestRangeScene extends Phaser.Scene {
   private startBoss(lockScrollX: number, spawnX: number): void {
     this.bossTriggered = true;
     this.bossLock = lockScrollX;
+    // 路上跟過來的魔物一起睡著,關主戰從乾淨的場地開始(不算打倒)。
+    for (const e of [...this.enemies]) {
+      this.sleepAway(e, false);
+      this.removeEnemy(e);
+    }
     const enemy = this.spawnEnemy('nightOwl', spawnX, OWL_HOVER_Y);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;

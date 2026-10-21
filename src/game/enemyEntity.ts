@@ -118,6 +118,8 @@ export class EnemyEntity {
       facing: this.brain.facing,
       phase: this.brain.phase,
       arena: this.arena,
+      artX: this.art?.x ?? null,
+      artBottom: this.art?.y ?? null,
     };
   }
 }

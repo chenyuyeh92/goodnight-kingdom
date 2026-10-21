@@ -43,6 +43,9 @@ export interface EnemyDebug {
   facing: 1 | -1;
   phase: EnemyPhase;
   arena: boolean;
+  /** 美術圖的水平中心與底部;沒有圖時為 null。 */
+  artX: number | null;
+  artBottom: number | null;
 }
 
 export interface GkDebug {
@@ -136,7 +139,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
     backgroundColor: '#2a2550',
     pixelArt: false,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
+    // 物理由關卡場景自己推進,才能和遊戲邏輯一樣把每格時間限制在 MAX_DT_MS。
+    physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, customUpdate: true } },
     // 不平滑每格的時間:畫面掉格時遊戲照實際時間前進,不會變慢動作。
     fps: { smoothStep: false },
   });

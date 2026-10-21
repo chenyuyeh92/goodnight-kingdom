@@ -102,3 +102,18 @@ test('森林:戰鬥區鎖定範圍互不重疊,關主在最後', () => {
   for (let i = 1; i < locks.length; i++) expect(locks[i] - locks[i - 1]).toBeGreaterThanOrEqual(VIEW_W);
   expect(F.boss!.lockScrollX).toBeGreaterThan(locks[locks.length - 1]);
 });
+
+test('森林:零星魔物在關主鎖定點前一個畫面就結束,不會一路跟進關主戰', () => {
+  for (const t of F.trickles) {
+    expect(t.triggerScrollX + VIEW_W).toBeLessThanOrEqual(F.boss!.lockScrollX);
+    if (t.spawn.x !== undefined) expect(t.spawn.x).toBeLessThan(F.boss!.lockScrollX);
+  }
+});
+
+test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
+  const tunnels = F.terrain.filter((r) => r.h > 20);
+  for (const t of F.trickles.filter((x) => x.spawn.from === 'left')) {
+    const spawnX = t.triggerScrollX - 20;
+    for (const c of tunnels) expect(spawnX < c.x - 30 || spawnX > c.x + c.w + 30, `${t.triggerScrollX}`).toBe(true);
+  }
+});

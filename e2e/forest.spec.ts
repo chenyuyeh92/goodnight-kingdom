@@ -34,6 +34,34 @@ test.describe('關主戰', () => {
     expect(s.cameraX).toBe(10000);
   });
 
+  test('貓頭鷹的圖跟著判定一起移動', async ({ page }) => {
+    await openForest(page);
+    await enterBoss(page);
+    await page.waitForTimeout(2500);
+    const owl = (await gk(page)).enemies!.find((e) => e.type === 'nightOwl')!;
+    expect(owl.artX).not.toBeNull();
+    expect(Math.abs(owl.artX! - owl.x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(owl.artBottom! - (owl.y + 50))).toBeLessThanOrEqual(2);
+  });
+
+  test('進入關主戰時路上跟來的魔物都睡著', async ({ page }) => {
+    await openForest(page);
+    await page.evaluate(() => {
+      window.__GK__!.warp!(9900);
+      window.__GK__!.spawn!('nightBat', 10100);
+      window.__GK__!.spawn!('alarmBug', 10200);
+    });
+    await page.evaluate(() => window.__GK__!.warp!(10500));
+    await page.waitForFunction(() => !!window.__GK__!.boss, undefined, { timeout: 15000 });
+    await page.waitForTimeout(100);
+    expect((await gk(page)).enemies!.map((e) => e.type)).toEqual(['nightOwl']);
+  });
+
+  test('一開始有 6 顆愛心', async ({ page }) => {
+    await openForest(page);
+    expect((await gk(page)).players![0].hearts).toBe(6);
+  });
+
   test('雙人時貓頭鷹血量 90', async ({ page }) => {
     await openForest(page, './?mode=duo&test=1');
     await enterBoss(page);

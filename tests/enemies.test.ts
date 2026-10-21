@@ -139,7 +139,7 @@ test('蝙蝠俯衝最低時身體底部高於 452,蹲下(判定 28 高)閃得過
   expect(BAT_SWOOP_Y + ENEMY_DEFS.nightBat.h / 2).toBeLessThan(452);
 });
 
-test('魔物判定大約是圖片的八成,看得到的地方打得到', () => {
+test('魔物判定寬至少是圖片的七成、高至少五成,看得到的地方大多打得到', () => {
   const art = { alarmBug: [48, 56], coffeeBean: [39, 52], nightBat: [56, 56], hedgehog: [80, 72] } as const;
   for (const [type, [w, h]] of Object.entries(art)) {
     const d = ENEMY_DEFS[type as keyof typeof art];
