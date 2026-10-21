@@ -33,3 +33,8 @@ export function advanceTeamCamera(
 export function limitCameraStep(prevScrollX: number, targetScrollX: number, maxStep: number): number {
   return Math.min(targetScrollX, prevScrollX + maxStep);
 }
+
+/** 戰鬥區鎖住時,鏡頭不超過鎖定位置。 */
+export function applyLock(targetScrollX: number, lockScrollX: number | null): number {
+  return lockScrollX === null ? targetScrollX : Math.min(targetScrollX, lockScrollX);
+}

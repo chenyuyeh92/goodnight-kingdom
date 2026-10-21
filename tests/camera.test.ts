@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { advanceCamera, advanceTeamCamera, limitCameraStep, minPlayerX } from '../src/game/camera';
+import { advanceCamera, advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../src/game/camera';
 
 test('角色往前,鏡頭跟上', () => {
   expect(advanceCamera(0, 1000, 960, 3200, 0.4)).toBe(616);
@@ -47,4 +47,10 @@ describe('limitCameraStep', () => {
   test('目標在範圍內就直接到', () => {
     expect(limitCameraStep(1000, 1005, 10)).toBe(1005);
   });
+});
+
+test('applyLock', () => {
+  expect(applyLock(700, null)).toBe(700);
+  expect(applyLock(700, 500)).toBe(500);
+  expect(applyLock(400, 500)).toBe(400);
 });
