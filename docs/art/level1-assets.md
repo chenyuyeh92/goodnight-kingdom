@@ -8,7 +8,7 @@
 | `public/assets/enemies/clockbug.png` | 吵鬧鬧鐘蟲（小怪） | 48×56 | 抱著一個鬧鐘 |
 | `public/assets/enemies/coffee-bean-sprite.png` | 咖啡豆精靈（小怪） | 39×52 | 腳下有一點咖啡渣 |
 | `public/assets/enemies/night-bat.png` | 熬夜蝙蝠（小怪） | 56×56 | 正面，拿咖啡杯；飛行時底部要高於 y=452，讓玩家蹲下能閃過 |
-| `public/assets/enemies/insomnia-hedgehog.png` | 失眠刺蝟（中階） | 57×72 | 2026-10-21 換新造型：朝左，正面拿著放射狀尖刺的刺盾（刺盾是程式畫上去的）；「滾動撞人」的滾球圖和新造型的睡著版還沒做 |
+| `public/assets/enemies/insomnia-hedgehog.png` | 失眠刺蝟（中階） | 57×72 | 2026-10-21 換新造型：朝左，正面拿著放射狀尖刺的刺盾（刺盾是程式畫上去的）；滾球圖是 `insomnia-hedgehog-roll.png` |
 | `public/assets/enemies/night-owl-boss.png` | 熬夜貓頭鷹（關主） | 181×200 | 戴睡帽、拿咖啡杯 |
 | `public/assets/weapons/yawn-bubble.png` | 哈欠泡泡 | 43×36 | |
 | `public/assets/weapons/sheep-machine-gun.png` | 數羊機槍 | 48×21 | |
@@ -36,7 +36,7 @@
 | `public/assets/enemies/clockbug-sleep.png` | 鬧鐘蟲 睡著 | 47×56 | 被哄睡後換成這張 |
 | `public/assets/enemies/coffee-bean-sprite-sleep.png` | 咖啡豆精靈 睡著 | 38×52 | 眼皮下還露出一點白，縮小後可能像半睜眼，之後可再修 |
 | `public/assets/enemies/night-bat-sleep.png` | 熬夜蝙蝠 睡著 | 54×56 |  |
-| `public/assets/enemies/insomnia-hedgehog-sleep.png` | 失眠刺蝟 睡著 | 81×72 |  |
+| `public/assets/enemies/insomnia-hedgehog-sleep.png` | 失眠刺蝟 睡著 | 61×72 | 2026-10-21 重畫成新造型（正面刺盾）；顏色比醒著的偏棕 |
 | `public/assets/enemies/night-owl-boss-sleep.png` | 熬夜貓頭鷹 睡著 | 184×200 | 打倒關主後 |
 | `public/assets/fx/zzz.png` | Zzz 特效 | 32×31 | 用程式畫的線條（不是字型），可以往上飄、淡出 |
 | `public/assets/fx/dream-sheep.png` | 變成小羊特效 | 40×36 | 小羊在雲上，魔物睡著後飄走用；圖本身不透明，半透明效果請程式調透明度 |
@@ -65,4 +65,3 @@
 - 素材是 1 倍大小，高解析度螢幕上可能有點糊；需要 2 倍版本的話跟美術說：來源大圖只在美術的電腦上，由美術改 `docs/art/tools/process_level1.py` 的尺寸重跑。
 - 貓頭鷹三個階段的差別比較小（表情、蒸氣、打翻咖啡），程式可以再加變色或抖動讓差別更明顯。
 - 魔物「打哈欠」的樣子沒做（企劃寫打哈欠「或」變小羊／Zzz，先做後兩個）。
-- 失眠刺蝟換了新造型，睡著版（`insomnia-hedgehog-sleep.png`）還是舊的背刺造型；滾球圖也還沒做。之後和世界 2 一起補。

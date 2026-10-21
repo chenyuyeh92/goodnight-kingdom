@@ -30,5 +30,7 @@
 | `public/assets/backgrounds/forest-far.png`、`forest-mid.png`、`forest-near.png` | 本機 ComfyUI 生成；中景、近景是白底黑剪影，用程式依深淺轉透明並染成夜空色；遠景頭尾交叉淡化、中景在樹的空隙切開、近景裁掉兩端後短距離淡化，三張都可無縫接續 | Nova Cartoon XL v6.0（不加 LoRA） | 見上表 | 2026-10-21 |
 | `public/assets/items/treasure-chest-closed.png`、`public/assets/bullets/yawn-bubble.png`、`milk-drop.png`、`music-note.png`、`moon-beam.png` | 程式繪製（Pillow 畫圖形，`docs/art/tools/process_level1c.py`） | 無 | 自己畫的，沒有第三方授權問題 | 2026-10-21 |
 | `public/assets/enemies/insomnia-hedgehog.png`（新版）、`public/assets/bullets/sheep.png`、`pillow.png` | 本機 ComfyUI 生成，`process_level1c.py` 去背縮圖 | Nova Cartoon XL v6.0（刺蝟、小羊加 Chibi Animal V2 強度 0.9） | 見上表 | 2026-10-21 |
+| `public/assets/enemies/w2-*.png`、`public/assets/items/w2-falling-block.png`、`public/assets/backgrounds/w2-desert-far.png`、`w2-desert-mid.png`、`public/assets/enemies/insomnia-hedgehog-sleep.png` | 本機 ComfyUI 生成（睡著版與關主二三階段照原圖修改），`docs/art/tools/process_world2.py` 去背縮圖；中景剪影轉透明染色 | Nova Cartoon XL v6.0（魔物加 Chibi Animal V2 強度 0.9；背景、沙磚不加） | 見上表 | 2026-10-21 |
+| `public/assets/items/w2-quicksand.png`、`w2-pressure-plate.png`、`public/assets/backgrounds/w2-desert-near.png`、`public/assets/enemies/insomnia-hedgehog-roll.png`，以及刺蝟睡著版上的刺盾 | 程式繪製（Pillow，`process_world2.py`） | 無 | 自己畫的，沒有第三方授權問題 | 2026-10-21 |
 
 備註：純 AI 生成的圖，著作權保護在各國都還不明確（見企劃文件 8.3）。
