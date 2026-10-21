@@ -1,0 +1,44 @@
+import Phaser from 'phaser';
+import { SPRITES, SPRITE_KEYS, artStatus } from '../art/sprites';
+import type { TestRangeData } from './TestRangeScene';
+
+export interface BootData {
+  next: 'ModeSelect' | 'TestRange';
+  data: TestRangeData;
+  /** 不載入任何圖片,全部用色塊(測試用 ?noart=1)。 */
+  noArt: boolean;
+}
+
+/** 載入美術素材並顯示進度;載入失敗的圖記下來,遊戲改用色塊照樣進行。 */
+export class BootScene extends Phaser.Scene {
+  private boot!: BootData;
+
+  constructor() {
+    super('Boot');
+  }
+
+  init(data: BootData): void {
+    this.boot = data;
+  }
+
+  preload(): void {
+    artStatus.disabled = this.boot.noArt;
+    if (this.boot.noArt) return;
+    const label = this.add.text(480, 250, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+    this.add.rectangle(480, 290, 300, 10).setStrokeStyle(2, 0xf3e9d2);
+    const bar = this.add.rectangle(330, 290, 0, 10, 0xf8e08e).setOrigin(0, 0.5);
+    this.load.on('progress', (v: number) => {
+      label.setText(`載入中 ${Math.round(v * 100)}%`);
+      bar.width = 300 * v;
+    });
+    this.load.on('filecomplete', () => (artStatus.loaded += 1));
+    this.load.on('loaderror', (file: Phaser.Loader.File) => artStatus.missing.push(file.key));
+    const base = import.meta.env.BASE_URL;
+    for (const k of SPRITE_KEYS) this.load.image(k, `${base}assets/${SPRITES[k].file}`);
+    window.__GK__ = { ready: false, screen: 'boot' };
+  }
+
+  create(): void {
+    this.scene.start(this.boot.next, this.boot.data);
+  }
+}

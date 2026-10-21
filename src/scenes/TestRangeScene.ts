@@ -21,6 +21,7 @@ import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
+import { artStatus } from '../art/sprites';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
   initialEncounters,
@@ -884,6 +885,7 @@ export class TestRangeScene extends Phaser.Scene {
       bullets: this.projectiles.count(),
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
+      art: { loaded: artStatus.loaded, missing: [...artStatus.missing], disabled: artStatus.disabled },
       boss: this.boss
         ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: this.boss.brain.phase, mode: this.boss.brain.mode }
         : null,

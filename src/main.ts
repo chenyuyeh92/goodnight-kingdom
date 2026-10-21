@@ -9,6 +9,7 @@ import { parseLevelId, type LevelId } from './levels/levelDef';
 import type { OwlMode } from './game/owl';
 import { parsePlayMode, type PlayMode } from './input/playMode';
 import { BackpackScene } from './scenes/BackpackScene';
+import { BootScene } from './scenes/BootScene';
 import { LevelCompleteScene } from './scenes/LevelCompleteScene';
 import { LoadoutScene } from './scenes/LoadoutScene';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
@@ -46,7 +47,9 @@ export interface EnemyDebug {
 
 export interface GkDebug {
   ready: boolean;
-  screen?: 'mode-select' | 'range' | 'backpack' | 'complete' | 'loadout';
+  screen?: 'boot' | 'mode-select' | 'range' | 'backpack' | 'complete' | 'loadout';
+  /** 美術素材載入狀態。 */
+  art?: { loaded: number; missing: string[]; disabled: boolean };
   /** 通關結算的文字列。 */
   summary?: string[];
   /** 選武器畫面:正在選的玩家與選項文字。 */
@@ -145,6 +148,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('Backpack', BackpackScene, false);
   game.scene.add('LevelComplete', LevelCompleteScene, false);
   game.scene.add('Loadout', LoadoutScene, false);
-  if (mode) game.scene.start('TestRange', { ...data, mode });
-  else game.scene.start('ModeSelect', data);
+  game.scene.add('Boot', BootScene, false);
+  const noArt = params.get('noart') === '1';
+  if (mode) game.scene.start('Boot', { next: 'TestRange', data: { ...data, mode }, noArt });
+  else game.scene.start('Boot', { next: 'ModeSelect', data, noArt });
 }
