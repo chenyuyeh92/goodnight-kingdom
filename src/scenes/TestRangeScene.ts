@@ -2,12 +2,20 @@ import Phaser from 'phaser';
 import { DEFAULT_TUNING, MAX_DT_MS, type Tuning } from '../config/tuning';
 import { KeyboardSource } from '../input/keyboardSource';
 import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
-import { advanceTeamCamera, limitCameraStep, minPlayerX } from '../game/camera';
+import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
 import { ENEMY_DEFS, bulletEffect, type EnemyType } from '../game/enemies';
 import { EnemyEntity } from '../game/enemyEntity';
+import {
+  initialEncounters,
+  stepEncounters,
+  type ArenaDef,
+  type EncounterState,
+  type SpawnSpec,
+  type TrickleDef,
+} from '../game/encounters';
 
 const VIEW_W = 960;
 const WORLD_W = 3200;
@@ -30,6 +38,49 @@ const ZZZ_MS = 800;
 /** 落在鏡頭左邊這麼遠的魔物直接移除。 */
 const ENEMY_DESPAWN_BEHIND = 200;
 const FLYING_SPAWN_Y = 320;
+const SIDE_SPAWN_MARGIN = 20;
+const TOP_SPAWN_Y = -30;
+const EMERGE_MS = 300;
+const GO_HINT_MS = 1500;
+
+/** 移動途中零星出現的魔物。 */
+const TRICKLES: readonly TrickleDef[] = [
+  { triggerScrollX: 300, spawn: { type: 'alarmBug', from: 'right', delayMs: 0 } },
+  { triggerScrollX: 700, spawn: { type: 'nightBat', from: 'right', delayMs: 0 } },
+];
+
+/** 戰鬥區:鏡頭鎖住,魔物一波波從各方向出現,清完才解鎖。 */
+const ARENAS: readonly ArenaDef[] = [
+  {
+    lockScrollX: 1500,
+    waves: [
+      [
+        { type: 'alarmBug', from: 'right', delayMs: 0 },
+        { type: 'alarmBug', from: 'right', delayMs: 500 },
+        { type: 'alarmBug', from: 'right', delayMs: 1000 },
+      ],
+      [
+        { type: 'nightBat', from: 'left', delayMs: 0 },
+        { type: 'nightBat', from: 'right', delayMs: 300 },
+        { type: 'coffeeBean', from: 'top', x: 1980, delayMs: 600 },
+      ],
+      [
+        { type: 'hedgehog', from: 'right', delayMs: 0 },
+        { type: 'coffeeBean', from: 'ground', x: 1700, delayMs: 800 },
+      ],
+    ],
+  },
+  {
+    lockScrollX: 2240,
+    waves: [
+      [
+        { type: 'coffeeBean', from: 'ground', x: 2600, delayMs: 0 },
+        { type: 'coffeeBean', from: 'ground', x: 2850, delayMs: 400 },
+        { type: 'alarmBug', from: 'left', delayMs: 800 },
+      ],
+    ],
+  },
+];
 
 /** 平台與天花板:左上角 (x, y) 與寬高。 */
 const TERRAIN: ReadonlyArray<{ x: number; y: number; w: number; h: number }> = [
@@ -72,6 +123,7 @@ const COLOR = {
   target: 0xf3e9d2,
   flash: 0xffffff,
   thorn: 0x7a4a8c,
+  dirt: 0x6b4f3a,
   checkpoint: 0x4b4380,
 };
 
@@ -108,6 +160,10 @@ export class TestRangeScene extends Phaser.Scene {
   private enemyGroup!: Phaser.Physics.Arcade.Group;
   private enemiesDefeated = 0;
   private blockedShots = 0;
+  private encounters: EncounterState = initialEncounters();
+  private lockScrollX: number | null = null;
+  private arenaHud!: Phaser.GameObjects.Text;
+  private goHintUntil = 0;
   private scrollX = 0;
 
   constructor() {
@@ -138,6 +194,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.enemies = [];
     this.enemiesDefeated = 0;
     this.blockedShots = 0;
+    this.encounters = initialEncounters();
+    this.lockScrollX = null;
+    this.goHintUntil = 0;
     this.targetsHit = 0;
     this.scrollX = 0;
     this.terrainBodies.clear();
@@ -201,6 +260,11 @@ export class TestRangeScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(10);
     this.hud = this.add.text(16, 40, '', { fontSize: '20px', color: '#ffb3c7' }).setScrollFactor(0).setDepth(10);
+    this.arenaHud = this.add
+      .text(VIEW_W / 2, 90, '', { fontSize: '26px', color: '#ffe08a' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(10);
 
     this.keyboard = new KeyboardSource(window, document);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.keyboard.destroy());
@@ -223,7 +287,11 @@ export class TestRangeScene extends Phaser.Scene {
     this.handleTeam();
 
     const awake = this.players.filter((p) => !p.health.down);
-    const target = advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, WORLD_W, CAMERA_LEAD, SCREEN_MARGIN);
+    this.updateEncounters(dtMs, time);
+    const target = applyLock(
+      advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, WORLD_W, CAMERA_LEAD, SCREEN_MARGIN),
+      this.lockScrollX,
+    );
     const maxStep = (Math.max(t.walkSpeed, t.airSpeed) * CAMERA_MAX_SPEED_RATIO * dtMs) / 1000;
     this.scrollX = limitCameraStep(this.scrollX, target, maxStep);
     this.cameras.main.scrollX = this.scrollX;
@@ -281,6 +349,56 @@ export class TestRangeScene extends Phaser.Scene {
     enemy.physicsBody().setAllowGravity(!def.flying);
     this.enemies.push(enemy);
     return enemy;
+  }
+
+  private updateEncounters(dtMs: number, time: number): void {
+    const wasLocked = this.lockScrollX !== null;
+    const step = stepEncounters(this.encounters, ARENAS, TRICKLES, {
+      scrollX: this.scrollX,
+      arenaEnemiesAlive: this.enemies.filter((e) => e.arena).length,
+      dtMs,
+    });
+    this.encounters = step.state;
+    this.lockScrollX = step.lockScrollX;
+    for (const s of step.spawns) this.spawnFrom(s.spec, s.arena);
+    if (wasLocked && this.lockScrollX === null) this.goHintUntil = time + GO_HINT_MS;
+
+    const active = this.encounters.active;
+    if (active) {
+      const total = ARENAS[this.encounters.nextArena].waves.length;
+      this.arenaHud.setText(`清除魔物!(第 ${active.wave + 1} / ${total} 波)`);
+    } else {
+      this.arenaHud.setText(time < this.goHintUntil ? '前進 →' : '');
+    }
+  }
+
+  /** 依進場方式決定生成位置:左右從畫面外、上方掉落、地面冒出。 */
+  private spawnFrom(spec: SpawnSpec, arena: boolean): void {
+    const def = ENEMY_DEFS[spec.type];
+    if (spec.from === 'left' || spec.from === 'right') {
+      const x = spec.from === 'left' ? this.scrollX - SIDE_SPAWN_MARGIN : this.scrollX + VIEW_W + SIDE_SPAWN_MARGIN;
+      this.spawnEnemy(spec.type, x, undefined, arena);
+      return;
+    }
+    const x = spec.x ?? this.scrollX + VIEW_W / 2;
+    if (spec.from === 'top') {
+      this.spawnEnemy(spec.type, x, TOP_SPAWN_Y, arena);
+      return;
+    }
+    const enemy = this.spawnEnemy(spec.type, x, def.flying ? undefined : GROUND_Y - def.h / 2, arena);
+    enemy.body.setAlpha(0);
+    this.tweens.add({ targets: enemy.body, alpha: 1, duration: EMERGE_MS });
+    const mound = this.add.ellipse(x, GROUND_Y, def.w + 16, 12, COLOR.dirt);
+    this.tweens.add({ targets: mound, alpha: 0, delay: EMERGE_MS, duration: EMERGE_MS, onComplete: () => mound.destroy() });
+  }
+
+  /** 測試用:把醒著的角色與鏡頭一起移到 x。 */
+  private warp(x: number): void {
+    this.players.forEach((p, i) => {
+      if (!p.health.down) p.teleport(x + i * PARTNER_OFFSET_X, GROUND_Y);
+    });
+    this.scrollX = Math.min(Math.max(x - VIEW_W * CAMERA_LEAD, this.scrollX), WORLD_W - VIEW_W);
+    this.maxReachedX = Math.max(this.maxReachedX, x);
   }
 
   private updateEnemies(dtMs: number, t: Tuning): void {
@@ -396,6 +514,12 @@ export class TestRangeScene extends Phaser.Scene {
       hurt: this.testHooks ? (i: number) => this.hurtPlayer(this.players[i], false) : undefined,
       spawn: this.testHooks ? (type: EnemyType, x: number, y?: number) => void this.spawnEnemy(type, x, y) : undefined,
       defeatAll: this.testHooks ? () => [...this.enemies].forEach((e) => this.defeatEnemy(e)) : undefined,
+      warp: this.testHooks ? (x: number) => this.warp(x) : undefined,
+      arena: {
+        locked: this.lockScrollX !== null,
+        wave: this.encounters.active?.wave ?? 0,
+        nextArena: this.encounters.nextArena,
+      },
       enemies: this.enemies.map((e) => e.debug()),
       enemiesDefeated: this.enemiesDefeated,
       blockedShots: this.blockedShots,

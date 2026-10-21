@@ -70,3 +70,65 @@ test.describe('魔物', () => {
     expect((await gk(page)).enemies!.filter((e) => e.type === 'nightBat')).toHaveLength(0);
   });
 });
+
+async function hurtUntilDown(page: Page): Promise<void> {
+  const deadline = Date.now() + 20000;
+  while (!(await gk(page)).players![0].down) {
+    if (Date.now() > deadline) throw new Error('hurtUntilDown 逾時');
+    await page.evaluate(() => window.__GK__!.hurt!(0));
+    await page.waitForTimeout(100);
+  }
+}
+
+async function enterArena1(page: Page): Promise<number> {
+  await page.evaluate(() => window.__GK__!.warp!(1900));
+  await page.waitForFunction(() => window.__GK__!.arena!.locked, undefined, { timeout: 15000 });
+  return (await gk(page)).cameraX!;
+}
+
+test.describe('戰鬥區與零星魔物', () => {
+  test('走過 300 會有鬧鐘蟲從右邊出現', async ({ page }) => {
+    await openRange(page, './?mode=single');
+    await page.keyboard.down('KeyD');
+    await page.waitForFunction(() => window.__GK__!.cameraX! >= 300, undefined, { timeout: 10000 });
+    await page.keyboard.up('KeyD');
+    await page.waitForFunction(
+      () => window.__GK__!.enemies!.some((e) => e.type === 'alarmBug' && e.x > window.__GK__!.cameraX! + 900),
+      undefined,
+      { timeout: 1000 },
+    );
+  });
+
+  test('戰鬥區鎖住鏡頭,清完才解鎖', async ({ page }) => {
+    await openRange(page, './?mode=single&test=1');
+    const lockedX = await enterArena1(page);
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(1500);
+    await page.keyboard.up('KeyD');
+    expect((await gk(page)).cameraX).toBe(lockedX);
+    const deadline = Date.now() + 20000;
+    while (!(await page.evaluate(() => !window.__GK__!.arena!.locked && window.__GK__!.arena!.nextArena === 1))) {
+      if (Date.now() > deadline) throw new Error('戰鬥區沒有解鎖');
+      await page.evaluate(() => window.__GK__!.defeatAll!());
+      await page.waitForTimeout(300);
+    }
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(1000);
+    await page.keyboard.up('KeyD');
+    expect((await gk(page)).cameraX).toBeGreaterThan(lockedX);
+  });
+
+  test('戰鬥中重來不殘留戰鬥區魔物', async ({ page }) => {
+    await openRange(page, './?mode=single&test=1');
+    await enterArena1(page);
+    await page.waitForFunction(() => window.__GK__!.enemies!.some((e) => e.arena), undefined, { timeout: 3000 });
+    await hurtUntilDown(page);
+    await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
+    await page.waitForTimeout(300);
+    const s = await gk(page);
+    expect(s.checkpointX).toBe(1200);
+    expect(s.cameraX).toBe(816);
+    expect(s.arena!.locked).toBe(false);
+    expect(s.enemies!.filter((e) => e.arena)).toHaveLength(0);
+  });
+});
