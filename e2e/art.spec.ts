@@ -6,7 +6,7 @@ async function gk(page: Page) {
 
 async function playToComplete(page: Page): Promise<void> {
   await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 20000 });
-  await page.evaluate(() => window.__GK__!.warp!(5100));
+  await page.evaluate(() => window.__GK__!.warp!(10500));
   await page.waitForFunction(() => !!window.__GK__!.boss, undefined, { timeout: 15000 });
   await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
   await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });

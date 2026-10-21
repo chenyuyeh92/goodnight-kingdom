@@ -22,25 +22,51 @@ test('靶場資料與搬移前一致', () => {
 const F = LEVELS.forest;
 const VIEW_W = 960;
 
-test('森林:三段加關主,每段開頭有檢查點', () => {
-  expect(F.worldW).toBe(5600);
-  expect(F.checkpoints).toEqual([150, 1700, 3050, 4500]);
+test('森林:五段加關主,每段開頭有檢查點', () => {
+  expect(F.worldW).toBe(10960);
+  expect(F.checkpoints).toEqual([150, 2250, 4250, 6300, 8450, 9900]);
   expect(F.targets).toHaveLength(0);
 });
 
-test('森林:三個寶箱,第二個在高處', () => {
-  expect(F.chests).toHaveLength(3);
-  expect(F.chests[1].bottom).toBeLessThan(300);
+test('森林:四個寶箱,蘑菇坡上路一個、隱藏寶箱在高處', () => {
+  expect(F.chests).toHaveLength(4);
+  expect(F.chests[1].bottom).toBeLessThan(320);
+  expect(F.chests[2].bottom).toBeLessThan(300);
 });
 
-test('森林:隱藏寶箱跳得上去(每級高度差 ≤ 140)', () => {
-  const steps = F.terrain.filter((r) => r.x >= 2450 && r.x <= 2900 && r.h <= 20).sort((a, b) => b.y - a.y);
-  let prev = 480;
-  for (const s of steps) {
-    expect(prev - s.y).toBeLessThanOrEqual(140);
-    prev = s.y;
+/** 從地面出發,能往上跳 ≤ 140、橫向間隔 ≤ 80 的平台都算到得了;寶箱所在的平台要到得了。 */
+function expectReachable(chest: { x: number; bottom: number }): void {
+  const plats = F.terrain.filter((r) => r.h <= 20);
+  const target = plats.find((r) => r.y === chest.bottom && chest.x >= r.x && chest.x <= r.x + r.w);
+  expect(target, `寶箱 ${chest.x} 底下要有平台`).toBeDefined();
+  const reached = new Set(plats.filter((r) => 480 - r.y <= 140));
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const r of plats) {
+      if (reached.has(r)) continue;
+      const from = [...reached].some((q) => q.y - r.y <= 140 && r.x <= q.x + q.w + 80 && r.x + r.w >= q.x - 80);
+      if (from) {
+        reached.add(r);
+        changed = true;
+      }
+    }
   }
-  expect(prev).toBe(F.chests[1].bottom);
+  expect(reached.has(target!), `寶箱 ${chest.x} 跳得上去`).toBe(true);
+}
+
+test('森林:高處寶箱跳得上去', () => {
+  expectReachable(F.chests[1]);
+  expectReachable(F.chests[2]);
+});
+
+test('森林:零星魔物至少 25 組,每一段至少 3 組', () => {
+  const groups = new Set(F.trickles.map((t) => t.triggerScrollX));
+  expect(groups.size).toBeGreaterThanOrEqual(25);
+  const cps = F.checkpoints;
+  for (let i = 0; i < cps.length - 1; i++) {
+    const inSeg = [...groups].filter((x) => x + 384 >= cps[i] && x + 384 < cps[i + 1]);
+    expect(inSeg.length, `第 ${i + 1} 段`).toBeGreaterThanOrEqual(3);
+  }
 });
 
 test('森林:低矮通道蹲得過、站不過', () => {

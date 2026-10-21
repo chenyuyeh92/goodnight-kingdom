@@ -726,6 +726,17 @@ export class TestRangeScene extends Phaser.Scene {
     });
     this.scrollX = Math.min(Math.max(x - VIEW_W * CAMERA_LEAD, this.scrollX), this.level.worldW - VIEW_W);
     this.maxReachedX = Math.max(this.maxReachedX, x);
+    // 跳過的路段:一個畫面以前的零星魔物與整個落在身後的戰鬥區當作已經過,不一次全部生出來。
+    const behind = this.scrollX - VIEW_W;
+    const fired = [...this.level.trickles].sort((p, q) => p.triggerScrollX - q.triggerScrollX).filter((t) => t.triggerScrollX < behind).length;
+    const cleared = this.level.arenas.filter((a) => a.lockScrollX + VIEW_W < x).length;
+    if (this.encounters.active === null) {
+      this.encounters = {
+        ...this.encounters,
+        tricklesFired: Math.max(this.encounters.tricklesFired, fired),
+        nextArena: Math.max(this.encounters.nextArena, cleared),
+      };
+    }
   }
 
   private updateEnemies(dtMs: number, t: Tuning): void {

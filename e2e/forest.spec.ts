@@ -11,7 +11,7 @@ async function openForest(page: Page, path = './?mode=single&test=1'): Promise<v
 }
 
 async function enterBoss(page: Page): Promise<void> {
-  await page.evaluate(() => window.__GK__!.warp!(5100));
+  await page.evaluate(() => window.__GK__!.warp!(10500));
   await page.waitForFunction(() => !!window.__GK__!.boss, undefined, { timeout: 15000 });
 }
 
@@ -31,7 +31,7 @@ test.describe('關主戰', () => {
     await enterBoss(page);
     const s = await gk(page);
     expect(s.boss!.maxHp).toBe(60);
-    expect(s.cameraX).toBe(4640);
+    expect(s.cameraX).toBe(10000);
   });
 
   test('雙人時貓頭鷹血量 90', async ({ page }) => {
@@ -77,7 +77,7 @@ test.describe('關主戰', () => {
     await hurtUntilDown(page);
     await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
     let s = await gk(page);
-    expect(s.checkpointX).toBe(4500);
+    expect(s.checkpointX).toBe(9900);
     expect(s.enemyShots).toBe(0);
     expect(s.boss).toBeNull();
     await enterBoss(page);
@@ -98,7 +98,7 @@ test.describe('通關結算', () => {
     await defeatBoss(page);
     const text = (await gk(page)).summary!.join('\n');
     expect(text).toContain('通關時間');
-    expect(text).toContain('找到寶箱 0 / 3');
+    expect(text).toContain('找到寶箱 0 / 4');
     expect(text).toContain('這次拿到:沒有');
     await page.keyboard.press('Digit2');
     await page.waitForFunction(() => window.__GK__!.screen === 'mode-select');
@@ -156,8 +156,8 @@ test.describe('通關結算', () => {
     await enterBoss(page);
     await page.waitForFunction(() => (window.__GK__!.enemyShots ?? 0) > 0, undefined, { timeout: 4000 });
     await page.evaluate(() => {
-      window.__GK__!.spawn!('alarmBug', 4800);
-      window.__GK__!.spawn!('nightBat', 5000);
+      window.__GK__!.spawn!('alarmBug', 10300);
+      window.__GK__!.spawn!('nightBat', 10500);
       window.__GK__!.hurtBoss!(9999);
     });
     await page.waitForFunction(() => window.__GK__!.bossDefeated === true);
