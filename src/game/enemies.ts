@@ -1,6 +1,6 @@
 import { MAX_DT_MS } from '../config/tuning';
 
-export type EnemyType = 'alarmBug' | 'coffeeBean' | 'nightBat' | 'hedgehog';
+export type EnemyType = 'alarmBug' | 'coffeeBean' | 'nightBat' | 'hedgehog' | 'nightOwl';
 export type EnemyTier = 'minion' | 'mid' | 'high' | 'boss';
 
 export interface EnemyDef {
@@ -21,6 +21,7 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   coffeeBean: { type: 'coffeeBean', name: '咖啡豆精靈', tier: 'minion', hp: 2, w: 24, h: 32, color: 0x8b5e3c, flying: false, shield: false },
   nightBat: { type: 'nightBat', name: '熬夜蝙蝠', tier: 'minion', hp: 1, w: 32, h: 20, color: 0x5c4b8a, flying: true, shield: false },
   hedgehog: { type: 'hedgehog', name: '失眠刺蝟', tier: 'mid', hp: 6, w: 40, h: 32, color: 0xa0a0b8, flying: false, shield: true },
+  nightOwl: { type: 'nightOwl', name: '熬夜貓頭鷹', tier: 'boss', hp: 60, w: 96, h: 80, color: 0x8a7a5c, flying: true, shield: false },
 };
 
 export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll';
@@ -71,6 +72,7 @@ const START_PHASE: Record<EnemyType, EnemyPhase> = {
   coffeeBean: 'hop',
   nightBat: 'hover',
   hedgehog: 'walk',
+  nightOwl: 'hover',
 };
 
 export function initialBrain(type: EnemyType): EnemyBrain {
@@ -112,6 +114,9 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       const vx = Math.abs(dx) > 8 ? facing * BAT_SPEED : 0;
       return { vx, vy: (BAT_HOVER_Y - sense.y) * 4, brain: { phase: 'hover', timerMs, facing, turnMs: 0 } };
     }
+    case 'nightOwl':
+      // 貓頭鷹由 owl.ts 的 stepOwl 控制。
+      return { vx: 0, vy: 0, brain: { ...brain, timerMs } };
     case 'hedgehog': {
       if (brain.phase === 'roll') {
         if (timerMs >= HEDGEHOG_ROLL_MS) {
