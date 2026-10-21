@@ -21,7 +21,7 @@ import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
-import { artStatus } from '../art/sprites';
+import { artStatus, enemySprite } from '../art/sprites';
 import { ParallaxBackground } from '../game/background';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
@@ -54,6 +54,12 @@ const TOP_SPAWN_Y = -30;
 const EMERGE_MS = 300;
 const GO_HINT_MS = 1500;
 const SWING_MS = 120;
+/** 被哄睡:睡著的圖停一下再往上飄走;小羊飄得更高。 */
+const SLEEP_HOLD_MS = 200;
+const SLEEP_FADE_MS = 900;
+const SLEEP_RISE = 50;
+const SHEEP_RISE = 80;
+const SHEEP_MS = 1200;
 /** 揮擊命中的停頓與晃動比泡泡重。 */
 const MELEE_IMPACT_SCALE = 2;
 
@@ -63,7 +69,8 @@ const BOSS_DUO_HP_RATIO = 1.5;
 const BOSS_ARENA_INSET = 80;
 const BOSS_BAR_W = 400;
 const BOSS_BAR_H = 12;
-const BOSS_BAR_Y = 96;
+/** 關主血條放在畫面底部的地面上,不擋到在上方盤旋的貓頭鷹。 */
+const BOSS_BAR_Y = 514;
 const BOSS_PHASE_TEXT_MS = 1500;
 /** 打倒關主後到結算畫面的時間。 */
 const BOSS_OUTRO_MS = 1500;
@@ -106,6 +113,8 @@ const COLOR = {
   flagOn: 0xf8e08e,
   playerA: 0xffd27a,
   playerB: 0x9be7c4,
+  artTintB: 0xb8f0d0,
+  angry: 0xff9a9a,
   target: 0xf3e9d2,
   flash: 0xffffff,
   thorn: 0x7a4a8c,
@@ -124,6 +133,7 @@ interface Boss {
   maxHp: number;
   invulnerable: boolean;
   minions: Set<EnemyEntity>;
+  wasAngry: boolean;
 }
 
 interface Chest {
@@ -281,10 +291,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.players =
       this.mode === 'duo'
         ? [
-            new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: 'A', isTerrain }),
-            new PlayerEntity(this, { x: startX + PARTNER_OFFSET_X, feetY: GROUND_Y, color: COLOR.playerB, label: 'B', isTerrain }),
+            new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: 'A', isTerrain, artTint: null }),
+            new PlayerEntity(this, { x: startX + PARTNER_OFFSET_X, feetY: GROUND_Y, color: COLOR.playerB, label: 'B', isTerrain, artTint: COLOR.artTintB }),
           ]
-        : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain })];
+        : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain, artTint: null })];
     this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), this.level.worldW - VIEW_W);
     this.encounters = initialEncounters(this.scrollX, this.level.trickles, this.initData.arenasCleared ?? 0);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
@@ -695,6 +705,11 @@ export class TestRangeScene extends Phaser.Scene {
     });
     boss.brain = step.brain;
     boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('nightOwl', 'awake', boss.brain.phase));
+    const art = enemy.artImage();
+    if (art && step.brain.mode === 'angry') art.setTint(COLOR.angry);
+    else if (art && step.enteredPhase === null && boss.wasAngry) art.clearTint();
+    boss.wasAngry = step.brain.mode === 'angry';
     enemy.physicsBody().setVelocity(step.vx, step.vy);
     const bottom = enemy.body.y + enemy.def.h / 2;
     for (const f of step.feathers) this.shots.fire(enemy.body.x, bottom, f.vx, f.vy);
@@ -713,7 +728,7 @@ export class TestRangeScene extends Phaser.Scene {
     const enemy = this.spawnEnemy('nightOwl', spawnX, OWL_HOVER_Y);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;
-    this.boss = { enemy, brain: initialOwlBrain(), maxHp, invulnerable: false, minions: new Set() };
+    this.boss = { enemy, brain: initialOwlBrain(), maxHp, invulnerable: false, minions: new Set(), wasAngry: false };
     this.bossName.setText(enemy.def.name);
     this.bossBarBg.setVisible(true);
     this.bossBar.setVisible(true);
@@ -805,6 +820,7 @@ export class TestRangeScene extends Phaser.Scene {
     }
     this.enemiesDefeated += 1;
     this.playDefeatEffect(enemy.body.x, enemy.body.y, impactScale);
+    this.sleepAway(enemy, false);
     const drop = this.riggedDrop ?? rollDrop(Math.random);
     this.riggedDrop = null;
     if (drop) this.dropItem(drop, enemy.body.x, enemy.body.y);
@@ -818,10 +834,13 @@ export class TestRangeScene extends Phaser.Scene {
     this.boss = null;
     const { x, y } = boss.enemy.body;
     this.playDefeatEffect(x, y, BOSS_HIT_STOP_SCALE, BOSS_SHAKE_SCALE);
-    const zzz = this.add.text(x, y - 30, 'Zzz', { fontSize: '48px', color: '#f3e9d2' }).setOrigin(0.5);
-    this.tweens.add({ targets: zzz, y: zzz.y - 80, alpha: 0, duration: ZZZ_MS * 2, onComplete: () => zzz.destroy() });
+    this.floatZzz(x, y - 30, 3, ZZZ_MS * 2);
+    this.sleepAway(boss.enemy, true);
     // 森林裡所有魔物一起睡著。
-    for (const e of [...this.enemies]) this.removeEnemy(e);
+    for (const e of [...this.enemies]) {
+      if (e !== boss.enemy) this.sleepAway(e, false);
+      this.removeEnemy(e);
+    }
     this.shots.clear();
     this.bossName.setText('');
     this.bossBarBg.setVisible(false);
@@ -852,9 +871,35 @@ export class TestRangeScene extends Phaser.Scene {
 
   /** 打倒時的回饋:Zzz 飄走、短暫停頓、輕微晃動。 */
   private playDefeatEffect(x: number, y: number, impactScale = 1, shakeScale = impactScale): void {
-    const zzz = this.add.text(x, y - 10, 'Zzz', { fontSize: '22px', color: '#f3e9d2' }).setOrigin(0.5);
-    this.tweens.add({ targets: zzz, y: zzz.y - 50, alpha: 0, duration: ZZZ_MS, onComplete: () => zzz.destroy() });
+    this.floatZzz(x, y - 10, 1, ZZZ_MS);
     this.impact(impactScale, shakeScale);
+  }
+
+  /** Zzz 往上飄並淡出;有圖用圖,沒有用文字。 */
+  private floatZzz(x: number, y: number, scale: number, duration: number): void {
+    const zzz = this.textures.exists('zzz')
+      ? this.add.image(x, y, 'zzz').setScale(scale)
+      : this.add.text(x, y, 'Zzz', { fontSize: `${22 * scale}px`, color: '#f3e9d2' }).setOrigin(0.5);
+    zzz.setDepth(6);
+    this.tweens.add({ targets: zzz, y: y - 50 * scale, alpha: 0, duration, onComplete: () => zzz.destroy() });
+  }
+
+  /** 換成睡著的圖,往上飄走,放出小羊;stay 時(關主)留在原地直到進結算。沒有圖就什麼都不做。 */
+  private sleepAway(enemy: EnemyEntity, stay: boolean): void {
+    const art = enemy.artImage();
+    const key = enemySprite(enemy.def.type, 'sleep');
+    if (!art || !this.textures.exists(key)) return;
+    const img = this.add
+      .image(art.x, art.y, key)
+      .setOrigin(0.5, 1)
+      .setScale(art.scaleX, art.scaleY)
+      .setFlipX(art.flipX)
+      .setDepth(art.depth);
+    if (stay) return;
+    this.tweens.add({ targets: img, y: img.y - SLEEP_RISE, alpha: 0, delay: SLEEP_HOLD_MS, duration: SLEEP_FADE_MS, onComplete: () => img.destroy() });
+    if (!this.textures.exists('dream-sheep')) return;
+    const sheep = this.add.image(art.x, art.y - art.displayHeight, 'dream-sheep').setAlpha(0.85).setDepth(6);
+    this.tweens.add({ targets: sheep, y: sheep.y - SHEEP_RISE, alpha: 0, duration: SHEEP_MS, onComplete: () => sheep.destroy() });
   }
 
   /** 打擊停頓與畫面晃動;scale 放大揮擊的份量感。 */

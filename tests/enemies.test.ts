@@ -1,5 +1,6 @@
 import { test, expect } from 'vitest';
 import {
+  BAT_SWOOP_Y,
   ENEMY_DEFS,
   bulletEffect,
   initialBrain,
@@ -22,7 +23,7 @@ function run(type: EnemyType, ms: number, p: Partial<EnemySense> = {}, brain: En
 test('資料表:刺蝟是中階、6 血、有盾;蝙蝠會飛', () => {
   expect(ENEMY_DEFS.hedgehog).toMatchObject({ tier: 'mid', hp: 6, shield: true, name: '失眠刺蝟' });
   expect(ENEMY_DEFS.nightBat.flying).toBe(true);
-  expect(ENEMY_DEFS.alarmBug).toMatchObject({ tier: 'minion', hp: 2, w: 32, h: 32 });
+  expect(ENEMY_DEFS.alarmBug).toMatchObject({ tier: 'minion', hp: 2, w: 38, h: 44 });
 });
 
 test('地面魔物至少 32 高,站著射擊(槍口在腳底上方 30)打得到', () => {
@@ -69,7 +70,7 @@ test('蝙蝠在目標正上方盤旋 2 秒後俯衝,700ms 後回升', () => {
   const hover = run('nightBat', 2000, { x: 200, targetX: 210, y: 320, dtMs: 50 });
   expect(hover.brain.phase).toBe('swoop');
   const swoop = stepEnemy('nightBat', hover.brain, sense({ x: 200, targetX: 210, y: 340 }));
-  expect(swoop.vy).toBe(500);
+  expect(swoop.vy).toBe((BAT_SWOOP_Y - 340) * 5);
   expect(swoop.vx).toBe(0);
   const back = run('nightBat', 700, { x: 200, targetX: 210, y: 400, dtMs: 50 }, hover.brain);
   expect(back.brain.phase).toBe('hover');
@@ -132,4 +133,17 @@ test('刺盾:帶一點斜度的迎面子彈也擋得住(扇形、追蹤)', () =>
 test('刺盾:比較接近垂直的子彈(從上方打)打得到', () => {
   const def = ENEMY_DEFS.hedgehog;
   expect(bulletEffect(def, -1, 200, 500)).toBe('hit');
+});
+
+test('蝙蝠俯衝最低時身體底部高於 452,蹲下(判定 28 高)閃得過', () => {
+  expect(BAT_SWOOP_Y + ENEMY_DEFS.nightBat.h / 2).toBeLessThan(452);
+});
+
+test('魔物判定大約是圖片的八成,看得到的地方打得到', () => {
+  const art = { alarmBug: [48, 56], coffeeBean: [39, 52], nightBat: [56, 56], hedgehog: [80, 72] } as const;
+  for (const [type, [w, h]] of Object.entries(art)) {
+    const d = ENEMY_DEFS[type as keyof typeof art];
+    expect(d.w / w, type).toBeGreaterThanOrEqual(0.7);
+    expect(d.h / h, type).toBeGreaterThanOrEqual(0.5);
+  }
 });

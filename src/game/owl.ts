@@ -34,7 +34,8 @@ export interface OwlStep {
 }
 
 export const OWL_HOVER_Y = 150;
-export const OWL_SWOOP_Y = 420;
+/** 俯衝最低點:判定底部 465,不鑽進地面(480)。 */
+export const OWL_SWOOP_Y = 405;
 
 const FEATHER_SPEED = 260;
 const FEATHERS = { 1: 3, 2: 5, 3: 7 } as const;

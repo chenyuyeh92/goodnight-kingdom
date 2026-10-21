@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { OWL_SWOOP_Y, initialOwlBrain, owlPhase, stepOwl, type OwlBrain, type OwlSense } from '../src/game/owl';
+import { OWL_HOVER_Y, OWL_SWOOP_Y, initialOwlBrain, owlPhase, stepOwl, type OwlBrain, type OwlSense } from '../src/game/owl';
 import { ENEMY_DEFS } from '../src/game/enemies';
 
 function sense(p: Partial<OwlSense> = {}): OwlSense {
@@ -98,4 +98,12 @@ test('沒有目標時不俯衝', () => {
 test('dt 夾 50', () => {
   const r = stepOwl(initialOwlBrain(), sense({ dtMs: 5000 }));
   expect(r.brain.timerMs).toBe(50);
+});
+
+test('貓頭鷹俯衝最低點不鑽進地面', () => {
+  expect(OWL_SWOOP_Y + ENEMY_DEFS.nightOwl.h / 2).toBeLessThanOrEqual(470);
+});
+
+test('貓頭鷹盤旋時判定頂端在畫面內', () => {
+  expect(OWL_HOVER_Y - ENEMY_DEFS.nightOwl.h / 2).toBeGreaterThanOrEqual(60);
 });

@@ -10,6 +10,10 @@ import { BASE_LOADOUT, activeWeapon, canFire, coolWeapon, fireWeapon, type Loado
 import { NO_BUFFS, fireIntervalWithBuffs, tickBuffs, type Buffs } from './items';
 
 const DOWN_HEIGHT = 20;
+/** 小綿羊守衛圖:站著 48×55,蹲下壓扁,睡著躺平。 */
+const ART_STAND = { w: 48, h: 55 };
+const ART_CROUCH = { w: 54, h: 34 };
+const DOWN_ALPHA = 0.6;
 const BLINK_MS = 100;
 
 export interface PlayerEntityOptions {
@@ -19,6 +23,8 @@ export interface PlayerEntityOptions {
   /** 頭上的標籤,單人模式為 null。 */
   label: string | null;
   isTerrain: (body: unknown) => boolean;
+  /** 圖片染色(雙人的 B 用淡綠色區分),不染色為 null。 */
+  artTint: number | null;
 }
 
 export type AttackResult =
@@ -45,6 +51,7 @@ export class PlayerEntity {
   private readonly sprite: Phaser.GameObjects.Rectangle;
   private readonly tag: Phaser.GameObjects.Text | null;
   private readonly zzz: Phaser.GameObjects.Text;
+  private readonly art: Phaser.GameObjects.Image | null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -57,6 +64,11 @@ export class PlayerEntity {
       ? scene.add.text(opts.x, opts.feetY, opts.label, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5, 1)
       : null;
     this.zzz = scene.add.text(opts.x, opts.feetY, 'Zzz', { fontSize: '18px', color: '#f3e9d2' }).setOrigin(0.5, 1).setVisible(false);
+    this.art = scene.textures.exists('guard') ? scene.add.image(opts.x, opts.feetY, 'guard').setOrigin(0.5, 1) : null;
+    if (this.art) {
+      this.sprite.setVisible(false);
+      if (opts.artTint !== null) this.art.setTint(opts.artTint);
+    }
   }
 
   body(): Phaser.Physics.Arcade.Body {
@@ -134,8 +146,24 @@ export class PlayerEntity {
     this.sprite.setDisplaySize(down ? STAND_HITBOX.w + 12 : STAND_HITBOX.w, h);
     const blinking = !down && this.health.invulnMs > 0 && Math.floor(timeMs / BLINK_MS) % 2 === 0;
     this.sprite.setAlpha(down ? 0.5 : blinking ? 0.3 : 1);
-    this.tag?.setPosition(this.zone.x, feetY - h - 4);
-    this.zzz.setVisible(down).setPosition(this.zone.x + 28, feetY - h - 4);
+    const top = this.art ? this.renderArt(feetY, down, blinking) : h;
+    this.tag?.setPosition(this.zone.x, feetY - top - 4);
+    this.zzz.setVisible(down).setPosition(this.zone.x + 28, feetY - top - 4);
+  }
+
+  /** 畫小綿羊,回傳圖的高度(標籤放在上面)。 */
+  private renderArt(feetY: number, down: boolean, blinking: boolean): number {
+    const art = this.art!;
+    art.setFlipX(this.motor.facing < 0);
+    if (down) {
+      art.setOrigin(0.5, 0.5).setAngle(this.motor.facing < 0 ? -90 : 90);
+      art.setDisplaySize(ART_STAND.w, ART_STAND.h).setPosition(this.zone.x, feetY - ART_STAND.w / 2).setAlpha(DOWN_ALPHA);
+      return ART_STAND.w;
+    }
+    const size = this.motor.crouching ? ART_CROUCH : ART_STAND;
+    art.setOrigin(0.5, 1).setAngle(0).setDisplaySize(size.w, size.h).setPosition(this.zone.x, feetY);
+    art.setAlpha(blinking ? 0.3 : 1);
+    return size.h;
   }
 
   debug(): PlayerDebug {
