@@ -22,7 +22,13 @@ function run(type: EnemyType, ms: number, p: Partial<EnemySense> = {}, brain: En
 test('資料表:刺蝟是中階、6 血、有盾;蝙蝠會飛', () => {
   expect(ENEMY_DEFS.hedgehog).toMatchObject({ tier: 'mid', hp: 6, shield: true, name: '失眠刺蝟' });
   expect(ENEMY_DEFS.nightBat.flying).toBe(true);
-  expect(ENEMY_DEFS.alarmBug).toMatchObject({ tier: 'minion', hp: 2, w: 32, h: 24 });
+  expect(ENEMY_DEFS.alarmBug).toMatchObject({ tier: 'minion', hp: 2, w: 32, h: 32 });
+});
+
+test('地面魔物至少 32 高,站著射擊(槍口在腳底上方 30)打得到', () => {
+  for (const def of Object.values(ENEMY_DEFS)) {
+    if (!def.flying) expect(def.h).toBeGreaterThanOrEqual(32);
+  }
 });
 
 test('鬧鐘蟲朝目標走 70', () => {

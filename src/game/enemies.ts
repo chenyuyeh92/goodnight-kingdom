@@ -17,8 +17,8 @@ export interface EnemyDef {
 }
 
 export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
-  alarmBug: { type: 'alarmBug', name: '吵鬧鬧鐘蟲', tier: 'minion', hp: 2, w: 32, h: 24, color: 0xe8a87c, flying: false, shield: false },
-  coffeeBean: { type: 'coffeeBean', name: '咖啡豆精靈', tier: 'minion', hp: 2, w: 24, h: 28, color: 0x8b5e3c, flying: false, shield: false },
+  alarmBug: { type: 'alarmBug', name: '吵鬧鬧鐘蟲', tier: 'minion', hp: 2, w: 32, h: 32, color: 0xe8a87c, flying: false, shield: false },
+  coffeeBean: { type: 'coffeeBean', name: '咖啡豆精靈', tier: 'minion', hp: 2, w: 24, h: 32, color: 0x8b5e3c, flying: false, shield: false },
   nightBat: { type: 'nightBat', name: '熬夜蝙蝠', tier: 'minion', hp: 1, w: 32, h: 20, color: 0x5c4b8a, flying: true, shield: false },
   hedgehog: { type: 'hedgehog', name: '失眠刺蝟', tier: 'mid', hp: 6, w: 40, h: 32, color: 0xa0a0b8, flying: false, shield: true },
 };

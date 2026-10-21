@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createTuningStore, type StorageLike } from './config/tuning';
+import type { EnemyPhase, EnemyType } from './game/enemies';
 import type { Aim, Facing } from './game/playerMotor';
 import { parsePlayMode, type PlayMode } from './input/playMode';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
@@ -18,6 +19,16 @@ export interface PlayerDebug {
   invuln: boolean;
 }
 
+export interface EnemyDebug {
+  type: EnemyType;
+  hp: number;
+  x: number;
+  y: number;
+  facing: 1 | -1;
+  phase: EnemyPhase;
+  arena: boolean;
+}
+
 export interface GkDebug {
   ready: boolean;
   screen?: 'mode-select' | 'range';
@@ -28,6 +39,12 @@ export interface GkDebug {
   checkpointX?: number;
   restarts?: number;
   hurt?: (index: number) => void;
+  enemies?: EnemyDebug[];
+  enemiesDefeated?: number;
+  blockedShots?: number;
+  arena?: { locked: boolean; wave: number; nextArena: number };
+  spawn?: (type: EnemyType, x: number, y?: number) => void;
+  defeatAll?: () => void;
   bullets?: number;
   targetsHit?: number;
   cameraX?: number;

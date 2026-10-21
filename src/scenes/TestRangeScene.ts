@@ -6,6 +6,8 @@ import { advanceTeamCamera, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity, type BulletSpawn } from '../game/playerEntity';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
+import { ENEMY_DEFS, bulletEffect, type EnemyType } from '../game/enemies';
+import { EnemyEntity } from '../game/enemyEntity';
 
 const VIEW_W = 960;
 const WORLD_W = 3200;
@@ -25,6 +27,9 @@ const TARGET_HP = 3;
 const TARGET_RESPAWN_MS = 2000;
 const FLASH_MS = 80;
 const ZZZ_MS = 800;
+/** 落在鏡頭左邊這麼遠的魔物直接移除。 */
+const ENEMY_DESPAWN_BEHIND = 200;
+const FLYING_SPAWN_Y = 320;
 
 /** 平台與天花板:左上角 (x, y) 與寬高。 */
 const TERRAIN: ReadonlyArray<{ x: number; y: number; w: number; h: number }> = [
@@ -99,6 +104,10 @@ export class TestRangeScene extends Phaser.Scene {
   private targetGroup!: Phaser.Physics.Arcade.StaticGroup;
   private targets: Target[] = [];
   private targetsHit = 0;
+  private enemies: EnemyEntity[] = [];
+  private enemyGroup!: Phaser.Physics.Arcade.Group;
+  private enemiesDefeated = 0;
+  private blockedShots = 0;
   private scrollX = 0;
 
   constructor() {
@@ -126,6 +135,9 @@ export class TestRangeScene extends Phaser.Scene {
   create(): void {
     this.bullets = [];
     this.targets = [];
+    this.enemies = [];
+    this.enemiesDefeated = 0;
+    this.blockedShots = 0;
     this.targetsHit = 0;
     this.scrollX = 0;
     this.terrainBodies.clear();
@@ -166,7 +178,16 @@ export class TestRangeScene extends Phaser.Scene {
     for (const t of THORNS) thorns.add(this.add.rectangle(t.x + t.w / 2, GROUND_Y - THORN_H / 2, t.w, THORN_H, COLOR.thorn));
     for (const p of this.players) this.physics.add.overlap(p.zone, thorns, () => this.hurtPlayer(p, true));
 
+    this.enemyGroup = this.physics.add.group();
+    this.physics.add.collider(this.enemyGroup, this.terrain);
+    for (const p of this.players) {
+      this.physics.add.overlap(p.zone, this.enemyGroup, () => this.hurtPlayer(p, true));
+    }
+
     this.bulletGroup = this.physics.add.group({ allowGravity: false });
+    this.physics.add.overlap(this.bulletGroup, this.enemyGroup, (b, e) =>
+      this.hitEnemy(b as Phaser.GameObjects.Arc, e as Phaser.GameObjects.Rectangle),
+    );
     this.physics.add.collider(this.bulletGroup, this.terrain, (b) => this.removeBullet(b as Phaser.GameObjects.Arc));
     this.physics.add.overlap(this.bulletGroup, this.targetGroup, (b, t) =>
       this.hitTarget(b as Phaser.GameObjects.Arc, t as Phaser.GameObjects.Rectangle),
@@ -198,6 +219,7 @@ export class TestRangeScene extends Phaser.Scene {
       if (shot) this.spawnBullet(shot);
     });
     this.expireBullets();
+    this.updateEnemies(dtMs, t);
     this.handleTeam();
 
     const awake = this.players.filter((p) => !p.health.down);
@@ -251,6 +273,69 @@ export class TestRangeScene extends Phaser.Scene {
     );
   }
 
+  spawnEnemy(type: EnemyType, x: number, y?: number, arena = false): EnemyEntity {
+    const def = ENEMY_DEFS[type];
+    const feetY = y !== undefined ? y + def.h / 2 : def.flying ? FLYING_SPAWN_Y + def.h / 2 : GROUND_Y;
+    const enemy = new EnemyEntity(this, type, x, feetY, arena);
+    this.enemyGroup.add(enemy.body);
+    enemy.physicsBody().setAllowGravity(!def.flying);
+    this.enemies.push(enemy);
+    return enemy;
+  }
+
+  private updateEnemies(dtMs: number, t: Tuning): void {
+    const awake = this.players.filter((p) => !p.health.down);
+    for (const e of [...this.enemies]) {
+      if (e.x < this.scrollX - ENEMY_DESPAWN_BEHIND) {
+        this.removeEnemy(e);
+        continue;
+      }
+      const nearest = awake.reduce<PlayerEntity | null>(
+        (best, p) => (best === null || Math.abs(p.x - e.x) < Math.abs(best.x - e.x) ? p : best),
+        null,
+      );
+      e.update(nearest ? nearest.x : null, dtMs, t.gravity);
+      e.render();
+    }
+  }
+
+  private hitEnemy(shape: Phaser.GameObjects.Arc, rect: Phaser.GameObjects.Rectangle): void {
+    const enemy = this.enemies.find((e) => e.body === rect);
+    if (!enemy || enemy.hp <= 0) return;
+    const v = (shape.body as Phaser.Physics.Arcade.Body).velocity;
+    this.removeBullet(shape);
+    if (bulletEffect(enemy.def, enemy.brain.facing, v.x, v.y) === 'blocked') {
+      this.blockedShots += 1;
+      return;
+    }
+    enemy.hp -= 1;
+    enemy.flash();
+    if (enemy.hp === 0) this.defeatEnemy(enemy);
+  }
+
+  private defeatEnemy(enemy: EnemyEntity): void {
+    this.enemiesDefeated += 1;
+    this.playDefeatEffect(enemy.body.x, enemy.body.y);
+    this.removeEnemy(enemy);
+  }
+
+  private removeEnemy(enemy: EnemyEntity): void {
+    this.enemies = this.enemies.filter((e) => e !== enemy);
+    enemy.destroy();
+  }
+
+  /** 打倒時的回饋:Zzz 飄走、短暫停頓、輕微晃動。 */
+  private playDefeatEffect(x: number, y: number): void {
+    const t = this.getTuning();
+    const zzz = this.add.text(x, y - 10, 'Zzz', { fontSize: '22px', color: '#f3e9d2' }).setOrigin(0.5);
+    this.tweens.add({ targets: zzz, y: zzz.y - 50, alpha: 0, duration: ZZZ_MS, onComplete: () => zzz.destroy() });
+    if (t.hitStopMs > 0) {
+      this.physics.world.pause();
+      this.time.delayedCall(t.hitStopMs, () => this.physics.world.resume());
+    }
+    if (t.shakeMs > 0) this.cameras.main.shake(t.shakeMs, t.shakeIntensity);
+  }
+
   private spawnBullet(b: BulletSpawn): void {
     const shape = this.add.circle(b.x, b.y, BULLET_SIZE / 2, COLOR.bullet);
     this.bulletGroup.add(shape);
@@ -286,19 +371,10 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private defeatTarget(target: Target): void {
-    const t = this.getTuning();
     const { rect } = target;
     rect.setVisible(false);
     (rect.body as Phaser.Physics.Arcade.StaticBody).enable = false;
-
-    const zzz = this.add.text(rect.x, rect.y - 10, 'Zzz', { fontSize: '22px', color: '#f3e9d2' }).setOrigin(0.5);
-    this.tweens.add({ targets: zzz, y: zzz.y - 50, alpha: 0, duration: ZZZ_MS, onComplete: () => zzz.destroy() });
-
-    if (t.hitStopMs > 0) {
-      this.physics.world.pause();
-      this.time.delayedCall(t.hitStopMs, () => this.physics.world.resume());
-    }
-    if (t.shakeMs > 0) this.cameras.main.shake(t.shakeMs, t.shakeIntensity);
+    this.playDefeatEffect(rect.x, rect.y);
 
     this.time.delayedCall(TARGET_RESPAWN_MS, () => {
       target.hp = TARGET_HP;
@@ -318,6 +394,11 @@ export class TestRangeScene extends Phaser.Scene {
       checkpointX: this.checkpointX,
       restarts: this.restarts,
       hurt: this.testHooks ? (i: number) => this.hurtPlayer(this.players[i], false) : undefined,
+      spawn: this.testHooks ? (type: EnemyType, x: number, y?: number) => void this.spawnEnemy(type, x, y) : undefined,
+      defeatAll: this.testHooks ? () => [...this.enemies].forEach((e) => this.defeatEnemy(e)) : undefined,
+      enemies: this.enemies.map((e) => e.debug()),
+      enemiesDefeated: this.enemiesDefeated,
+      blockedShots: this.blockedShots,
       bullets: this.bullets.length,
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
