@@ -38,13 +38,13 @@
 | `public/assets/enemies/night-bat-sleep.png` | 熬夜蝙蝠 睡著 | 54×56 |  |
 | `public/assets/enemies/insomnia-hedgehog-sleep.png` | 失眠刺蝟 睡著 | 81×72 |  |
 | `public/assets/enemies/night-owl-boss-sleep.png` | 熬夜貓頭鷹 睡著 | 184×200 | 打倒關主後 |
-| `public/assets/fx/zzz.png` | Zzz 特效 | 31×32 | 程式畫的字，可以往上飄、淡出 |
-| `public/assets/fx/dream-sheep.png` | 變成小羊特效 | 40×36 | 半透明小羊在雲上，魔物睡著後飄走用 |
+| `public/assets/fx/zzz.png` | Zzz 特效 | 32×31 | 用程式畫的線條（不是字型），可以往上飄、淡出 |
+| `public/assets/fx/dream-sheep.png` | 變成小羊特效 | 40×36 | 小羊在雲上，魔物睡著後飄走用；圖本身不透明，半透明效果請程式調透明度 |
 | `public/assets/backgrounds/forest-far.png` | 三層背景：遠景（天空、月亮） | 1440×540 | 不透明；左右可無縫接續，捲動最慢 |
-| `public/assets/backgrounds/forest-mid.png` | 三層背景：中景（樹林剪影） | 1440×540 | 透明；左右可無縫接續，捲動中等 |
-| `public/assets/backgrounds/forest-near.png` | 三層背景：近景（草叢剪影） | 1440×540 | 透明；左右可無縫接續，捲動最快，草叢在地面線附近 |
+| `public/assets/backgrounds/forest-mid.png` | 三層背景：中景（樹林剪影） | 1609×540 | 透明；左右可無縫接續，捲動中等 |
+| `public/assets/backgrounds/forest-near.png` | 三層背景：近景（草叢剪影） | 1396×540 | 透明；左右可無縫接續，捲動最快，草叢在地面線附近 |
 
-三層背景疊法：遠景 → 中景 → 近景，三張寬度都是 1440（一個半畫面），重複排列就能一直捲動。舊的單張背景 `insomnia-forest.png` 留著，二選一用。
+三層背景疊法：遠景 → 中景 → 近景，三張寬度不同（遠景 1440、中景 1609、近景 1396），各自重複排列就能一直捲動；寬度不同反而不容易看出重複。舊的單張背景 `insomnia-forest.png` 留著，二選一用。
 
 ## 還沒做 / 已知問題
 
