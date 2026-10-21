@@ -22,6 +22,7 @@ import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
 import { artStatus } from '../art/sprites';
+import { ParallaxBackground } from '../game/background';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
   initialEncounters,
@@ -91,15 +92,24 @@ const ITEM_COLOR: Record<ItemId, number> = {
   milkBottle: 0xffffff,
 };
 
+/** HUD 文字加深色描邊,在亮背景上也看得清楚。 */
+const HUD_STROKE = { stroke: '#2b2a6b', strokeThickness: 4 };
+
 const COLOR = {
   terrain: 0x3b3366,
+  /** 美術配色:外框深紫、平台本體、上緣亮邊、地面。 */
+  outline: 0x3a2a5a,
+  platform: 0x5a4a8f,
+  rim: 0x9d8fe0,
+  ground: 0x2b2a6b,
+  flagOff: 0x7b6bc9,
+  flagOn: 0xf8e08e,
   playerA: 0xffd27a,
   playerB: 0x9be7c4,
   target: 0xf3e9d2,
   flash: 0xffffff,
   thorn: 0x7a4a8c,
   dirt: 0x6b4f3a,
-  checkpoint: 0x4b4380,
 };
 
 interface Target {
@@ -193,6 +203,8 @@ export class TestRangeScene extends Phaser.Scene {
   private bossBar!: Phaser.GameObjects.Rectangle;
   private bossPhaseText!: Phaser.GameObjects.Text;
   private stats!: RunStats;
+  private background!: ParallaxBackground;
+  private flags: { x: number; g: Phaser.GameObjects.Graphics; on: boolean | null }[] = [];
 
   constructor() {
     super('TestRange');
@@ -243,13 +255,15 @@ export class TestRangeScene extends Phaser.Scene {
     this.terrainBodies.clear();
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
+    this.background = new ParallaxBackground(this);
     this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
 
     this.terrain = this.physics.add.staticGroup();
     const ground = { x: 0, y: GROUND_Y, w: this.level.worldW, h: WORLD_H - GROUND_Y };
     let groundRect: Phaser.GameObjects.Rectangle | null = null;
     for (const t of [ground, ...this.level.terrain]) {
-      const r = this.add.rectangle(t.x + t.w / 2, t.y + t.h / 2, t.w, t.h, COLOR.terrain);
+      const r = this.add.rectangle(t.x + t.w / 2, t.y + t.h / 2, t.w, t.h, COLOR.terrain).setVisible(false);
+      this.drawTerrain(t, groundRect === null);
       groundRect ??= r;
       this.terrain.add(r);
       this.terrainBodies.add(r.body as Phaser.Physics.Arcade.StaticBody);
@@ -294,9 +308,12 @@ export class TestRangeScene extends Phaser.Scene {
     this.maxReachedX = startX;
     this.restarting = false;
 
-    for (const cp of this.level.checkpoints) this.add.rectangle(cp, GROUND_Y - 30, 4, 60, COLOR.checkpoint).setDepth(-1);
+    this.flags = this.level.checkpoints.map((cp) => ({ x: cp, g: this.add.graphics().setDepth(-1), on: null }));
     const thorns = this.physics.add.staticGroup();
-    for (const t of this.level.thorns) thorns.add(this.add.rectangle(t.x + t.w / 2, GROUND_Y - THORN_H / 2, t.w, THORN_H, COLOR.thorn));
+    for (const t of this.level.thorns) {
+      thorns.add(this.add.rectangle(t.x + t.w / 2, GROUND_Y - THORN_H / 2, t.w, THORN_H, COLOR.thorn).setVisible(false));
+      this.drawThorns(t.x, t.w);
+    }
     for (const p of this.players) this.physics.add.overlap(p.zone, thorns, () => this.hurtPlayer(p, true));
 
     this.enemyGroup = this.physics.add.group();
@@ -325,17 +342,18 @@ export class TestRangeScene extends Phaser.Scene {
       .text(16, 12, controlHint(this.mode, this.initData.touch), {
         fontSize: this.mode === 'duo' ? '15px' : '18px',
         color: '#f3e9d2',
+        ...HUD_STROKE,
       })
       .setScrollFactor(0)
       .setDepth(10);
-    this.hud = this.add.text(16, 40, '', { fontSize: '20px', color: '#ffb3c7' }).setScrollFactor(0).setDepth(10);
+    this.hud = this.add.text(16, 40, '', { fontSize: '20px', color: '#ffb3c7', ...HUD_STROKE }).setScrollFactor(0).setDepth(10);
     this.arenaHud = this.add
-      .text(VIEW_W / 2, 90, '', { fontSize: '26px', color: '#ffe08a' })
+      .text(VIEW_W / 2, 90, '', { fontSize: '26px', color: '#ffe08a', ...HUD_STROKE })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
     this.bossName = this.add
-      .text(VIEW_W / 2, BOSS_BAR_Y - 6, '', { fontSize: '18px', color: '#f3e9d2' })
+      .text(VIEW_W / 2, BOSS_BAR_Y - 6, '', { fontSize: '18px', color: '#f3e9d2', ...HUD_STROKE })
       .setOrigin(0.5, 1)
       .setScrollFactor(0)
       .setDepth(10);
@@ -353,7 +371,7 @@ export class TestRangeScene extends Phaser.Scene {
       .setDepth(10)
       .setVisible(false);
     this.bossPhaseText = this.add
-      .text(VIEW_W / 2, 200, '', { fontSize: '30px', color: '#ffe08a' })
+      .text(VIEW_W / 2, 200, '', { fontSize: '30px', color: '#ffe08a', ...HUD_STROKE })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
@@ -398,12 +416,52 @@ export class TestRangeScene extends Phaser.Scene {
     const maxStep = (Math.max(t.walkSpeed, t.airSpeed) * CAMERA_MAX_SPEED_RATIO * dtMs) / 1000;
     this.scrollX = limitCameraStep(this.scrollX, target, maxStep);
     this.cameras.main.scrollX = this.scrollX;
+    this.background.update(this.scrollX);
+    this.renderFlags();
     for (const p of awake) p.clampX(minPlayerX(this.scrollX, SCREEN_MARGIN), this.scrollX + VIEW_W - SCREEN_MARGIN);
     for (const p of awake) this.maxReachedX = Math.max(this.maxReachedX, p.x);
     for (const p of this.players) p.render(time);
     this.renderHud();
 
     this.publishDebug();
+  }
+
+  /** 地面:深色本體加一條亮邊;平台與天花板:圓角、深紫外框、上緣亮邊。 */
+  private drawTerrain(t: { x: number; y: number; w: number; h: number }, isGround: boolean): void {
+    const g = this.add.graphics().setDepth(-2);
+    if (isGround) {
+      g.fillStyle(COLOR.ground).fillRect(t.x, t.y, t.w, t.h);
+      g.fillStyle(COLOR.rim).fillRect(t.x, t.y, t.w, 3);
+      return;
+    }
+    const r = Math.min(8, t.h / 2);
+    g.fillStyle(COLOR.outline).fillRoundedRect(t.x - 2, t.y - 2, t.w + 4, t.h + 4, r + 2);
+    g.fillStyle(COLOR.platform).fillRoundedRect(t.x, t.y, t.w, t.h, r);
+    g.fillStyle(COLOR.rim).fillRoundedRect(t.x + 3, t.y + 2, t.w - 6, 4, 2);
+  }
+
+  /** 荊棘:一排小三角形。 */
+  private drawThorns(x: number, w: number): void {
+    const g = this.add.graphics().setDepth(-1);
+    const n = Math.max(1, Math.round(w / 12));
+    const step = w / n;
+    for (let i = 0; i < n; i++) {
+      const left = x + i * step;
+      g.fillStyle(COLOR.outline).fillTriangle(left - 1, GROUND_Y, left + step / 2, GROUND_Y - THORN_H - 2, left + step + 1, GROUND_Y);
+      g.fillStyle(COLOR.thorn).fillTriangle(left + 1, GROUND_Y, left + step / 2, GROUND_Y - THORN_H + 1, left + step - 1, GROUND_Y);
+    }
+  }
+
+  /** 檢查點小旗子,經過後變成月光黃。 */
+  private renderFlags(): void {
+    for (const f of this.flags) {
+      const on = this.maxReachedX >= f.x;
+      if (on === f.on) continue;
+      f.on = on;
+      f.g.clear();
+      f.g.fillStyle(COLOR.outline).fillRect(f.x - 2, GROUND_Y - 64, 4, 64);
+      f.g.fillStyle(on ? COLOR.flagOn : COLOR.flagOff).fillTriangle(f.x + 2, GROUND_Y - 64, f.x + 30, GROUND_Y - 54, f.x + 2, GROUND_Y - 44);
+    }
   }
 
   /** 無敵或睡著時不會受傷;碰到荊棘時小彈跳一下。打倒關主後不再受傷。 */
