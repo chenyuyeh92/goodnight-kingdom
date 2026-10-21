@@ -32,5 +32,7 @@
 | `public/assets/enemies/insomnia-hedgehog.png`（新版）、`public/assets/bullets/sheep.png`、`pillow.png` | 本機 ComfyUI 生成，`process_level1c.py` 去背縮圖 | Nova Cartoon XL v6.0（刺蝟、小羊加 Chibi Animal V2 強度 0.9） | 見上表 | 2026-10-21 |
 | `public/assets/enemies/w2-*.png`、`public/assets/items/w2-falling-block.png`、`public/assets/backgrounds/w2-desert-far.png`、`w2-desert-mid.png`、`public/assets/enemies/insomnia-hedgehog-sleep.png` | 本機 ComfyUI 生成（睡著版與關主二三階段照原圖修改），`docs/art/tools/process_world2.py` 去背縮圖；中景剪影轉透明染色 | Nova Cartoon XL v6.0（魔物加 Chibi Animal V2 強度 0.9；背景、沙磚不加） | 見上表 | 2026-10-21 |
 | `public/assets/items/w2-quicksand.png`、`w2-pressure-plate.png`、`public/assets/backgrounds/w2-desert-near.png`、`public/assets/enemies/insomnia-hedgehog-roll.png`，以及刺蝟睡著版上的刺盾 | 程式繪製（Pillow，`process_world2.py`） | 無 | 自己畫的，沒有第三方授權問題 | 2026-10-21 |
+| `public/assets/backgrounds/w1-s*`、`w2-s*`（場景背景） | 本機 ComfyUI 生成遠景與部分中景、近景（剪影轉透明染色），`docs/art/tools/process_scenes.py` 處理；部分中景、近景程式繪製 | Nova Cartoon XL v6.0（不加 LoRA） | 見上表；程式繪製的部分沒有第三方授權問題 | 2026-10-21 |
+| `public/assets/backgrounds/w1-t*`、`w2-t*`（過渡圖） | 由相鄰兩個場景的圖用程式合成 | 同上 | 同上 | 2026-10-21 |
 
 備註：純 AI 生成的圖，著作權保護在各國都還不明確（見企劃文件 8.3）。
