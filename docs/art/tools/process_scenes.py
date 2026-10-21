@@ -60,16 +60,17 @@ def meadow_mid(color, W=1440):
     """草原：圓樹、矮樹叢、木柵欄。位置固定，左右邊緣留空，可直接接續。"""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
     base = 470; rnd = random.Random(1)
-    for x, r in [(150, 70), (420, 52), (640, 86), (980, 60), (1220, 76)]:
-        d.rectangle((x - 8, base - r - 40, x + 8, base), fill=c)
-        d.ellipse((x - r, base - r * 2 - 50, x + r, base - 30), fill=c)
-        d.ellipse((x - r * .7 - r * .5, base - r * 1.4 - 40, x + r * .2, base - 20), fill=c)
+    for x, r in [(260, 34), (760, 42), (1180, 30)]:  # 小圓樹（遠景已經有森林，這裡只點綴）
+        d.rectangle((x - 5, base - r - 26, x + 5, base), fill=c)
+        for dx, dy, rr in ((0, -r - 30, r), (-r * .6, -r - 12, r * .7), (r * .6, -r - 12, r * .7)):
+            d.ellipse((x + dx - rr, base + dy - rr, x + dx + rr, base + dy + rr), fill=c)
     for x in range(40, W - 40, 22):  # 柵欄
         if 700 < x < 900: continue
         d.rectangle((x - 3, base - 34, x + 3, base), fill=c)
     d.rectangle((40, base - 28, 700, base - 22), fill=c); d.rectangle((900, base - 28, W - 40, base - 22), fill=c)
     for x in range(80, W - 80, 160):  # 矮樹叢
-        rr = 18 + rnd.randint(0, 14); d.ellipse((x - rr * 1.6, base - rr * 1.6, x + rr * 1.6, base + 6), fill=c)
+        rr = 8 + rnd.randint(0, 6); d.ellipse((x - rr * 1.6, base - rr * 1.4, x + rr * 1.6, base + 4), fill=c)
+    im.putalpha(im.getchannel("A").point(lambda v: v * 200 // 255))  # 稍微透明，融進遠景
     return im
 
 def reeds_mid(color, W=1440):
@@ -99,18 +100,26 @@ def far(path):
 def mid_from(path, color):
     return to_h(cut_at_gaps(silhouette(path, color)))
 
-def near_from(path, color):
-    return to_h(seamless(silhouette(path, color, strip_spikes=True), 48))
+def near_from(path, color, max_h=46, bottom=512):
+    """近景：裁掉兩端沒有草的空白、限制高度（最高 max_h px），再貼齊到地面線下方（底部在 y=bottom），左右無縫。"""
+    lay = silhouette(path, color, strip_spikes=True); a = lay.getchannel("A"); w, h = a.size; px = a.load()
+    col = [sum(1 for y in range(0, h, 2) if px[x, y] > 128) for x in range(w)]
+    full = sorted(col)[len(col) // 2] * 0.6; xs = [x for x, v in enumerate(col) if v >= full]
+    top, bot = a.getbbox()[1], a.getbbox()[3]
+    lay = lay.crop((xs[0] + 8, top, xs[-1] - 8, bot))
+    k = min(max_h / lay.height, H / h)  # 照原比例縮到 540 高時的大小，但不超過 max_h
+    lay = seamless(lay.resize((round(lay.width * k), round(lay.height * k)), Image.LANCZOS), 32)
+    out = Image.new("RGBA", (lay.width, H), (0, 0, 0, 0)); out.alpha_composite(lay, (0, bottom - lay.height)); return out
 
 SCENES = {
     # 世界 1 失眠森林
-    "w1-s1": (far(G("gk6", "w1", "w1s1-far_00003_.png")), meadow_mid((96, 146, 116)), near_from(G("gk6", "w1", "w1s1-near_00003_.png"), (62, 108, 82))),
+    "w1-s1": (far(G("gk6", "w1", "w1s1-far_00003_.png")), meadow_mid((112, 160, 128)), near_from(G("gk6", "w1", "w1s1-near_00003_.png"), (62, 108, 82))),
     "w1-s2": (far(G("gk6", "w1", "w1s2-far_00002_.png")), reeds_mid((96, 58, 92)), near_from(G("gk6", "w1", "w1s2-near_00003_.png"), (70, 40, 70))),
-    "w1-s4": (far(G("gk6", "w1", "w1s4-far_00003_.png")), mid_from(G("gk6", "w1", "w1s4-mid_00004_.png"), (22, 18, 58)), near_from(G("gk2", "bg", "bg-near_00006_.png"), (14, 12, 40))),
+    "w1-s4": (far(G("gk6", "w1", "w1s4-far_00003_.png")), mid_from(G("gk6", "w1", "w1s4-mid_00004_.png"), (22, 18, 58)), near_from(G("gk6", "w1", "w1s4-near_00002_.png"), (14, 12, 40), max_h=56)),
     # 世界 2 沙漠金字塔王國
     "w2-s1": (far(G("gk6", "w2", "w2s1-far_00003_.png")), mid_from(G("gk6", "w2", "w2s1-mid_00003_.png"), (124, 98, 78)), near_from(G("gk6", "w2", "w2s1-near_00003_.png"), (98, 112, 70))),
     "w2-s2": (far(G("gk6", "w2", "w2s2-far_00004_.png")), mid_from(G("gk6", "w2", "w2s2-mid_00001_.png"), (100, 60, 86)), dunes((76, 46, 66), phase=1.3, rocks=((300, 9), (860, 7)))),
-    "w2-s4": (far(G("gk6", "w2", "w2s4-far_00002_.png")), mid_from(G("gk6", "w2", "w2s4-mid_00001_.png"), (24, 20, 60)), dunes((16, 13, 42), phase=2.6, stubs=((380, 34), (1010, 22)))),
+    "w2-s4": (far(G("gk6", "w2", "w2s4-far_00002_.png")), mid_from(G("gk6", "w2", "w2s4-mid_00001_.png"), (24, 20, 60)), dunes((16, 13, 42), phase=2.6, stubs=((380, 20), (1010, 14)))),
 }
 for key, layers in SCENES.items():
     for name, im in zip(("far", "mid", "near"), layers):
@@ -135,7 +144,8 @@ def transition(a, b, W=1440, blend=480):
     for x in range(W):
         t = min(1, max(0, (x - (W - blend) / 2) / blend)); t = t * t * (3 - 2 * t)  # 平滑
         d.line([(x, 0), (x, H)], fill=int(255 * t))
-    return Image.composite(tiled(b, W, end_aligned=True), tiled(a, W), ramp)
+    # 先乘 alpha 再混合，透明的地方才不會把顏色拉黑
+    return Image.composite(tiled(b, W, end_aligned=True).convert("RGBa"), tiled(a, W).convert("RGBa"), ramp).convert("RGBA")
 
 for w in ("w1", "w2"):
     for s1, s2 in ((1, 2), (2, 3), (3, 4)):
