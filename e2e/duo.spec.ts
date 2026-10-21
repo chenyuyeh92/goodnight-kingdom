@@ -115,7 +115,7 @@ test.describe('愛心、睡著與重來', () => {
   test('碰到荊棘會扣愛心', async ({ page }) => {
     await openRange(page, './?level=range&mode=single');
     await page.keyboard.down('KeyD');
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 2, undefined, { timeout: 6000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 5, undefined, { timeout: 6000 });
     await page.keyboard.up('KeyD');
   });
 
@@ -130,7 +130,7 @@ test.describe('愛心、睡著與重來', () => {
     expect((await players(page))[0].x).toBe(x0);
     await page.waitForFunction(() => window.__GK__!.players![0].down === false, undefined, { timeout: 4500 });
     const p = await players(page);
-    expect(p[0].hearts).toBe(3);
+    expect(p[0].hearts).toBe(6);
     expect(p[0].invuln).toBe(true);
     expect(Math.abs(p[0].x - p[1].x)).toBeLessThanOrEqual(1);
   });
@@ -162,7 +162,7 @@ test.describe('愛心、睡著與重來', () => {
     const s = await gk(page);
     expect(s.checkpointX).toBe(150);
     for (const p of s.players!) {
-      expect(p.hearts).toBe(3);
+      expect(p.hearts).toBe(6);
       expect(p.down).toBe(false);
     }
   });

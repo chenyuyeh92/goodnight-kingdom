@@ -12,7 +12,7 @@ function hitAndWait(h: Health): Health {
 
 test('被打中扣一顆並無敵 1000ms', () => {
   const r = applyHit(freshHealth());
-  expect(r.health.hearts).toBe(2);
+  expect(r.health.hearts).toBe(5);
   expect(r.health.invulnMs).toBe(1000);
   expect(r.hit).toBe(true);
 });
@@ -20,17 +20,19 @@ test('被打中扣一顆並無敵 1000ms', () => {
 test('無敵期間不扣', () => {
   const first = applyHit(freshHealth());
   const second = applyHit(first.health);
-  expect(second.health.hearts).toBe(2);
+  expect(second.health.hearts).toBe(5);
   expect(second.hit).toBe(false);
 });
 
 test('無敵結束後可以再扣', () => {
   const h = hitAndWait(freshHealth());
-  expect(applyHit(h).health.hearts).toBe(1);
+  expect(applyHit(h).health.hearts).toBe(4);
 });
 
-test('第三次被打會睡著', () => {
-  const h = hitAndWait(hitAndWait(freshHealth()));
+test('一共 6 顆,第六次被打會睡著', () => {
+  let h = freshHealth();
+  for (let i = 0; i < 5; i++) h = hitAndWait(h);
+  expect(h.down).toBe(false);
   const r = applyHit(h);
   expect(r.health.down).toBe(true);
   expect(r.health.hearts).toBe(0);
@@ -50,5 +52,5 @@ test('睡著時 downMs 會累加,dt 夾到 50', () => {
 });
 
 test('freshHealth(1500) 帶復活無敵', () => {
-  expect(freshHealth(1500)).toEqual({ hearts: 3, invulnMs: 1500, down: false, downMs: 0 });
+  expect(freshHealth(1500)).toEqual({ hearts: 6, invulnMs: 1500, down: false, downMs: 0 });
 });

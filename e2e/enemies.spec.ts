@@ -26,7 +26,7 @@ test.describe('魔物', () => {
     await spawn(page, 'alarmBug', 600);
     const x0 = (await gk(page)).enemies![0].x;
     await page.waitForFunction((x) => window.__GK__!.enemies![0].x < x - 20, x0, { timeout: 2000 });
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 2, undefined, { timeout: 10000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 5, undefined, { timeout: 10000 });
   });
 
   test('射擊打倒鬧鐘蟲', async ({ page }) => {
@@ -139,8 +139,8 @@ test('從地面冒出的魔物在完全出現前不會傷人', async ({ page }) 
   const x = (await gk(page)).players![0].x;
   await page.evaluate((px) => window.__GK__!.spawnGround!('alarmBug', px), x);
   await page.waitForTimeout(200);
-  expect((await gk(page)).players![0].hearts).toBe(3);
-  await page.waitForFunction(() => window.__GK__!.players![0].hearts === 2, undefined, { timeout: 3000 });
+  expect((await gk(page)).players![0].hearts).toBe(6);
+  await page.waitForFunction(() => window.__GK__!.players![0].hearts === 5, undefined, { timeout: 3000 });
 });
 
 test('繞到刺蝟背後打得到', async ({ page }) => {

@@ -1,6 +1,6 @@
 import { MAX_DT_MS } from '../config/tuning';
 
-export const MAX_HEARTS = 3;
+export const MAX_HEARTS = 6;
 export const HIT_INVULN_MS = 1000;
 export const REVIVE_DELAY_MS = 3000;
 export const REVIVE_INVULN_MS = 1500;

@@ -44,7 +44,7 @@ test.describe('關主戰', () => {
     await openForest(page);
     await enterBoss(page);
     await page.waitForFunction(() => (window.__GK__!.enemyShots ?? 0) > 0, undefined, { timeout: 4000 });
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts < 3, undefined, { timeout: 15000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts < 6, undefined, { timeout: 15000 });
   });
 
   test('打到 66% 以下進入第二階段並暫時無敵', async ({ page }) => {
@@ -173,7 +173,7 @@ test.describe('通關結算', () => {
     await page.evaluate(() => {
       for (let i = 0; i < 3; i++) window.__GK__!.hurt!(0);
     });
-    expect((await gk(page)).players![0].hearts).toBe(3);
+    expect((await gk(page)).players![0].hearts).toBe(6);
     await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
   });
 });

@@ -35,9 +35,9 @@ test('流星設定 10 秒', () => {
   expect(applyItem('shootingStar', base).buffs.starMs).toBe(BUFF_MS);
 });
 
-test('小枕頭補一顆,滿血不超過 3', () => {
+test('小枕頭補一顆,滿血不超過 6', () => {
   expect(applyItem('smallPillow', { ...base, health: { ...freshHealth(), hearts: 1 } }).health.hearts).toBe(2);
-  expect(applyItem('smallPillow', base).health.hearts).toBe(3);
+  expect(applyItem('smallPillow', base).health.hearts).toBe(6);
 });
 
 test('牛奶瓶補滿特殊武器彈藥', () => {
