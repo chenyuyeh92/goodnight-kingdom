@@ -85,3 +85,61 @@ test.describe('關主戰', () => {
     expect(s.boss!.hp).toBe(60);
   });
 });
+
+async function defeatBoss(page: Page): Promise<void> {
+  await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
+  await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
+}
+
+test.describe('通關結算', () => {
+  test('打倒貓頭鷹後出現結算,按 2 回到選單', async ({ page }) => {
+    await openForest(page);
+    await enterBoss(page);
+    await defeatBoss(page);
+    const text = (await gk(page)).summary!.join('\n');
+    expect(text).toContain('通關時間');
+    expect(text).toContain('找到寶箱 0 / 3');
+    expect(text).toContain('這次拿到:沒有');
+    await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__!.screen === 'mode-select');
+  });
+
+  test('再玩一次會從頭開始,模式不變', async ({ page }) => {
+    await openForest(page, './?mode=duo&test=1');
+    await enterBoss(page);
+    await defeatBoss(page);
+    await page.keyboard.press('Digit1');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
+    const s = await gk(page);
+    expect(s.mode).toBe('duo');
+    expect(s.checkpointX).toBe(150);
+    expect(s.restarts).toBe(0);
+    expect(s.boss).toBeNull();
+  });
+
+  test('統計跨睡著重來累積', async ({ page }) => {
+    await openForest(page);
+    await page.evaluate(() => {
+      window.__GK__!.spawn!('alarmBug', 600);
+      window.__GK__!.defeatAll!();
+    });
+    await hurtUntilDown(page);
+    await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
+    await enterBoss(page);
+    await defeatBoss(page);
+    const text = (await gk(page)).summary!.join('\n');
+    expect(text).toContain('睡著重來 1 次');
+    expect(text).toContain('哄睡魔物 2 隻');
+  });
+
+  test('打倒貓頭鷹後不會再受傷', async ({ page }) => {
+    await openForest(page);
+    await enterBoss(page);
+    await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
+    await page.evaluate(() => {
+      for (let i = 0; i < 3; i++) window.__GK__!.hurt!(0);
+    });
+    expect((await gk(page)).players![0].hearts).toBe(3);
+    await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
+  });
+});

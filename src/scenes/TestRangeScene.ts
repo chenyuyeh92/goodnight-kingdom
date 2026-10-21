@@ -19,6 +19,8 @@ import { decideTeam, reachedCheckpoint } from '../game/team';
 import { ENEMY_DEFS, bulletEffect, type EnemyType } from '../game/enemies';
 import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
+import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
+import type { LevelCompleteData } from './LevelCompleteScene';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
   initialEncounters,
@@ -134,11 +136,18 @@ export interface TestRangeData {
   touch?: boolean;
   /** 已經開過的寶箱編號,重來後維持打開,避免反覆刷寶箱。 */
   openedChests?: number[];
+  /** 這次遊玩的統計,重來時帶著走。 */
+  stats?: RunStats;
   getTuning?: () => Tuning;
   mode?: PlayMode;
   checkpointX?: number;
   restarts?: number;
   testHooks?: boolean;
+}
+
+/** 只保留跨關卡的設定(存檔、觸控、模式等),去掉這一輪的進度。 */
+export function sessionData(d: TestRangeData): TestRangeData {
+  return { getTuning: d.getTuning, testHooks: d.testHooks, save: d.save, touch: d.touch, level: d.level, mode: d.mode };
 }
 
 export class TestRangeScene extends Phaser.Scene {
@@ -180,6 +189,7 @@ export class TestRangeScene extends Phaser.Scene {
   private bossBarBg!: Phaser.GameObjects.Rectangle;
   private bossBar!: Phaser.GameObjects.Rectangle;
   private bossPhaseText!: Phaser.GameObjects.Text;
+  private stats!: RunStats;
 
   constructor() {
     super('TestRange');
@@ -226,6 +236,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.bossTriggered = false;
     this.bossDefeated = false;
     this.bossLock = null;
+    this.stats = this.initData.stats ?? newRunStats(Date.now(), this.level.chests.length);
     this.terrainBodies.clear();
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
@@ -390,8 +401,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.publishDebug();
   }
 
-  /** 無敵或睡著時不會受傷;碰到荊棘時小彈跳一下。 */
+  /** 無敵或睡著時不會受傷;碰到荊棘時小彈跳一下。打倒關主後不再受傷。 */
   private hurtPlayer(p: PlayerEntity, bounce: boolean): void {
+    if (this.bossDefeated) return;
     const r = applyHit(p.health);
     p.health = r.health;
     if (r.hit && bounce && !r.health.down) p.body().setVelocityY(THORN_BOUNCE_VY);
@@ -414,6 +426,7 @@ export class TestRangeScene extends Phaser.Scene {
         loadouts: this.players.map((p) => p.loadout),
         openedChests: this.openedChestIndexes(),
         arenasCleared: this.encounters.nextArena,
+        stats: { ...this.stats, defeated: this.stats.defeated + this.enemiesDefeated },
       });
     }
   }
@@ -498,6 +511,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.dropItem('milkBottle', chest.rect.x, chest.rect.y - CHEST_H);
     } else {
       this.save.setStars(result.weapon, result.stars);
+      this.stats = { ...this.stats, weaponsGot: addWeapon(this.stats.weaponsGot, result.weapon) };
       p.loadout = equip(result.weapon, result.stars);
     }
 
@@ -751,8 +765,21 @@ export class TestRangeScene extends Phaser.Scene {
     this.time.delayedCall(BOSS_OUTRO_MS, () => this.onLevelComplete());
   }
 
-  /** Task 5 接上結算畫面。 */
-  private onLevelComplete(): void {}
+  private onLevelComplete(): void {
+    const stats: RunStats = {
+      ...this.stats,
+      defeated: this.stats.defeated + this.enemiesDefeated,
+      chestsFound: this.openedChestIndexes().length,
+      restarts: this.restarts,
+    };
+    const data: LevelCompleteData = {
+      ...sessionData(this.initData),
+      mode: this.mode,
+      levelName: this.level.name,
+      summary: summaryLines(stats, Date.now()),
+    };
+    this.scene.start('LevelComplete', data);
+  }
 
   private removeEnemy(enemy: EnemyEntity): void {
     this.enemies = this.enemies.filter((e) => e !== enemy);
