@@ -34,7 +34,7 @@
 | `public/assets/enemies/night-owl-boss-phase2.png` | 熬夜貓頭鷹 第二階段 | 183×200 | 頭上冒蒸氣、更臭臉 |
 | `public/assets/enemies/night-owl-boss-phase3.png` | 熬夜貓頭鷹 第三階段 | 176×200 | 咖啡打翻、身邊冒火花；第一階段用 night-owl-boss.png |
 | `public/assets/enemies/clockbug-sleep.png` | 鬧鐘蟲 睡著 | 47×56 | 被哄睡後換成這張 |
-| `public/assets/enemies/coffee-bean-sprite-sleep.png` | 咖啡豆精靈 睡著 | 38×52 |  |
+| `public/assets/enemies/coffee-bean-sprite-sleep.png` | 咖啡豆精靈 睡著 | 38×52 | 眼皮下還露出一點白，縮小後可能像半睜眼，之後可再修 |
 | `public/assets/enemies/night-bat-sleep.png` | 熬夜蝙蝠 睡著 | 54×56 |  |
 | `public/assets/enemies/insomnia-hedgehog-sleep.png` | 失眠刺蝟 睡著 | 81×72 |  |
 | `public/assets/enemies/night-owl-boss-sleep.png` | 熬夜貓頭鷹 睡著 | 184×200 | 打倒關主後 |
