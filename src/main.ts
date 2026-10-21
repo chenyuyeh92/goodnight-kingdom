@@ -137,6 +137,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
     pixelArt: false,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
+    // 不平滑每格的時間:畫面掉格時遊戲照實際時間前進,不會變慢動作。
+    fps: { smoothStep: false },
   });
 
   const save = createSaveStore(safeLocalStorage());
