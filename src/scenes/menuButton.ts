@@ -44,3 +44,28 @@ export function menuButton(
   bg.on('pointerdown', onClick);
   return bg;
 }
+
+/** 小按鈕(沒有美術圖):奶油色圓角底、深紫字。回傳可以改文字的物件。 */
+export function smallButton(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  label: string,
+  onClick: () => void,
+  w = 150,
+): { setLabel(text: string): void; setEnabled(on: boolean): void } {
+  const bg = scene.add.rectangle(x, y, w, 44, 0xfff6e5).setStrokeStyle(3, 0x3a2a5a).setInteractive({ useHandCursor: true });
+  const text = scene.add.text(x, y, label, { fontSize: '18px', color: '#3a2a5a' }).setOrigin(0.5);
+  let enabled = true;
+  bg.on('pointerover', () => enabled && bg.setFillStyle(0xf8e08e));
+  bg.on('pointerout', () => bg.setFillStyle(0xfff6e5));
+  bg.on('pointerdown', () => enabled && onClick());
+  return {
+    setLabel: (t) => void text.setText(t),
+    setEnabled(on) {
+      enabled = on;
+      bg.setAlpha(on ? 1 : 0.45);
+      text.setAlpha(on ? 1 : 0.45);
+    },
+  };
+}

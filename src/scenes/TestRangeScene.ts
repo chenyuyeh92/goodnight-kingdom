@@ -26,6 +26,8 @@ import { SCENE_PALETTE, sceneKeys, type TerrainPalette } from '../art/scenes';
 import { WORLD1, levelNumber, nextLevel } from '../game/progress';
 import { ParallaxBackground } from '../game/background';
 import { hintText } from '../ui/hints';
+import type { GuardPlayer, GuardStore } from '../draw/guards';
+import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
 import { SHALLOW_SPEED, fellIntoRiver, groundSegments, inShallow, respawnX } from '../game/water';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
@@ -181,6 +183,8 @@ interface ItemPickup {
 
 export interface TestRangeData {
   save?: SaveStore;
+  /** 玩家畫的守衛與選用設定。 */
+  guards?: GuardStore;
   /** 重來時保留每位玩家手上的武器與剩餘彈藥。 */
   loadouts?: Loadout[];
   /** 重來前已經清完的戰鬥區數量。 */
@@ -202,7 +206,7 @@ export interface TestRangeData {
 
 /** 只保留跨關卡的設定(存檔、觸控、模式等),去掉這一輪的進度。 */
 export function sessionData(d: TestRangeData): TestRangeData {
-  return { getTuning: d.getTuning, testHooks: d.testHooks, save: d.save, touch: d.touch, level: d.level, mode: d.mode };
+  return { getTuning: d.getTuning, testHooks: d.testHooks, save: d.save, guards: d.guards, touch: d.touch, level: d.level, mode: d.mode };
 }
 
 export class TestRangeScene extends Phaser.Scene {
@@ -366,10 +370,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.players =
       this.mode === 'duo'
         ? [
-            new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: 'A', isTerrain, artTint: null }),
-            new PlayerEntity(this, { x: startX + PARTNER_OFFSET_X, feetY: GROUND_Y, color: COLOR.playerB, label: 'B', isTerrain, artTint: COLOR.artTintB }),
+            new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: 'A', isTerrain, artTint: null, artKey: this.guardKey('A') }),
+            new PlayerEntity(this, { x: startX + PARTNER_OFFSET_X, feetY: GROUND_Y, color: COLOR.playerB, label: 'B', isTerrain, ...this.guardArtB() }),
           ]
-        : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain, artTint: null })];
+        : [new PlayerEntity(this, { x: startX, feetY: GROUND_Y, color: COLOR.playerA, label: null, isTerrain, artTint: null, artKey: this.guardKey('A') })];
     this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), this.level.worldW - VIEW_W);
     this.encounters = initialEncounters(this.scrollX, this.level.trickles, this.initData.arenasCleared ?? 0);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
@@ -549,6 +553,17 @@ export class TestRangeScene extends Phaser.Scene {
     g.fillStyle(COLOR.outline).fillRoundedRect(t.x - 2, t.y - 2, t.w + 4, t.h + 4, r + 2);
     g.fillStyle(this.palette.platform).fillRoundedRect(t.x, t.y, t.w, t.h, r);
     g.fillStyle(this.palette.rim).fillRoundedRect(t.x + 3, t.y + 2, t.w - 6, 4, 2);
+  }
+
+  private guardKey(player: GuardPlayer): string {
+    const guards = this.initData.guards;
+    return guards ? guardKeyFor(this, guards.get(), player) : DEFAULT_GUARD_KEY;
+  }
+
+  /** B 用小綿羊時染淡綠色和 A 區分;自己畫的守衛不染色。 */
+  private guardArtB(): { artKey: string; artTint: number | null } {
+    const artKey = this.guardKey('B');
+    return { artKey, artTint: artKey === DEFAULT_GUARD_KEY ? COLOR.artTintB : null };
   }
 
   /** 淺水區走得慢;掉進河溝扣一顆愛心,從左岸重新出來(睡著的人直接搬上岸)。 */

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SPRITES, SPRITE_KEYS, artStatus, assetPath } from '../art/sprites';
 import type { TestRangeData } from './TestRangeScene';
 import { loadGameFont } from '../ui/fonts';
+import { ensureGuardTexture } from '../draw/guardTextures';
 
 export interface BootData {
   next: 'ModeSelect' | 'TestRange';
@@ -43,7 +44,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    // 字型好了才進下一個畫面,文字一開始就用粉圓畫。
-    void this.fontReady.then(() => this.scene.start(this.boot.next, this.boot.data));
+    // 字型與選用的守衛圖好了才進下一個畫面。
+    const guards = this.boot.data.guards?.get();
+    const chosen = guards ? guards.guards.filter((g) => g.id === guards.selected.A || g.id === guards.selected.B) : [];
+    void Promise.all([this.fontReady, ...chosen.map((g) => ensureGuardTexture(this, g))]).then(() =>
+      this.scene.start(this.boot.next, this.boot.data),
+    );
   }
 }

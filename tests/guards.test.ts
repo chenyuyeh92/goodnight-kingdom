@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { GUARDS_KEY, MAX_GUARDS, createGuardStore, sanitizeGuards } from '../src/draw/guards';
+import { GUARDS_KEY, MAX_GUARDS, createGuardStore, guardFileName, sanitizeGuards } from '../src/draw/guards';
 import type { StorageLike } from '../src/config/tuning';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgo=';
@@ -67,4 +67,10 @@ test('存檔內容壞掉或寫不進去也能用', () => {
   expect(createGuardStore(m).get().guards).toEqual([]);
   const full: StorageLike = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
   expect(createGuardStore(full).add('a', PNG)).toEqual({ ok: false, reason: 'storage' });
+});
+
+test('下載檔名:晚安王國-名字.png,去掉不能用的字元', () => {
+  expect(guardFileName('小勇')).toBe('晚安王國-小勇.png');
+  expect(guardFileName('a/b:c*?')).toBe('晚安王國-abc.png');
+  expect(guardFileName('  ')).toBe('晚安王國-守衛.png');
 });

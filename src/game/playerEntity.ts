@@ -12,8 +12,12 @@ import { playerPose } from '../art/motion';
 
 const DOWN_HEIGHT = 20;
 /** 小綿羊守衛圖:站著 48×55,蹲下壓扁,睡著躺平。 */
-const ART_STAND = { w: 48, h: 55 };
-const ART_CROUCH = { w: 54, h: 34 };
+const SHEEP_STAND = { w: 48, h: 55 };
+/** 玩家畫的守衛畫成這個高度,寬度照比例(最多 90)。 */
+const DRAWN_H = 60;
+const DRAWN_MAX_W = 90;
+/** 蹲下時壓扁:寬一點、矮很多。 */
+const CROUCH_SCALE = { w: 1.12, h: 0.62 };
 const DOWN_ALPHA = 0.6;
 const BLINK_MS = 100;
 
@@ -26,6 +30,8 @@ export interface PlayerEntityOptions {
   isTerrain: (body: unknown) => boolean;
   /** 圖片染色(雙人的 B 用淡綠色區分),不染色為 null。 */
   artTint: number | null;
+  /** 角色的圖:預設小綿羊 'guard',或玩家畫的守衛。 */
+  artKey: string;
 }
 
 export type AttackResult =
@@ -53,6 +59,7 @@ export class PlayerEntity {
   private readonly tag: Phaser.GameObjects.Text | null;
   private readonly zzz: Phaser.GameObjects.Text;
   private readonly art: Phaser.GameObjects.Image | null;
+  private readonly artStand: { w: number; h: number };
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -65,7 +72,13 @@ export class PlayerEntity {
       ? scene.add.text(opts.x, opts.feetY, opts.label, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5, 1)
       : null;
     this.zzz = scene.add.text(opts.x, opts.feetY, 'Zzz', { fontSize: '18px', color: '#f3e9d2' }).setOrigin(0.5, 1).setVisible(false);
-    this.art = scene.textures.exists('guard') ? scene.add.image(opts.x, opts.feetY, 'guard').setOrigin(0.5, 1) : null;
+    this.art = scene.textures.exists(opts.artKey) ? scene.add.image(opts.x, opts.feetY, opts.artKey).setOrigin(0.5, 1) : null;
+    if (this.art && opts.artKey !== 'guard') {
+      const ratio = this.art.width / this.art.height;
+      this.artStand = { w: Math.min(DRAWN_MAX_W, DRAWN_H * ratio), h: DRAWN_H };
+    } else {
+      this.artStand = SHEEP_STAND;
+    }
     if (this.art) {
       this.sprite.setVisible(false);
       if (opts.artTint !== null) this.art.setTint(opts.artTint);
@@ -158,10 +171,12 @@ export class PlayerEntity {
     art.setFlipX(this.motor.facing < 0);
     if (down) {
       art.setOrigin(0.5, 0.5).setAngle(this.motor.facing < 0 ? -90 : 90);
-      art.setDisplaySize(ART_STAND.w, ART_STAND.h).setPosition(this.zone.x, feetY - ART_STAND.w / 2).setAlpha(DOWN_ALPHA);
-      return ART_STAND.w;
+      const s = this.artStand;
+      art.setDisplaySize(s.w, s.h).setPosition(this.zone.x, feetY - s.w / 2).setAlpha(DOWN_ALPHA);
+      return s.w;
     }
-    const size = this.motor.crouching ? ART_CROUCH : ART_STAND;
+    const s = this.artStand;
+    const size = this.motor.crouching ? { w: s.w * CROUCH_SCALE.w, h: s.h * CROUCH_SCALE.h } : s;
     const pb = this.body();
     const pose = playerPose(timeMs, pb.velocity.x, pb.blocked.down || pb.touching.down, pb.velocity.y, this.motor.crouching);
     art.setOrigin(0.5, 1).setAngle(pose.angle);
@@ -181,6 +196,7 @@ export class PlayerEntity {
       down: this.health.down,
       invuln: this.health.invulnMs > 0,
       weapon: activeWeapon(this.loadout).id,
+      art: this.art?.texture.key ?? null,
       ammo: this.loadout.ammo,
       heat: this.loadout.heat,
       overheated: this.loadout.overheated,

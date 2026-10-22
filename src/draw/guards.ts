@@ -52,6 +52,12 @@ export function sanitizeGuards(raw: unknown): GuardData {
   return out;
 }
 
+/** 下載用的檔名:去掉檔名不能用的字元。 */
+export function guardFileName(name: string): string {
+  const safe = name.replace(/[\\/:*?"<>|\s]+/g, '').slice(0, MAX_NAME) || '守衛';
+  return `晚安王國-${safe}.png`;
+}
+
 export interface GuardStore {
   get(): GuardData;
   add(name: string, png: string): AddResult;

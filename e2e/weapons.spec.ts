@@ -277,7 +277,7 @@ test.describe('背包畫面', () => {
     await page.goto('./');
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
-    await page.keyboard.press('Digit3');
+    await page.keyboard.press('Digit4');
     await page.waitForFunction(() => window.__GK__?.screen === 'backpack');
   });
 

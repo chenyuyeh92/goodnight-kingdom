@@ -1,0 +1,195 @@
+import Phaser from 'phaser';
+import { createGuardStore, guardFileName, type GuardPlayer, type GuardStore } from '../draw/guards';
+import { DEFAULT_GUARD_KEY, ensureGuardTexture, guardTextureKey } from '../draw/guardTextures';
+import { mountDrawStudio, type DrawMode, type DrawStudio } from '../ui/drawStudio';
+import type { TestRangeData } from './TestRangeScene';
+import { onMenuKey } from './menuKeys';
+import { smallButton } from './menuButton';
+
+const COLS = 5;
+const CARD = 140;
+const GAP_X = 165;
+const GAP_Y = 168;
+const FIRST_Y = 215;
+const THUMB = 100;
+/** 刪除要按兩次,避免誤刪。 */
+const CONFIRM_MS = 3000;
+
+interface Card {
+  id: string | null;
+  name: string;
+  key: string;
+}
+
+/** 守衛房間:挑選 A、B 用的守衛,畫新的、下載、刪除。 */
+export class GuardRoomScene extends Phaser.Scene {
+  private data_: TestRangeData = {};
+  private store!: GuardStore;
+  private target: GuardPlayer = 'A';
+  private studio: DrawStudio | null = null;
+  private cards: Phaser.GameObjects.GameObject[] = [];
+  private confirmDeleteUntil = 0;
+  private deleteButton!: ReturnType<typeof smallButton>;
+  private downloadButton!: ReturnType<typeof smallButton>;
+  private targetButtons!: Record<GuardPlayer, ReturnType<typeof smallButton>>;
+  private message!: Phaser.GameObjects.Text;
+
+  constructor() {
+    super('GuardRoom');
+  }
+
+  init(data: TestRangeData): void {
+    this.data_ = data ?? {};
+    this.store = this.data_.guards ?? createGuardStore(null);
+    this.target = 'A';
+    this.studio = null;
+    this.cards = [];
+    this.confirmDeleteUntil = 0;
+  }
+
+  create(): void {
+    if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.4);
+    this.add.text(480, 40, '畫你的守衛', { fontSize: '32px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
+    this.targetButtons = {
+      A: smallButton(this, 400, 95, '幫 A 選', () => this.setTarget('A'), 140),
+      B: smallButton(this, 560, 95, '幫 B 選', () => this.setTarget('B'), 140),
+    };
+    this.message = this.add.text(480, 440, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
+    smallButton(this, 110, 495, '畫新的(輪廓)', () => this.openStudio('outline'), 170);
+    smallButton(this, 295, 495, '畫新的(空白)', () => this.openStudio('free'), 170);
+    this.downloadButton = smallButton(this, 470, 495, '下載圖片', () => this.download(), 150);
+    this.deleteButton = smallButton(this, 640, 495, '刪除', () => this.remove(), 150);
+    smallButton(this, 840, 495, '返回(Esc)', () => this.back(), 150);
+
+    onMenuKey(this, (e) => {
+      if (this.studio) return;
+      if (e.code === 'Escape') this.back();
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.closeStudio());
+
+    this.renderCards();
+    void Promise.all(this.store.get().guards.map((g) => ensureGuardTexture(this, g))).then(() => {
+      if (this.scene.isActive()) this.renderCards();
+    });
+  }
+
+  private setTarget(p: GuardPlayer): void {
+    this.target = p;
+    this.renderCards();
+  }
+
+  private renderCards(): void {
+    for (const o of this.cards) o.destroy();
+    this.cards = [];
+    const data = this.store.get();
+    const items: Card[] = [
+      { id: null, name: '小綿羊', key: DEFAULT_GUARD_KEY },
+      ...data.guards.map((g) => ({ id: g.id, name: g.name, key: guardTextureKey(g.id) })),
+    ];
+    items.forEach((c, i) => {
+      const x = 480 + ((i % COLS) - (COLS - 1) / 2) * GAP_X;
+      const y = FIRST_Y + Math.floor(i / COLS) * GAP_Y;
+      const mine = data.selected[this.target] === c.id;
+      const bg = this.add
+        .rectangle(x, y, CARD, CARD + 10, 0xfff6e5, 0.92)
+        .setStrokeStyle(mine ? 5 : 2, mine ? 0xf8e08e : 0x3a2a5a)
+        .setInteractive({ useHandCursor: true });
+      bg.on('pointerdown', () => this.choose(c.id));
+      this.cards.push(bg);
+      if (this.textures.exists(c.key)) {
+        const img = this.add.image(x, y - 10, c.key);
+        img.setScale(Math.min(THUMB / img.width, THUMB / img.height));
+        this.cards.push(img);
+      }
+      this.cards.push(this.add.text(x, y + CARD / 2 - 12, c.name, { fontSize: '16px', color: '#3a2a5a' }).setOrigin(0.5));
+      const badges = (['A', 'B'] as const).filter((p) => data.selected[p] === c.id).join(' ');
+      if (badges) {
+        this.cards.push(
+          this.add.text(x + CARD / 2 - 8, y - CARD / 2 + 4, badges, { fontSize: '16px', color: '#fff6e5', backgroundColor: '#b0477a', padding: { x: 4, y: 0 } }).setOrigin(1, 0),
+        );
+      }
+    });
+    const chosen = data.selected[this.target];
+    this.downloadButton.setEnabled(chosen !== null);
+    this.deleteButton.setEnabled(chosen !== null);
+    this.deleteButton.setLabel('刪除');
+    this.confirmDeleteUntil = 0;
+    (['A', 'B'] as const).forEach((p) => this.targetButtons[p].setLabel(p === this.target ? `▶ 幫 ${p} 選` : `幫 ${p} 選`));
+    window.__GK__ = {
+      ready: true,
+      screen: 'guard-room',
+      guardList: data.guards.map((g) => ({ id: g.id, name: g.name })),
+      guardSelected: { ...data.selected },
+      guardTarget: this.target,
+    };
+  }
+
+  private choose(id: string | null): void {
+    if (this.studio) return;
+    this.store.select(this.target, id);
+    this.message.setText('');
+    this.renderCards();
+  }
+
+  private openStudio(mode: DrawMode): void {
+    if (this.studio) return;
+    this.studio = mountDrawStudio(document.body, {
+      mode,
+      outlineUrl: `${import.meta.env.BASE_URL}assets/characters/pajama-outline.png`,
+      onSave: (name, png) => {
+        const r = this.store.add(name, png);
+        if (!r.ok) return r.reason === 'full' ? '最多存 8 個守衛,請先刪掉一個' : '這個瀏覽器存不了檔(例如無痕模式)';
+        this.store.select(this.target, r.guard.id);
+        this.closeStudio();
+        void ensureGuardTexture(this, r.guard).then(() => this.renderCards());
+        return null;
+      },
+      onCancel: () => this.closeStudio(),
+    });
+    window.__GK__ = { ...window.__GK__, ready: true, screen: 'draw' };
+  }
+
+  private closeStudio(): void {
+    this.studio?.destroy();
+    this.studio = null;
+    if (this.scene.isActive()) this.renderCards();
+  }
+
+  private download(): void {
+    const id = this.store.get().selected[this.target];
+    const g = this.store.get().guards.find((x) => x.id === id);
+    if (!g) return;
+    // 用 Blob 網址下載,瀏覽器才會用我們給的檔名(data: 網址會被當成「download」)。
+    void fetch(g.png)
+      .then((r) => r.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = guardFileName(g.name);
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+  }
+
+  /** 按一次變成「再按一次刪除」,3 秒內再按才真的刪。 */
+  private remove(): void {
+    const id = this.store.get().selected[this.target];
+    if (!id) return;
+    if (this.time.now > this.confirmDeleteUntil) {
+      this.confirmDeleteUntil = this.time.now + CONFIRM_MS;
+      this.deleteButton.setLabel('再按一次刪除');
+      return;
+    }
+    this.store.remove(id);
+    if (this.textures.exists(guardTextureKey(id))) this.textures.remove(guardTextureKey(id));
+    this.renderCards();
+  }
+
+  private back(): void {
+    if (this.studio) return;
+    this.scene.start('ModeSelect', this.data_);
+  }
+}

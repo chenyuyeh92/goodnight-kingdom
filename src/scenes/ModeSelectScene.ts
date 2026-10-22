@@ -4,15 +4,16 @@ import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
 
-type Choice = PlayMode | 'backpack';
+type Choice = PlayMode | 'backpack' | 'draw';
 
 const BUTTONS: ReadonlyArray<{ choice: Choice; label: string; art: string; code: string }> = [
   { choice: 'single', label: '開始遊戲', art: 'btn-start', code: 'Digit1' },
   { choice: 'duo', label: '雙人遊戲', art: 'btn-duo', code: 'Digit2' },
-  { choice: 'backpack', label: '背包', art: 'btn-backpack', code: 'Digit3' },
+  { choice: 'draw', label: '畫你的守衛', art: 'btn-draw', code: 'Digit3' },
+  { choice: 'backpack', label: '背包', art: 'btn-backpack', code: 'Digit4' },
 ];
-const FIRST_BUTTON_Y = 250;
-const BUTTON_GAP = 74;
+const FIRST_BUTTON_Y = 232;
+const BUTTON_GAP = 68;
 /** 主頁右下角睡著的魔物(裝飾),輕輕上下飄。 */
 const SLEEPERS = [
   { key: 'clockbug-sleep', x: 700, y: 500 },
@@ -62,6 +63,7 @@ export class ModeSelectScene extends Phaser.Scene {
 
   private choose(choice: Choice): void {
     if (choice === 'backpack') this.scene.start('Backpack', this.data_);
+    else if (choice === 'draw') this.scene.start('GuardRoom', this.data_);
     else this.scene.start('LevelSelect', { ...this.data_, mode: choice });
   }
 }
