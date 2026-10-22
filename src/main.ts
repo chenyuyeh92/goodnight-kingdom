@@ -109,7 +109,7 @@ export interface GkDebug {
   /** 是否顯示觸控操作。 */
   touch?: boolean;
   level?: LevelId;
-  boss?: { hp: number; maxHp: number; phase: 1 | 2 | 3; mode: string; type: EnemyType; hidden: boolean } | null;
+  boss?: { hp: number; maxHp: number; phase: 1 | 2 | 3; mode: string; type: EnemyType; hidden: boolean; armored: boolean; x: number; y: number } | null;
   bossDefeated?: boolean;
   /** 場上魔物子彈(羽毛)數。 */
   enemyShots?: number;

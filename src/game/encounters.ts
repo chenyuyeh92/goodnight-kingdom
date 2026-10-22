@@ -8,6 +8,8 @@ export interface SpawnSpec {
   from: SpawnFrom;
   /** top/ground 用的世界座標 x。 */
   x?: number;
+  /** left/right 生成會游泳/飛的魔物時的高度(身體中心);沒有時用預設高度。 */
+  y?: number;
   delayMs: number;
 }
 

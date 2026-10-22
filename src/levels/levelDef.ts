@@ -4,12 +4,13 @@ import type { EnemyType } from '../game/enemies';
 import type { HintKind } from '../ui/hints';
 import type { Span } from '../game/water';
 import type { PlateDef } from '../game/traps';
+import type { Current } from '../game/currents';
 
-export type BossType = Extract<EnemyType, 'nightOwl' | 'bigClockBug' | 'hedgehogCaptain' | 'camel' | 'fennec' | 'sphinx'>;
+export type BossType = Extract<EnemyType, 'nightOwl' | 'bigClockBug' | 'hedgehogCaptain' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie'>;
 
-export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2' | 'w2-1' | 'w2-2' | 'w2-3';
+export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2' | 'w2-1' | 'w2-2' | 'w2-3' | 'w3-1' | 'w3-2' | 'w3-3';
 
-const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3'];
+const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3'];
 
 /** 左上角座標與寬高。 */
 export interface Rect {
@@ -46,6 +47,10 @@ export interface LevelDef {
   sand?: readonly Span[];
   /** 壓力板(世界 2):踩到會讓上面掉沙磚。 */
   plates?: readonly PlateDef[];
+  /** 整關都在水裡(世界 3):用游的。 */
+  underwater?: boolean;
+  /** 水流(左右推)與氣泡柱(往上送)。 */
+  currents?: readonly Current[];
   /** 路邊的教學告示牌。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }

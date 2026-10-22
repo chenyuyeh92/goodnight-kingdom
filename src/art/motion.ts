@@ -52,6 +52,10 @@ export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: numb
   if (type === 'nightBat') return flap(tMs);
   // 禿鷹翅膀大,拍得比蝙蝠慢。
   if (type === 'vulture') return flap(tMs, 300, 0.1);
+  // 河豚膨脹:整隻變大。
+  if (type === 'puffer' && phase === 'puff') return { ...IDLE, scaleX: 1.35, scaleY: 1.35 };
+  // 在水裡游的:輕輕上下擺動(像在划水)。
+  if (type === 'jellyfish' || type === 'clownfish' || type === 'octopus' || type === 'puffer' || type === 'eel' || type === 'nessie') return flap(tMs, 700, 0.05);
   if (type === 'nightOwl') {
     // 貓頭鷹:慢慢拍翅,俯衝時身體往前傾。
     const p = flap(tMs, 420, 0.06);

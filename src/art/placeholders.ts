@@ -96,11 +96,62 @@ function fennec(g: Phaser.GameObjects.Graphics, asleep: boolean): void {
   g.fillStyle(OUTLINE).fillCircle(6, 38, 2.5);
 }
 
+function hermitCrab(g: Phaser.GameObjects.Graphics, asleep: boolean): void {
+  const shell = 0xfff0d8;
+  const crab = 0xe07050;
+  draw(g, [
+    // 背上的咖啡杯殼(杯口朝右後方)。
+    [rect(40, 6, 52, 58), shell],
+    [ellipse(96, 30, 18, 24), shell],
+    [rect(42, 4, 48, 10), 0x7a4a3a],
+    [rect(24, 52, 8, 22), crab],
+    [rect(40, 54, 8, 20), crab],
+    [ellipse(34, 50, 44, 30), crab],
+    // 大鉗子朝玩家(左邊)。
+    [ellipse(10, 40, 22, 18), crab],
+    [rect(20, 18, 5, 18), crab],
+    [rect(32, 16, 5, 18), crab],
+    [ellipse(22, 16, 12, 12), 0xffffff],
+    [ellipse(34, 14, 12, 12), 0xffffff],
+  ]);
+  g.fillStyle(0x9a7ab0, 0.7).fillEllipse(22, 22, 12, 5).fillEllipse(34, 20, 12, 5);
+  g.lineStyle(2, OUTLINE);
+  if (asleep) {
+    g.lineBetween(18, 16, 26, 16);
+    g.lineBetween(30, 14, 38, 14);
+  } else {
+    g.fillStyle(OUTLINE).fillCircle(21, 17, 2.5).fillCircle(33, 15, 2.5);
+    g.fillStyle(0xe07050).fillRect(16, 9, 12, 4).fillRect(28, 7, 12, 4);
+  }
+  g.fillStyle(0xffffff, 0.8).fillCircle(66, 36, 5).fillCircle(78, 24, 3);
+}
+
+function eel(g: Phaser.GameObjects.Graphics, asleep: boolean): void {
+  const skin = 0x4a7f9f;
+  const belly = 0x9fd0e0;
+  draw(g, [
+    [ellipse(122, 24, 30, 16), skin],
+    [ellipse(96, 24, 44, 26), skin],
+    [ellipse(62, 24, 52, 32), skin],
+    [ellipse(26, 24, 50, 34), skin],
+    [ellipse(28, 32, 36, 12), belly],
+  ]);
+  // 身上的電光斑點。
+  g.fillStyle(0xffe066);
+  for (const [x, y] of [[50, 14], [72, 18], [94, 14], [112, 20]]) g.fillTriangle(x, y, x + 6, y + 4, x + 2, y + 10);
+  eye(g, 16, 18, asleep);
+  g.lineStyle(2, OUTLINE).lineBetween(4, 30, 14, 30);
+}
+
 const BUILDERS: Record<PlaceholderKey, { w: number; h: number; paint: (g: Phaser.GameObjects.Graphics) => void }> = {
   'gk-camel': { w: 112, h: 102, paint: (g) => camel(g, false) },
   'gk-camel-sleep': { w: 112, h: 102, paint: (g) => camel(g, true) },
   'gk-fennec': { w: 94, h: 68, paint: (g) => fennec(g, false) },
   'gk-fennec-sleep': { w: 94, h: 68, paint: (g) => fennec(g, true) },
+  'gk-hermit-crab': { w: 108, h: 78, paint: (g) => hermitCrab(g, false) },
+  'gk-hermit-crab-sleep': { w: 108, h: 78, paint: (g) => hermitCrab(g, true) },
+  'gk-eel': { w: 140, h: 46, paint: (g) => eel(g, false) },
+  'gk-eel-sleep': { w: 140, h: 46, paint: (g) => eel(g, true) },
 };
 
 /** 產生暫代的圖(只做一次)。 */

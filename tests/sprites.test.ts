@@ -19,7 +19,7 @@ test('每張素材都在 public/assets 且大小和對照表一致', () => {
 });
 
 /** 美術還沒畫、先用程式畫的造型。 */
-const PLACEHOLDERS = new Set(['gk-camel', 'gk-camel-sleep', 'gk-fennec', 'gk-fennec-sleep']);
+const PLACEHOLDERS = new Set(['gk-camel', 'gk-camel-sleep', 'gk-fennec', 'gk-fennec-sleep', 'gk-hermit-crab', 'gk-hermit-crab-sleep', 'gk-eel', 'gk-eel-sleep']);
 
 test('每種魔物都有醒著和睡著的圖,貓頭鷹與人面獅身三個階段各一張', () => {
   for (const t of Object.keys(ENEMY_DEFS) as EnemyType[]) {
@@ -29,7 +29,7 @@ test('每種魔物都有醒著和睡著的圖,貓頭鷹與人面獅身三個階�
     }
     expect(enemySprite(t, 'sleep')).not.toBe(enemySprite(t, 'awake'));
   }
-  for (const boss of ['nightOwl', 'sphinx'] as const) {
+  for (const boss of ['nightOwl', 'sphinx', 'nessie'] as const) {
     expect(new Set([1, 2, 3].map((p) => enemySprite(boss, 'awake', p as 1 | 2 | 3))).size).toBe(3);
   }
 });

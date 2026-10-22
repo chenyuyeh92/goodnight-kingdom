@@ -18,6 +18,8 @@ export class EnemyEntity {
   hp: number;
   /** 正在從地面冒出,還不算上場。 */
   emerging = false;
+  /** 被打閃白光後恢復成的顏色(水怪第三階段帶紅色);沒有時用 ENEMY_ART_TINT。 */
+  baseTint: number | undefined = undefined;
   private readonly shield: Phaser.GameObjects.Rectangle | null;
   /** 美術圖;沒載入時為 null,改顯示色塊。 */
   private readonly art: Phaser.GameObjects.Image | null;
@@ -72,8 +74,8 @@ export class EnemyEntity {
     return this.body.x;
   }
 
-  /** 回傳這一格吐出的子彈(咖啡沙蛇),沒有時為 null。 */
-  update(targetX: number | null, targetY: number | null, dtMs: number, gravity: number): { vx: number; vy: number } | null {
+  /** 回傳這一格吐出的子彈(咖啡沙蛇、章魚墨汁),沒有時為 null。 */
+  update(targetX: number | null, targetY: number | null, dtMs: number, gravity: number): { vx: number; vy: number; gravity: number } | null {
     const pb = this.physicsBody();
     if (!this.def.flying) pb.setGravityY(gravity);
     const move = stepEnemy(this.def.type, this.brain, {
@@ -96,7 +98,7 @@ export class EnemyEntity {
       if (this.body.active) this.body.setFillStyle(this.def.color);
       if (!this.art?.active) return;
       this.art.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
-      const tint = ENEMY_ART_TINT[this.def.type];
+      const tint = this.baseTint ?? ENEMY_ART_TINT[this.def.type];
       if (tint !== undefined) this.art.setTint(tint);
     });
   }

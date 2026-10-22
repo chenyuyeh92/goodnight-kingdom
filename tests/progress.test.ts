@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { WORLD1, WORLD2, isUnlocked, levelNumber, nextLevel, worldOf } from '../src/game/progress';
+import { WORLD1, WORLD2, WORLD3, isUnlocked, levelNumber, nextLevel, worldOf } from '../src/game/progress';
 import { createSaveStore, sanitizeSave, SAVE_KEY } from '../src/game/save';
 import type { StorageLike } from '../src/config/tuning';
 
@@ -15,10 +15,11 @@ test('只有 1-1 一開始就能玩,通關才解鎖下一關', () => {
   expect(isUnlocked('forest', { 'w1-1': 200000 })).toBe(false);
 });
 
-test('下一關:1-3 通關後接 2-1,最後一關沒有下一關', () => {
+test('下一關:1-3 通關後接 2-1、2-3 接 3-1,最後一關沒有下一關', () => {
   expect(nextLevel('w1-1')).toBe('w1-2');
   expect(nextLevel('forest')).toBe('w2-1');
-  expect(nextLevel('w2-3')).toBeNull();
+  expect(nextLevel('w2-3')).toBe('w3-1');
+  expect(nextLevel('w3-3')).toBeNull();
   expect(nextLevel('range')).toBeNull();
 });
 
@@ -31,6 +32,12 @@ test('世界 2 是 2-1 綠洲、2-2 沙丘、2-3 金字塔,先通過 1-3 才開�
   expect(isUnlocked('w2-2', { forest: 1 })).toBe(false);
   expect(isUnlocked('w2-3', { 'w2-2': 1 })).toBe(true);
   expect(isUnlocked('range', {})).toBe(true);
+});
+
+test('世界 3 是 3-1 珊瑚礁、3-2 沉船、3-3 遺跡,先通過 2-3 才開放', () => {
+  expect(WORLD3.map(levelNumber)).toEqual(['3-1', '3-2', '3-3']);
+  expect(isUnlocked('w3-1', { 'w2-2': 1 })).toBe(false);
+  expect(isUnlocked('w3-1', { 'w2-3': 1 })).toBe(true);
 });
 
 test('舊存檔裡世界 2 的通關紀錄也讀得進來', () => {

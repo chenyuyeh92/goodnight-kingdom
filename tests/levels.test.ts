@@ -118,7 +118,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -266,4 +266,57 @@ test('世界 2 的小頭目是新的魔物,關主是人面獅身', () => {
   expect(LEVELS['w2-3'].hints!.map((h) => h.kind)).toContain('plate');
   expect(LEVELS['w2-3'].plates!.length).toBeGreaterThanOrEqual(4);
   expect(LEVELS['w2-3'].scenes.map((s) => s.scene)).toEqual(['w2-s3', 'w2-s4']);
+});
+
+describe.each(['w3-1', 'w3-2', 'w3-3'] as const)('世界 3 海底:%s', (id) => {
+  const L = LEVELS[id];
+  const fishSpawns = [...L.trickles.map((t) => t.spawn), ...L.arenas.flatMap((a) => a.waves.flat())].filter((s) => s.y !== undefined);
+
+  test('屬於世界 3,整關在水裡,用海底場景', () => {
+    expect(L.world).toBe(3);
+    expect(L.underwater).toBe(true);
+    for (const s of L.scenes) expect(s.scene.startsWith('w3-')).toBe(true);
+  });
+
+  test('魚游進來的高度在水面與海床之間', () => {
+    expect(fishSpawns.length).toBeGreaterThan(10);
+    for (const s of fishSpawns) {
+      expect(s.y!, `${s.type}`).toBeGreaterThanOrEqual(120);
+      expect(s.y!, `${s.type}`).toBeLessThanOrEqual(440);
+    }
+  });
+
+  test('高處的寶箱游得上去(在水面以下)', () => {
+    const high = L.chests.filter((c) => c.bottom < 300);
+    expect(high.length).toBeGreaterThan(0);
+    for (const c of high) expect(c.bottom - 40).toBeGreaterThan(70);
+  });
+
+  test('關主區沒有水流與海膽', () => {
+    const lock = L.boss!.lockScrollX;
+    for (const c of L.currents ?? []) expect(c.x + c.w).toBeLessThan(lock);
+    for (const t of L.thorns) expect(t.x + t.w).toBeLessThan(lock);
+  });
+
+  test('檢查點(雙人 B 在右邊 40)不在氣泡柱或水流裡', () => {
+    for (const c of L.currents ?? []) {
+      for (const cp of L.checkpoints) expect(cp + 40 < c.x - 10 || cp > c.x + c.w + 10, `檢查點 ${cp}`).toBe(true);
+    }
+  });
+});
+
+test('世界 3 的小頭目是寄居蟹、電鰻,關主是尼斯湖水怪;3-1 教游泳', () => {
+  expect(LEVELS['w3-1'].boss!.type).toBe('hermitCrab');
+  expect(LEVELS['w3-2'].boss!.type).toBe('eel');
+  expect(LEVELS['w3-3'].boss!.type).toBe('nessie');
+  expect(LEVELS['w3-1'].hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['swim', 'dive']));
+  expect(LEVELS['w3-2'].currents!.some((c) => c.vx !== 0)).toBe(true);
+  expect(LEVELS['w3-3'].currents!.some((c) => c.vy < 0)).toBe(true);
+  expect(LEVELS['w3-3'].scenes.map((s) => s.scene)).toEqual(['w3-s3', 'w3-s4']);
+});
+
+test('3-3 的高處寶箱底下有氣泡柱可以搭', () => {
+  const R = LEVELS['w3-3'];
+  const high = R.chests.find((c) => c.bottom < 200)!;
+  expect(R.currents!.some((c) => c.vy < 0 && Math.abs(c.x + c.w / 2 - high.x) < 200)).toBe(true);
 });

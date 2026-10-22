@@ -15,7 +15,14 @@ export type EnemyType =
   | 'tortoise'
   | 'camel'
   | 'fennec'
-  | 'sphinx';
+  | 'sphinx'
+  | 'jellyfish'
+  | 'clownfish'
+  | 'octopus'
+  | 'puffer'
+  | 'hermitCrab'
+  | 'eel'
+  | 'nessie';
 export type EnemyTier = 'minion' | 'mid' | 'high' | 'boss';
 
 export interface EnemyDef {
@@ -49,9 +56,17 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   camel: { type: 'camel', name: '失眠駱駝', tier: 'boss', hp: 40, w: 96, h: 100, color: 0xd9a066, flying: false, shield: false },
   fennec: { type: 'fennec', name: '熬夜耳廓狐', tier: 'boss', hp: 45, w: 70, h: 64, color: 0xf0c890, flying: false, shield: false },
   sphinx: { type: 'sphinx', name: '睡不著的人面獅身', tier: 'boss', hp: 70, w: 140, h: 120, color: 0xd9a066, flying: false, shield: false },
+  // 世界 3 亞特蘭提斯海底王國:魚類都在水中游(不受重力),寄居蟹在海床上走。
+  jellyfish: { type: 'jellyfish', name: '熬夜水母', tier: 'minion', hp: 2, w: 38, h: 48, color: 0xc8a8f0, flying: true, shield: false },
+  clownfish: { type: 'clownfish', name: '鬧鐘小丑魚', tier: 'minion', hp: 1, w: 46, h: 34, color: 0xff9a50, flying: true, shield: false },
+  octopus: { type: 'octopus', name: '咖啡章魚', tier: 'minion', hp: 3, w: 44, h: 48, color: 0x8b5e3c, flying: true, shield: false },
+  puffer: { type: 'puffer', name: '氣鼓鼓河豚', tier: 'mid', hp: 8, w: 54, h: 54, color: 0xf0d080, flying: true, shield: false },
+  hermitCrab: { type: 'hermitCrab', name: '失眠寄居蟹', tier: 'boss', hp: 45, w: 90, h: 72, color: 0xe07050, flying: false, shield: false },
+  eel: { type: 'eel', name: '熬夜電鰻', tier: 'boss', hp: 50, w: 130, h: 40, color: 0x4a7f9f, flying: true, shield: false },
+  nessie: { type: 'nessie', name: '尼斯湖水怪', tier: 'boss', hp: 80, w: 150, h: 140, color: 0x5a9a7a, flying: true, shield: false },
 };
 
-export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll' | 'dash' | 'idle';
+export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll' | 'dash' | 'idle' | 'swim' | 'puff';
 
 export interface EnemyBrain {
   phase: EnemyPhase;
@@ -77,8 +92,8 @@ export interface EnemyMove {
   /** null 表示保留目前垂直速度,交給重力。 */
   vy: number | null;
   brain: EnemyBrain;
-  /** 這一格吐出的拋物線子彈(咖啡沙蛇)。 */
-  spit?: { vx: number; vy: number } | null;
+  /** 這一格吐出的咖啡(沙蛇是拋物線,章魚的墨汁直直飛,gravity 為 0)。 */
+  spit?: { vx: number; vy: number; gravity: number } | null;
 }
 
 const ALARM_SPEED = 70;
@@ -122,6 +137,24 @@ const VULTURE_SWOOP_RANGE = 140;
 const VULTURE_SWOOP_VX = 160;
 const VULTURE_HOVER_MS = 2200;
 const VULTURE_SWOOP_MS = 800;
+/** 水母:上下漂(振幅 50、週期 2.4 秒),慢慢往玩家漂。 */
+const JELLY_BOB = 50;
+const JELLY_PERIOD_MS = 2400;
+const JELLY_SPEED = 40;
+/** 小丑魚:直直游過來,每 2.5 秒才重新看玩家在哪(游過頭後轉身)。 */
+const CLOWN_SPEED = 150;
+const CLOWN_TURN_MS = 2500;
+const CLOWN_WIGGLE = 30;
+/** 章魚:停在水中,離玩家太近會退開;每 2.8 秒朝 520 以內的玩家噴墨汁。 */
+const OCTO_INK_MS = 2800;
+const OCTO_RANGE = 520;
+const OCTO_KEEP = 220;
+const OCTO_SPEED = 50;
+const INK_SPEED = 200;
+/** 河豚:慢慢游過來;被打到膨脹 1.5 秒(子彈全彈開),消氣後至少 1 秒才會再膨脹。 */
+const PUFFER_SPEED = 35;
+export const PUFF_MS = 1500;
+const PUFF_COOLDOWN_MS = 1000;
 
 const START_PHASE: Record<EnemyType, EnemyPhase> = {
   alarmBug: 'walk',
@@ -139,6 +172,13 @@ const START_PHASE: Record<EnemyType, EnemyPhase> = {
   camel: 'idle',
   fennec: 'idle',
   sphinx: 'idle',
+  jellyfish: 'swim',
+  clownfish: 'swim',
+  octopus: 'swim',
+  puffer: 'swim',
+  hermitCrab: 'idle',
+  eel: 'idle',
+  nessie: 'idle',
 };
 
 export function initialBrain(type: EnemyType): EnemyBrain {
@@ -186,8 +226,52 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'camel':
     case 'fennec':
     case 'sphinx':
-      // 關主與新的小頭目由各自的檔案(owl.ts、camel.ts、fennec.ts、sphinx.ts)控制。
+    case 'hermitCrab':
+    case 'eel':
+    case 'nessie':
+      // 關主與新的小頭目由各自的檔案(owl.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts)控制。
       return { vx: 0, vy: 0, brain: { ...brain, timerMs } };
+    case 'jellyfish': {
+      const facing = faceTarget(brain, sense);
+      const w = (Math.PI * 2) / JELLY_PERIOD_MS;
+      // 速度是位置 sin 的微分,不用記起始高度就能上下漂。
+      const vy = JELLY_BOB * w * 1000 * Math.cos(w * timerMs);
+      const dx = sense.targetX === null ? 0 : sense.targetX - sense.x;
+      return { vx: Math.abs(dx) > 8 ? facing * JELLY_SPEED : 0, vy, brain: { phase: 'swim', timerMs, facing, turnMs: 0 } };
+    }
+    case 'clownfish': {
+      // 第一格就看玩家在哪,之後每 CLOWN_TURN_MS 才重新看。
+      const look = brain.turnMs === 0 || brain.turnMs + Math.min(sense.dtMs, MAX_DT_MS) >= CLOWN_TURN_MS;
+      const facing = look ? faceTarget(brain, sense) : brain.facing;
+      const turnMs = look ? 1 : brain.turnMs + Math.min(sense.dtMs, MAX_DT_MS);
+      const vy = CLOWN_WIGGLE * Math.sin((timerMs / 300) * Math.PI);
+      return { vx: facing * CLOWN_SPEED, vy, brain: { phase: 'swim', timerMs, facing, turnMs } };
+    }
+    case 'octopus': {
+      const facing = faceTarget(brain, sense);
+      const dx = sense.targetX === null ? Infinity : sense.targetX - sense.x;
+      const vx = Math.abs(dx) < OCTO_KEEP ? -facing * OCTO_SPEED : Math.abs(dx) <= OCTO_RANGE ? 0 : facing * OCTO_SPEED;
+      if (hasTarget && timerMs >= OCTO_INK_MS && Math.abs(dx) <= OCTO_RANGE) {
+        const dy = (sense.targetY ?? sense.y) - sense.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const spit = { vx: (dx / d) * INK_SPEED, vy: (dy / d) * INK_SPEED, gravity: 0 };
+        return { vx, vy: 0, brain: { phase: 'swim', timerMs: 0, facing, turnMs: 0 }, spit };
+      }
+      return { vx: hasTarget ? vx : 0, vy: 0, brain: { phase: 'swim', timerMs, facing, turnMs: 0 } };
+    }
+    case 'puffer': {
+      const facing = faceTarget(brain, sense);
+      if (brain.phase === 'puff') {
+        if (timerMs >= PUFF_MS) return { vx: 0, vy: 0, brain: { phase: 'swim', timerMs: 0, facing, turnMs: 0 } };
+        return { vx: 0, vy: 0, brain: { ...brain, timerMs } };
+      }
+      const dx = sense.targetX === null ? 0 : sense.targetX - sense.x;
+      const dy = sense.targetY === null || sense.targetY === undefined ? 0 : sense.targetY - sense.y;
+      const d = Math.hypot(dx, dy);
+      const vx = d > 8 ? (dx / d) * PUFFER_SPEED : 0;
+      const vy = d > 8 ? (dy / d) * PUFFER_SPEED : 0;
+      return { vx, vy, brain: { phase: 'swim', timerMs, facing, turnMs: 0 } };
+    }
     case 'bellScarab': {
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'dash') {
@@ -212,7 +296,7 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       const dx = sense.targetX === null ? Infinity : sense.targetX - sense.x;
       if (hasTarget && timerMs >= SNAKE_SPIT_MS && Math.abs(dx) <= SNAKE_RANGE) {
         const mouthY = sense.y - ENEMY_DEFS.sandSnake.h / 2;
-        const spit = arcShot(sense.x, mouthY, sense.targetX!, sense.targetY ?? mouthY, SPIT_GRAVITY);
+        const spit = { ...arcShot(sense.x, mouthY, sense.targetX!, sense.targetY ?? mouthY, SPIT_GRAVITY), gravity: SPIT_GRAVITY };
         return { vx: 0, vy: null, brain: { phase: 'idle', timerMs: 0, facing, turnMs: 0 }, spit };
       }
       return { vx: 0, vy: null, brain: { phase: 'idle', timerMs, facing, turnMs: 0 } };
@@ -257,8 +341,21 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
   }
 }
 
-/** 刺盾擋住從正面迎面而來、偏水平(比 45 度平)的子彈,扇形與追蹤子彈也算;背後、上下都打得到。 */
-export function bulletEffect(def: EnemyDef, enemyFacing: 1 | -1, bulletVx: number, bulletVy: number): 'hit' | 'blocked' {
+/**
+ * 河豚被打到:沒在膨脹、而且消氣夠久了就膨脹(這一下照樣有打到)。
+ * 消氣時 swim 階段的 timerMs 從 0 開始累積,所以用它判斷消氣多久。
+ */
+export function pufferHit(brain: EnemyBrain): EnemyBrain {
+  if (brain.phase === 'puff' || brain.timerMs < PUFF_COOLDOWN_MS) return brain;
+  return { ...brain, phase: 'puff', timerMs: 0 };
+}
+
+/**
+ * 刺盾擋住從正面迎面而來、偏水平(比 45 度平)的子彈,扇形與追蹤子彈也算;背後、上下都打得到。
+ * 膨脹的河豚、縮進殼裡的寄居蟹(armored)什麼方向都擋。
+ */
+export function bulletEffect(def: EnemyDef, enemyFacing: 1 | -1, bulletVx: number, bulletVy: number, armored = false): 'hit' | 'blocked' {
+  if (armored) return 'blocked';
   const frontal = Math.sign(bulletVx) === -enemyFacing && Math.abs(bulletVy) < Math.abs(bulletVx);
   return def.shield && frontal ? 'blocked' : 'hit';
 }

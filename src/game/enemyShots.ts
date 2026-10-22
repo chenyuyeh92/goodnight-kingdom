@@ -5,8 +5,8 @@ const SHOT_LIFE_MS = 4000;
 const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
-/** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡、駱駝口水、沙球/沙塊。 */
-export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand';
+/** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡(章魚墨汁)、駱駝口水、沙球/沙塊、泡泡。 */
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble';
 
 /** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
 const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
@@ -14,6 +14,7 @@ const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
   coffee: { w: 11, h: 11, color: 0x8b5e3c },
   spit: { w: 12, h: 12, color: 0xd8f0ff },
   sand: { w: 13, h: 13, color: 0xf0c060 },
+  bubble: { w: 16, h: 16, color: 0xa8e8ff },
 };
 
 const textureKey = (kind: ShotKind): string => `gk-shot-${kind}`;

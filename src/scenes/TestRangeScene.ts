@@ -16,7 +16,7 @@ import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
-import { ENEMY_DEFS, SPIT_GRAVITY, bulletEffect, type EnemyType } from '../game/enemies';
+import { ENEMY_DEFS, SPIT_GRAVITY, bulletEffect, pufferHit, type EnemyType } from '../game/enemies';
 import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
@@ -29,6 +29,13 @@ import { DesertHazards } from '../game/desertHazards';
 import { initialCamelBrain, stepCamel, type CamelBrain } from '../game/camel';
 import { initialFennecBrain, stepFennec, type FennecBrain } from '../game/fennec';
 import { initialSphinxBrain, stepSphinx, type SphinxBrain } from '../game/sphinx';
+import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
+import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
+import { initialNessieBrain, stepNessie, type NessieBrain } from '../game/nessie';
+import { SWIM_TOP, clampToWater, swimVy, waterTuning } from '../game/swim';
+import { currentAt, pushed } from '../game/currents';
+import { CurrentsView } from '../game/currentsView';
+import type { Intent } from '../input/intent';
 import { ParallaxBackground } from '../game/background';
 import { audio } from '../audio/audio';
 import type { TrackId } from '../audio/tunes';
@@ -94,7 +101,20 @@ const MINI_BOSS_MAX_MINIONS = 3;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪' };
+/** 水怪第三階段的圖和第一階段差不多,身體帶一點紅色區分。 */
+const NESSIE_RAGE_TINT = 0xffb0b0;
+/** 寄居蟹縮進殼裡時圖變暗一點。 */
+const SHELL_TINT = 0xb8b0c8;
+/** 電流:預告細線與放電的顏色。 */
+const BEAM_WARN = 0xfff6a0;
+const BEAM_ZAP = 0xffe066;
+/** 水怪衝到鎖住畫面左邊這麼遠就回頭;平常待的位置。 */
+const NESSIE_LEFT_INSET = 100;
+const NESSIE_HOME_INSET = 110;
+const NESSIE_HOME_Y = 260;
+/** 水怪叫的小丑魚高度。 */
+const SCHOOL_YS = [150, 270, 390] as const;
 /** 小頭目出招前頭上冒「!」的時間。 */
 const TELL_MS = 450;
 /** 耳廓狐鑽在沙裡時,玩家腳下冒出的沙堆。 */
@@ -175,10 +195,13 @@ type BossAi =
   | { kind: 'walker' }
   | { kind: 'camel'; brain: CamelBrain }
   | { kind: 'fennec'; brain: FennecBrain; mound: Phaser.GameObjects.Ellipse | null }
-  | { kind: 'sphinx'; brain: SphinxBrain };
+  | { kind: 'sphinx'; brain: SphinxBrain }
+  | { kind: 'crab'; brain: CrabBrain; armored: boolean }
+  | { kind: 'eel'; brain: EelBrain }
+  | { kind: 'nessie'; brain: NessieBrain };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'camel', 'fennec', 'sphinx']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -190,6 +213,12 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'fennec', brain: initialFennecBrain(), mound: null };
     case 'sphinx':
       return { kind: 'sphinx', brain: initialSphinxBrain() };
+    case 'hermitCrab':
+      return { kind: 'crab', brain: initialCrabBrain(), armored: false };
+    case 'eel':
+      return { kind: 'eel', brain: initialEelBrain() };
+    case 'nessie':
+      return { kind: 'nessie', brain: initialNessieBrain() };
     default:
       return { kind: 'walker' };
   }
@@ -197,7 +226,7 @@ function initialAi(type: BossType): BossAi {
 
 /** 有三階段的關主回傳目前階段,其他回傳 1。 */
 function aiPhase(ai: BossAi): 1 | 2 | 3 {
-  return ai.kind === 'owl' || ai.kind === 'sphinx' ? ai.brain.phase : 1;
+  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' ? ai.brain.phase : 1;
 }
 
 function aiMode(ai: BossAi): string {
@@ -336,6 +365,11 @@ export class TestRangeScene extends Phaser.Scene {
   }
   private background!: ParallaxBackground;
   private desert!: DesertHazards;
+  private currentsView: CurrentsView | null = null;
+  /** 每位玩家上一格有沒有按跳躍(游泳時判斷「剛按下」)。 */
+  private prevJump: boolean[] = [];
+  /** 電鰻的電流(每格重畫)。 */
+  private beamGfx!: Phaser.GameObjects.Graphics;
   private flags: { x: number; g: Phaser.GameObjects.Graphics; on: boolean | null }[] = [];
 
   constructor() {
@@ -471,6 +505,9 @@ export class TestRangeScene extends Phaser.Scene {
       players: () => this.players,
       hurt: (p) => this.hurtPlayer(p, false),
     });
+    this.currentsView = this.level.currents?.length ? new CurrentsView(this, this.level.currents) : null;
+    this.prevJump = this.players.map(() => false);
+    this.beamGfx = this.add.graphics().setDepth(4);
 
     const chestGroup = this.physics.add.staticGroup();
     const alreadyOpened = new Set(this.initData.openedChests ?? []);
@@ -607,9 +644,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.physics.world.update(time, dtMs);
     const intents = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent());
 
+    const playerTuning = this.level.underwater ? waterTuning(t) : t;
     this.players.forEach((p, i) => {
       p.health = tickHealth(p.health, dtMs);
-      const r = p.update(intents[i], dtMs, t, (reach) => this.findMeleeTarget(reach) !== null);
+      const r = p.update(intents[i], dtMs, playerTuning, (reach) => this.findMeleeTarget(reach) !== null);
       if (p.jumped) audio.sfx('jump');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
@@ -619,7 +657,9 @@ export class TestRangeScene extends Phaser.Scene {
       this.applyWater(p);
       // 打擊停頓時物理暫停,流沙與機關也一起停。
       if (!this.physics.world.isPaused) this.desert.applySand(p, i, dtMs);
+      if (this.level.underwater) this.applySwim(p, i, intents[i]);
     });
+    this.currentsView?.update(dtMs, this.scrollX, VIEW_W);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -693,6 +733,35 @@ export class TestRangeScene extends Phaser.Scene {
     this.hurtPlayer(p, false);
     // 上岸後多一點無敵時間,岸邊剛好有魔物也不會馬上再被打。
     p.health = { ...p.health, invulnMs: Math.max(p.health.invulnMs, RIVER_INVULN_MS) };
+  }
+
+  /** 在水裡游:按跳躍往上划/往上游、按住下往下潛、放開慢慢沉;水流推著走;不能游出水面。 */
+  private applySwim(p: PlayerEntity, i: number, intent: Intent): void {
+    const pb = p.body();
+    const pressed = intent.jump && !this.prevJump[i];
+    this.prevJump[i] = intent.jump;
+    const grounded = pb.blocked.down || pb.touching.down;
+    // 在海床上剛按下跳躍時交給一般的跳躍(p.jumped),這一格不再算划水。
+    const stroke = pressed && !grounded && !p.jumped && !p.health.down;
+    let v = { vx: pb.velocity.x, vy: swimVy(pb.velocity.y, { jump: intent.jump, jumpPressed: stroke, down: intent.down, grounded, asleep: p.health.down }) };
+    if (!p.health.down) v = pushed(v.vx, v.vy, currentAt(p.x, p.feetY - 24, this.level.currents ?? []));
+    pb.setVelocity(v.vx, v.vy);
+    if (stroke || p.jumped) {
+      audio.sfx('jump');
+      this.bubbles(p.x, p.feetY - 40);
+    }
+    const top = clampToWater(p.feetY, pb.velocity.y);
+    if (!top) return;
+    pb.reset(p.x, SWIM_TOP - pb.height / 2);
+    pb.setVelocity(v.vx, top.vy);
+  }
+
+  /** 往上冒的小氣泡。 */
+  private bubbles(x: number, y: number): void {
+    for (let i = 0; i < 3; i++) {
+      const b = this.add.circle(x + (i - 1) * 7, y, 3 + i, COLOR.waterLight, 0.7).setStrokeStyle(1, 0xffffff).setDepth(5);
+      this.tweens.add({ targets: b, y: y - 40 - i * 12, alpha: 0, duration: 600, onComplete: () => b.destroy() });
+    }
   }
 
   private splash(x: number): void {
@@ -850,7 +919,7 @@ export class TestRangeScene extends Phaser.Scene {
     const def = ENEMY_DEFS[spec.type];
     if (spec.from === 'left' || spec.from === 'right') {
       const x = spec.from === 'left' ? this.scrollX - SIDE_SPAWN_MARGIN : this.scrollX + VIEW_W + SIDE_SPAWN_MARGIN;
-      return this.spawnEnemy(spec.type, x, undefined, arena);
+      return this.spawnEnemy(spec.type, x, def.flying ? spec.y : undefined, arena);
     }
     const x = spec.x ?? this.scrollX + VIEW_W / 2;
     if (spec.from === 'top') return this.spawnEnemy(spec.type, x, TOP_SPAWN_Y, arena);
@@ -925,7 +994,8 @@ export class TestRangeScene extends Phaser.Scene {
   private dropItem(id: ItemId, x: number, y: number): void {
     const rect = this.add.rectangle(x, y, ITEM_SIZE, ITEM_SIZE, ITEM_COLOR[id]).setStrokeStyle(1, 0x2a2550);
     this.pickupGroup.add(rect);
-    (rect.body as Phaser.Physics.Arcade.Body).setGravityY(this.getTuning().gravity);
+    const t = this.getTuning();
+    (rect.body as Phaser.Physics.Arcade.Body).setGravityY(this.level.underwater ? waterTuning(t).gravity : t.gravity);
     const key = itemSprite(id);
     const art = this.textures.exists(key) ? this.add.image(x, y, key).setOrigin(0.5, 1) : null;
     if (art) rect.setVisible(false);
@@ -1010,7 +1080,7 @@ export class TestRangeScene extends Phaser.Scene {
         null,
       );
       const spit = e.update(nearest ? nearest.x : null, nearest ? nearest.feetY - 20 : null, dtMs, t.gravity);
-      if (spit) this.shots.fire(e.x, e.body.y - e.def.h / 2, spit.vx, spit.vy, 'coffee', SPIT_GRAVITY);
+      if (spit) this.shots.fire(e.x, e.def.flying ? e.body.y : e.body.y - e.def.h / 2, spit.vx, spit.vy, 'coffee', spit.gravity);
       e.render();
     }
   }
@@ -1030,9 +1100,12 @@ export class TestRangeScene extends Phaser.Scene {
     const ai = boss.ai;
     if (ai.kind === 'owl') this.updateOwl(boss, ai, dtMs, time);
     else if (ai.kind === 'sphinx') this.updateSphinx(boss, ai, dtMs);
+    else if (ai.kind === 'eel') this.updateEel(boss, ai, dtMs);
+    else if (ai.kind === 'nessie') this.updateNessie(boss, ai, dtMs, time);
     else {
       if (ai.kind === 'camel') this.updateCamel(boss, ai, dtMs);
       else if (ai.kind === 'fennec') this.updateFennec(boss, ai, dtMs);
+      else if (ai.kind === 'crab') this.updateCrab(boss, ai, dtMs);
       else this.updateWalkerBoss(boss, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1168,6 +1241,122 @@ export class TestRangeScene extends Phaser.Scene {
     for (const c of step.clumps) this.shots.fire(enemy.x, enemy.body.y - 10, c.vx, c.vy, 'sand', SPIT_GRAVITY);
   }
 
+  /** 失眠寄居蟹:走一走,輪流縮進殼裡滑過來(打不動)與吐慢慢飄的泡泡。 */
+  private updateCrab(boss: Boss, ai: Extract<BossAi, { kind: 'crab' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const mouthY = enemy.body.y - enemy.def.h / 4;
+    const step = stepCrab(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      mouthY,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    ai.armored = step.armored;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== step.brain.mode && (step.brain.mode === 'windup' || step.brain.mode === 'shell')) this.tell(enemy);
+    const art = enemy.artImage();
+    if (art && was !== step.brain.mode) {
+      if (step.armored) art.setTint(SHELL_TINT);
+      else art.clearTint();
+    }
+    for (const b of step.bubbles) this.shots.fire(enemy.x + step.brain.facing * (enemy.def.w / 2), mouthY, b.vx, b.vy, 'bubble');
+  }
+
+  /** 熬夜電鰻:來回游;預告時身體閃爍、畫面出現細線,然後沿著細線放電。 */
+  private updateEel(boss: Boss, ai: Extract<BossAi, { kind: 'eel' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const step = stepEel(ai.brain, {
+      x: enemy.x,
+      y: enemy.body.y,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing };
+    enemy.physicsBody().setVelocity(step.vx, step.vy);
+    if (was !== 'charge' && step.brain.mode === 'charge') this.tell(enemy);
+    if (was !== 'zap' && step.brain.mode === 'zap') {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(150, 0.004);
+    }
+    // 預告時身體一閃一閃。
+    enemy.artImage()?.setAlpha(step.brain.mode === 'charge' && Math.floor(this.time.now / 90) % 2 === 0 ? 0.4 : 1);
+    this.drawBeams(lock, step.warn, step.zap);
+    for (const y of step.zap) {
+      for (const p of this.players) {
+        const b = p.body();
+        if (!p.health.down && b.bottom > y - BEAM_HALF_H && b.top < y + BEAM_HALF_H) this.hurtPlayer(p, false);
+      }
+    }
+  }
+
+  private drawBeams(lock: number, warn: readonly number[], zap: readonly number[]): void {
+    const g = this.beamGfx.clear();
+    for (const y of warn) {
+      const a = Math.floor(this.time.now / 100) % 2 === 0 ? 0.9 : 0.4;
+      g.fillStyle(BEAM_WARN, a).fillRect(lock, y - 1, VIEW_W, 2);
+    }
+    for (const y of zap) {
+      g.fillStyle(0x3a2a5a, 0.8).fillRect(lock, y - BEAM_HALF_H - 2, VIEW_W, BEAM_HALF_H * 2 + 4);
+      g.fillStyle(BEAM_ZAP).fillRect(lock, y - BEAM_HALF_H, VIEW_W, BEAM_HALF_H * 2);
+      g.fillStyle(0xffffff).fillRect(lock, y - 3, VIEW_W, 6);
+    }
+  }
+
+  /** 尼斯湖水怪:上下漂,輪流衝撞、泡泡扇、叫小丑魚;第三階段身體帶紅色。 */
+  private updateNessie(boss: Boss, ai: Extract<BossAi, { kind: 'nessie' }>, dtMs: number, time: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const mouthX = enemy.x - enemy.def.w / 2 + 20;
+    const mouthY = enemy.body.y - enemy.def.h / 2 + 30;
+    const step = stepNessie(ai.brain, {
+      x: enemy.x,
+      y: enemy.body.y,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      homeX: lock + VIEW_W - NESSIE_HOME_INSET,
+      homeY: NESSIE_HOME_Y,
+      leftX: lock + NESSIE_LEFT_INSET,
+      mouthX,
+      mouthY,
+      minionsAlive: boss.minions.size,
+      timeMs: time,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('nessie', 'awake', ai.brain.phase));
+    if (ai.brain.phase === 3) enemy.baseTint = NESSIE_RAGE_TINT;
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
+    enemy.brain = { ...enemy.brain, facing: step.brain.mode === 'return' ? 1 : -1 };
+    enemy.physicsBody().setVelocity(step.vx, step.vy);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    if (was !== 'charge' && step.brain.mode === 'charge') audio.sfx('bossPhase');
+    for (const b of step.bubbles) this.shots.fire(mouthX, mouthY, b.vx, b.vy, 'bubble');
+    if (step.summon) {
+      for (const y of SCHOOL_YS) boss.minions.add(this.spawnFrom({ type: 'clownfish', from: 'left', y, delayMs: 0 }, false));
+    }
+    if (step.enteredPhase) this.announcePhase(boss);
+  }
+
   /** 世界 1 暫代的小頭目照一般魔物的方式移動(updateEnemies);大鬧鐘蟲會一直叫小鬧鐘蟲。 */
   private updateWalkerBoss(boss: Boss, dtMs: number): void {
     if (boss.enemy.def.type !== 'bigClockBug') return;
@@ -1190,7 +1379,10 @@ export class TestRangeScene extends Phaser.Scene {
   private angryTint(boss: Boss, angry: boolean, entered: 2 | 3 | null): void {
     const art = boss.enemy.artImage();
     if (art && angry) art.setTint(COLOR.angry).setTintMode(Phaser.TintModes.MULTIPLY);
-    else if (art && entered === null && boss.wasAngry) art.clearTint();
+    else if (art && entered === null && boss.wasAngry) {
+      art.clearTint();
+      if (boss.enemy.baseTint !== undefined) art.setTint(boss.enemy.baseTint);
+    }
     boss.wasAngry = angry;
   }
 
@@ -1229,7 +1421,8 @@ export class TestRangeScene extends Phaser.Scene {
       this.removeEnemy(e);
     }
     this.shots.clear();
-    const enemy = this.spawnEnemy(type, spawnX, type === 'nightOwl' ? OWL_HOVER_Y : undefined);
+    const flyingY: Partial<Record<BossType, number>> = { nightOwl: OWL_HOVER_Y, eel: 200, nessie: NESSIE_HOME_Y };
+    const enemy = this.spawnEnemy(type, spawnX, flyingY[type]);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;
     this.boss = { enemy, ai: initialAi(type), maxHp, invulnerable: false, minions: new Set(), wasAngry: false, summonMs: 0, summonSide: 'left' };
@@ -1244,6 +1437,13 @@ export class TestRangeScene extends Phaser.Scene {
     if (!boss) return;
     this.bossBar.width = (BOSS_BAR_W * boss.enemy.hp) / boss.maxHp;
     this.bossBar.setFillStyle(aiPhase(boss.ai) === 3 ? 0xff5a6e : 0xffb3c7);
+  }
+
+  /** 膨脹的河豚、縮進殼裡的寄居蟹:子彈與揮擊全部彈開。 */
+  private isArmored(e: EnemyEntity): boolean {
+    if (e.def.type === 'puffer') return e.brain.phase === 'puff';
+    const ai = this.boss?.enemy === e ? this.boss.ai : null;
+    return ai?.kind === 'crab' && ai.armored;
   }
 
   private isInvulnerable(e: EnemyEntity): boolean {
@@ -1282,7 +1482,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.tweens.add({ targets: swing, alpha: 0, duration: SWING_MS, onComplete: () => swing.destroy() });
 
     if (target instanceof EnemyEntity) {
-      if (bulletEffect(target.def, target.brain.facing, reach.facing, 0) === 'blocked') {
+      if (bulletEffect(target.def, target.brain.facing, reach.facing, 0, this.isArmored(target)) === 'blocked') {
         this.blockedShots += 1;
         audio.sfx('blocked');
         return;
@@ -1290,6 +1490,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.meleeHits += 1;
       audio.sfx('melee');
       this.damageEnemy(target, MELEE_DAMAGE, MELEE_IMPACT_SCALE);
+      if (target.def.type === 'puffer') target.brain = pufferHit(target.brain);
       return;
     }
     this.meleeHits += 1;
@@ -1306,13 +1507,14 @@ export class TestRangeScene extends Phaser.Scene {
     const enemy = this.enemyFor(obj);
     if (enemy) {
       if (enemy.emerging || enemy.hp <= 0 || this.isInvulnerable(enemy)) return 'ignored';
-      if (bulletEffect(enemy.def, enemy.brain.facing, hit.vx, hit.vy) === 'blocked') {
+      if (bulletEffect(enemy.def, enemy.brain.facing, hit.vx, hit.vy, this.isArmored(enemy)) === 'blocked') {
         this.blockedShots += 1;
         audio.sfx('blocked');
         return 'blocked';
       }
       audio.sfx('hit');
       this.damageEnemy(enemy, hit.damage);
+      if (enemy.def.type === 'puffer') enemy.brain = pufferHit(enemy.brain);
       return 'consumed';
     }
     const target = this.targets.find((t) => t.rect === obj);
@@ -1354,6 +1556,7 @@ export class TestRangeScene extends Phaser.Scene {
     }
     this.shots.clear();
     this.desert.clear();
+    this.beamGfx.clear();
     if (boss.ai.kind === 'fennec') boss.ai.mound?.destroy();
     this.bossName.setText('');
     this.bossBarBg.setVisible(false);
@@ -1515,7 +1718,17 @@ export class TestRangeScene extends Phaser.Scene {
       musicSchedulers: audio.activeSchedulers,
       art: { loaded: artStatus.loaded, missing: [...artStatus.missing], disabled: artStatus.disabled },
       boss: this.boss
-        ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: aiPhase(this.boss.ai), mode: aiMode(this.boss.ai), type: this.boss.enemy.def.type, hidden: this.boss.enemy.emerging }
+        ? {
+            hp: this.boss.enemy.hp,
+            maxHp: this.boss.maxHp,
+            phase: aiPhase(this.boss.ai),
+            mode: aiMode(this.boss.ai),
+            type: this.boss.enemy.def.type,
+            hidden: this.boss.enemy.emerging,
+            armored: this.isArmored(this.boss.enemy),
+            x: this.boss.enemy.x,
+            y: this.boss.enemy.body.y,
+          }
         : null,
       bossDefeated: this.bossDefeated,
       bossLockX: this.level.boss?.lockScrollX ?? null,
