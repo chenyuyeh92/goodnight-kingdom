@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw
 from artlib import cutout, save, OUTLINE
 
 OUT_DIR, ROOT = sys.argv[1], sys.argv[2]
-G13, G14 = os.path.join(OUT_DIR, "gk13"), os.path.join(OUT_DIR, "gk14")
+G13, G14, G15 = os.path.join(OUT_DIR, "gk13"), os.path.join(OUT_DIR, "gk14"), os.path.join(OUT_DIR, "gk15")
 A = lambda *p: os.path.join(ROOT, "public", "assets", *p)
 MINI_H, BOSS_H = 150, 220
 
@@ -38,7 +38,7 @@ def keep_largest(im):
     im.putalpha(Image.composite(a, Image.new("L", a.size, 0), m)); return im
 
 def load(src, flip):
-    im = cutout(src.replace("G13/", G13 + "/").replace("G14/", G14 + "/"))
+    im = cutout(src.replace("G13/", G13 + "/").replace("G14/", G14 + "/").replace("G15/", G15 + "/"))
     # 清掉很淡的雜點（地面陰影殘留），再重新裁切，讓最底列是身體
     im.putalpha(im.getchannel("A").point(lambda v: 0 if v < 60 else v))
     im = keep_largest(im)  # 只留最大的一塊：拿掉模型自己加在旁邊的小角色、花草
@@ -51,7 +51,7 @@ BOSSES = {
     "w1-boss2-beaver": (MINI_H, False, {"": "G13/b1/b1-2-beaver_00001_.png", "-sleep": "G14/b1s/b1-2-beaver-sleep_00002_.png"}),
     "w2-boss1-camel": (MINI_H, False, {'': 'G13/b2/b2-1-camel_00005_.png', '-sleep': 'G14/b2s/b2-1-camel-sleep_00001_.png'}),
     "w2-boss2-fennec-fox": (MINI_H, False, {'': 'G13/b2/b2-2-fennec-fox_00003_.png', '-sleep': 'G14/b2s/b2-2-fennec-fox-sleep_00002_.png'}),
-    "w3-boss1-hermit-crab": (MINI_H, False, {'': 'G13/b3/b3-1-hermit-crab_00007_.png', '-sleep': 'G14/b3s/b3-1-hermit-crab-sleep_00001_.png'}),
+    "w3-boss1-hermit-crab": (MINI_H, False, {"": "G15/r3/r3-1-hermit-crab-v2_00001_.png", "-sleep": "G15/r3s/r3-1-hermit-crab-sleep_00001_.png"}),
     "w3-boss2-electric-eel": (MINI_H, False, {'': 'G13/b3/b3-2-electric-eel_00004_.png', '-sleep': 'G14/b3s/b3-2-electric-eel-sleep_00002_.png'}),
     "w4-boss1-polar-bear": (MINI_H, False, {'': 'G13/b4/b4-1-polar-bear_00004_.png', '-sleep': 'G14/b4s/b4-1-polar-bear-sleep_00002_.png'}),
     "w4-boss2-narwhal": (MINI_H, False, {'': 'G13/b4/b4-2-narwhal_00003_.png', '-sleep': 'G14/b4s/b4-2-narwhal-sleep_00002_.png'}),
@@ -67,15 +67,15 @@ BOSSES = {
     "w9-boss2-axolotl": (MINI_H, True, {'': 'G13/b9/b9-2-axolotl_00003_.png', '-sleep': 'G14/b9s/b9-2-axolotl-sleep_00002_.png'}),
     "w10-boss1-moon-rabbit": (MINI_H, False, {'': 'G13/b10/b10-1-moon-rabbit_00004_.png', '-sleep': 'G14/b10s/b10-1-moon-rabbit-sleep_00002_.png'}),
     "w10-boss2-peacock": (MINI_H, False, {'': 'G13/b10/b10-2-peacock_00002_.png', '-sleep': 'G14/b10s/b10-2-peacock-sleep_00002_.png'}),
-    "w8-thunderbird-boss": (BOSS_H, False, {'': 'G13/w8/w8-thunderbird-boss_00001_.png', '-sleep': 'G14/w8s/w8-thunderbird-boss-sleep_00002_.png', '-phase2': 'G14/w8s/w8-thunderbird-boss-phase2_00002_.png', '-phase3': 'G14/w8s/w8-thunderbird-boss-phase3_00002_.png'}),
-    "w9-giant-mole-boss": (BOSS_H, True, {'': 'G13/w9/w9-giant-mole-boss_00003_.png', '-sleep': 'G14/w9s/w9-giant-mole-boss-sleep_00002_.png', '-phase2': 'G14/w9s/w9-giant-mole-boss-phase2_00002_.png', '-phase3': 'G14/w9s/w9-giant-mole-boss-phase3_00002_.png'}),
-    "w10-dream-tapir-boss": (BOSS_H, True, {'': 'G13/b10/b10-1-dream-tapir-boss_00002_.png', '-sleep': 'G14/b10s/b10-1-dream-tapir-boss-sleep_00001_.png', '-phase2': 'G14/b10s/b10-1-dream-tapir-boss-phase2_00001_.png', '-phase3': 'G14/b10s/b10-1-dream-tapir-boss-phase3_00001_.png'}),
+    "w8-thunderbird-boss": (BOSS_H, False, {"": "G15/r8/r8-thunderbird-boss_00001_.png", "-sleep": "G15/r8s/r8-thunderbird-boss-sleep_00001_.png", "-phase2": "G15/r8s/r8-thunderbird-boss-phase2_00001_.png", "-phase3": "G15/r8s/r8-thunderbird-boss-phase3_00001_.png"}),
+    "w9-giant-mole-boss": (BOSS_H, False, {"": "G15/r9/r9-giant-mole-boss_00003_.png", "-sleep": "G15/r9s/r9-giant-mole-boss-sleep_00002_.png", "-phase2": "G15/r9s/r9-giant-mole-boss-phase2_00001_.png", "-phase3": "G15/r9s/r9-giant-mole-boss-phase3_00002_.png"}),
+    "w10-dream-tapir-boss": (BOSS_H, False, {"": "G15/r10/r10-dream-tapir-boss_00002_.png", "-sleep": "G15/r10s/r10-dream-tapir-boss-sleep_00001_.png", "-phase2": "G15/r10s/r10-dream-tapir-boss-phase2_00001_.png", "-phase3": "G15/r10s/r10-dream-tapir-boss-phase3_00002_.png"}),
 }
 # 旁邊黏著多出來的小角色（和本體連在一起，keep_largest 拿不掉）：翻轉後只保留左邊這個比例的寬度
-CROP_KEEP = {"w9-giant-mole-boss": 0.62}
+CROP_KEEP = {}  # 2026-10-22 巨鼴鼠重畫後旁邊沒有多的角色，不用再切
 
 for name, (h, flip, srcs) in BOSSES.items():
-    if not all(os.path.exists(v.replace("G13/", G13 + "/").replace("G14/", G14 + "/")) for v in srcs.values()):
+    if not all(os.path.exists(v.replace("G13/", G13 + "/").replace("G14/", G14 + "/").replace("G15/", G15 + "/")) for v in srcs.values()):
         print(f"提醒：{name} 的來源圖還沒齊，先跳過"); continue
     def prep(src):
         im = load(src, flip)

@@ -14,7 +14,7 @@
 | 2-1 | 失眠駱駝 | `w2-boss1-camel.png` 139×150 `w2-boss1-camel-sleep.png` 137×150 | `bullets/w2-spit.png` 16×16、`bullets/w2-sand-dust.png` 40×24 |
 | 2-2 | 熬夜耳廓狐 | `w2-boss2-fennec-fox.png` 149×150 `w2-boss2-fennec-fox-sleep.png` 148×150 | w2-sand-dust（共用） |
 | 2-3 | 睡不著的人面獅身（關主） | `w2-sphinx-boss.png` 205×200 `w2-sphinx-boss-sleep.png` 206×200 `w2-sphinx-boss-phase2.png` 220×200 `w2-sphinx-boss-phase3.png` 213×200 | — |
-| 3-1 | 失眠寄居蟹 | `w3-boss1-hermit-crab.png` 180×150 `w3-boss1-hermit-crab-sleep.png` 179×214 | `bullets/w3-bubble.png` 18×18 |
+| 3-1 | 失眠寄居蟹 | `w3-boss1-hermit-crab.png` 112×150 `w3-boss1-hermit-crab-sleep.png` 110×150 | `bullets/w3-bubble.png` 18×18 |
 | 3-2 | 熬夜電鰻 | `w3-boss2-electric-eel.png` 102×150 `w3-boss2-electric-eel-sleep.png` 102×130 | `bullets/w3-electric-beam.png` 32×16 |
 | 3-3 | 尼斯湖水怪（關主） | `w3-nessie-boss.png` 239×220 `w3-nessie-boss-sleep.png` 238×220 `w3-nessie-boss-phase2.png` 238×220 `w3-nessie-boss-phase3.png` 237×220 | — |
 | 4-1 | 失眠北極熊 | `w4-boss1-polar-bear.png` 137×150 `w4-boss1-polar-bear-sleep.png` 137×150 | items/w4-icicle（共用） |
@@ -31,20 +31,18 @@
 | 7-3 | 失眠獅子王（關主） | `w7-lion-king-boss.png` 218×220 `w7-lion-king-boss-sleep.png` 224×220 `w7-lion-king-boss-phase2.png` 233×220 `w7-lion-king-boss-phase3.png` 240×220 | — |
 | 8-1 | 熬夜山羊 | `w8-boss1-mountain-goat.png` 133×150 `w8-boss1-mountain-goat-sleep.png` 134×149 | `bullets/w8-rock.png` 24×22 |
 | 8-2 | 失眠熊貓 | `w8-boss2-panda.png` 122×150 `w8-boss2-panda-sleep.png` 121×150 | `bullets/w8-bamboo.png` 40×12 |
-| 8-3 | 熬夜雷鳥（關主） | `w8-thunderbird-boss.png` 188×220 `w8-thunderbird-boss-sleep.png` 182×221 `w8-thunderbird-boss-phase2.png` 182×219 `w8-thunderbird-boss-phase3.png` 188×219 | `bullets/w8-lightning.png` 24×48 |
+| 8-3 | 熬夜雷鳥（關主） | `w8-thunderbird-boss.png` 208×220 `w8-thunderbird-boss-sleep.png` 208×199 `w8-thunderbird-boss-phase2.png` 208×220 `w8-thunderbird-boss-phase3.png` 208×215 | `bullets/w8-lightning.png` 24×48 |
 | 9-1 | 熬夜螢火蟲女王 | `w9-boss1-firefly-queen.png` 112×150 `w9-boss1-firefly-queen-sleep.png` 112×151 | `bullets/w9-firefly.png` 18×16 |
 | 9-2 | 失眠六角恐龍 | `w9-boss2-axolotl.png` 199×150 `w9-boss2-axolotl-sleep.png` 198×151 | `bullets/w9-water-bubble.png` 18×18 |
-| 9-3 | 失眠巨鼴鼠（關主） | `w9-giant-mole-boss.png` 159×220 `w9-giant-mole-boss-sleep.png` 157×215 `w9-giant-mole-boss-phase2.png` 160×204 `w9-giant-mole-boss-phase3.png` 157×221 | `bullets/w9-rock.png` 24×22 |
+| 9-3 | 失眠巨鼴鼠（關主） | `w9-giant-mole-boss.png` 224×220 `w9-giant-mole-boss-sleep.png` 214×222 `w9-giant-mole-boss-phase2.png` 218×220 `w9-giant-mole-boss-phase3.png` 221×220 | `bullets/w9-rock.png` 24×22 |
 | 10-1 | 失眠月兔 | `w10-boss1-moon-rabbit.png` 144×150 `w10-boss1-moon-rabbit-sleep.png` 144×150 | `bullets/w10-mochi.png` 24×18、`bullets/w10-shockwave.png` 48×16 |
 | 10-2 | 熬夜孔雀 | `w10-boss2-peacock.png` 134×150 `w10-boss2-peacock-sleep.png` 134×150 | `bullets/w10-feather.png` 36×14 |
-| 10-3 | 偷走睡意的失眠魔王：夢貘（最終魔王） | `w10-dream-tapir-boss.png` 191×220 `w10-dream-tapir-boss-sleep.png` 192×219 `w10-dream-tapir-boss-phase2.png` 194×222 `w10-dream-tapir-boss-phase3.png` 200×220 | `bullets/w10-dream-mist.png` 40×28 |
+| 10-3 | 偷走睡意的失眠魔王：夢貘（最終魔王） | `w10-dream-tapir-boss.png` 141×220 `w10-dream-tapir-boss-sleep.png` 141×220 `w10-dream-tapir-boss-phase2.png` 142×220 `w10-dream-tapir-boss-phase3.png` 142×220 | `bullets/w10-dream-mist.png` 40×28 |
 
 ## 已知問題
 
 - 松鼠的大尾巴在身體後面；「尾巴當盾」時程式可以讓牠轉身或縮起來表現。
-- 寄居蟹看起來像躲在咖啡杯裡的白兔，和 10-1 月兔撞造型，建議重畫。
-- 雷鳥看起來像黑貓頂著一朵雷雲（容易和世界 2 木乃伊貓混淆），巨鼴鼠比較像戴礦工帽的大倉鼠，夢貘的象鼻不明顯：三隻都可以再重畫。
-- 巨鼴鼠原圖旁邊有模型自己加的小角色（其中一張是 Q 版人類小孩），已把右邊切掉，所以背部右緣是直的。
+- 2026-10-22 依負責人要求重畫：寄居蟹（橘色小螃蟹躲在咖啡杯裡，寬 112）、雷鳥（黑色暴風鳥、黃嘴、閃電頭冠）、巨鼴鼠（灰色、粉紅長鼻、挖土大爪）、夢貘（深色貘、星星斑點、皇冠）；尼斯湖水怪翻成朝左。
+- 夢貘的鼻子還是偏短，比較像小貘。
 - 螢火蟲女王、火山蝸牛的睡著版眼睛沒有完全閉上。
-- 3-3 尼斯湖水怪（之前做的）頭朝右。
 - 新關主的二、三階段差別主要在表情和周圍特效，程式可以加變色或抖動。
