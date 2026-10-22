@@ -42,6 +42,8 @@ describe('世界 8 的魔物', () => {
     }
     expect(Math.max(...vys)).toBeGreaterThan(0);
     expect(Math.min(...vys)).toBeLessThan(0);
+    // 從畫面上面掉進來的會往下飄到固定高度。
+    expect(stepEnemy('coffeeCloud', initialBrain('coffeeCloud'), sense({ y: -30 })).vy!).toBeGreaterThan(300);
     expect(VULTURE_SWOOP_Y + ENEMY_DEFS.eagle.h / 2).toBeLessThanOrEqual(452 + 2);
   });
 
@@ -137,9 +139,14 @@ describe('熬夜雷鳥', () => {
     ...over,
   });
 
-  test('飛在上面(高度維持在 210 附近),身體底部高過站著的人', () => {
-    expect(stepThunder(initialThunderBrain(), sense({ y: 300 })).vy).toBeLessThan(0);
-    expect(THUNDER_HOVER_Y + ENEMY_DEFS.thunderbird.h / 2).toBeLessThan(GROUND_Y - STAND_HITBOX.h);
+  test('飛在上面:站著往前射打不到,從地上跳起來射打得到', () => {
+    expect(stepThunder(initialThunderBrain(), sense({ y: 320 })).vy).toBeLessThan(0);
+    const bottom = THUNDER_HOVER_Y + ENEMY_DEFS.thunderbird.h / 2;
+    expect(bottom).toBeLessThan(GROUND_Y - STAND_HITBOX.h);
+    // 跳到最高時腳離地面 v²/2g,子彈從身體中間(腳上 24)射出,泡泡半徑 7。
+    const t = DEFAULT_TUNING;
+    const muzzleY = GROUND_Y - t.jumpVelocity ** 2 / (2 * t.gravity) - 24;
+    expect(muzzleY - 7).toBeLessThan(bottom);
   });
 
   test('落雷 3 道(一道對準玩家);颳強風 2 秒;第一階段不射羽毛', () => {

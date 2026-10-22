@@ -127,8 +127,8 @@ const LAVA_FLOW_MS = 4000;
 const HERD_DESPAWN = 100;
 /** 雲海(世界 8 的河溝)的顏色。 */
 const CLOUD_GAP = { fill: 0xd8d0ec, light: 0xffffff } as const;
-/** 熊貓的迴旋竹子飛出去再飛回來,活久一點;雷鳥颳強風時畫面輕輕晃。 */
-const BAMBOO_LIFE_MS = 3200;
+/** 熊貓的迴旋竹子飛出去再飛回來,回到熊貓手上就消失(不會飛去打背後的人);雷鳥颳強風時畫面輕輕晃。 */
+const BAMBOO_LIFE_MS = 2000;
 const THUNDER_GUST_SHAKE_MS = 400;
 /** 風線:多久飄一條、飄多遠、多久。 */
 const WIND_STREAK_EVERY_MS = 60;
@@ -2115,7 +2115,8 @@ export class TestRangeScene extends Phaser.Scene {
     for (const x of step.bolts) this.desert.dropBlock(x, 'lightning');
     if (step.bolts.length > 0) audio.sfx('bossPhase');
     for (const f of step.feathers) this.shots.fire(enemy.x, enemy.body.y, f.vx, f.vy, 'feather');
-    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'eagle', from: 'left', delayMs: 0 }, false));
+    // 老鷹從右邊來(颳強風時玩家被推到左邊,從左邊來會躲不掉)。
+    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'eagle', from: 'right', delayMs: 0 }, false));
     if (step.enteredPhase) this.announcePhase(boss);
   }
 

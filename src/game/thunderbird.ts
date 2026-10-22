@@ -43,8 +43,8 @@ export interface ThunderStep {
   invulnerable: boolean;
 }
 
-/** 飛在畫面上方:身體底部大約 y 300,往前射打不到,要往上射或跳起來射。 */
-export const THUNDER_HOVER_Y = 210;
+/** 飛在畫面上方:身體底部大約 y 325,站在地上往前射打不到,跳起來射或站上雲朵平台射打得到。 */
+export const THUNDER_HOVER_Y = 250;
 const HOVER_MS = { 1: 2200, 2: 1800, 3: 1400 } as const;
 export const THUNDER_WINDUP_MS = 600;
 export const THUNDER_GUST_MS = 2000;

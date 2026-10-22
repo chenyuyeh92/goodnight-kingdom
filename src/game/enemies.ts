@@ -247,6 +247,9 @@ const DIVER_TUNE = {
 const JELLY_BOB = 50;
 const JELLY_PERIOD_MS = 2400;
 const JELLY_SPEED = 40;
+/** 咖啡雲精靈飄的高度(上下飄 50,最低時身體底部 391,站著打得到、蹲下也碰不到)。 */
+export const CLOUD_HOVER_Y = 320;
+const CLOUD_SPRING = 2;
 /** 小丑魚:直直游過來,每 2.5 秒才重新看玩家在哪(游過頭後轉身)。 */
 const CLOWN_SPEED = 150;
 const CLOWN_TURN_MS = 2500;
@@ -414,7 +417,9 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       const facing = faceTarget(brain, sense);
       const w = (Math.PI * 2) / JELLY_PERIOD_MS;
       // 速度是位置 sin 的微分,不用記起始高度就能上下漂。
-      const vy = JELLY_BOB * w * 1000 * Math.cos(w * timerMs);
+      let vy = JELLY_BOB * w * 1000 * Math.cos(w * timerMs);
+      // 咖啡雲精靈從上面掉進來時,先飄到固定高度(不會一直停在畫面上面)。
+      if (type === 'coffeeCloud') vy += (CLOUD_HOVER_Y - sense.y) * CLOUD_SPRING;
       const dx = sense.targetX === null ? 0 : sense.targetX - sense.x;
       return { vx: Math.abs(dx) > 8 ? facing * JELLY_SPEED : 0, vy, brain: { phase: 'swim', timerMs, facing, turnMs: 0 } };
     }

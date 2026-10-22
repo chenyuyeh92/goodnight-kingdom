@@ -36,7 +36,7 @@ const REST_MS = 700;
 const WALK_SPEED = 50;
 const KEEP = 280;
 export const ROLL_SPEED = 330;
-/** 竹子:往前飛 600,一直往回減速,大約 1 秒後飛回來;高度打得到站著的人,蹲下就從頭上飛過。 */
+/** 竹子:往前飛 600,一直往回減速,大約 1 秒後掉頭、2 秒回到熊貓手上(就消失);高度打得到站著的人,蹲下就從頭上飛過。 */
 export const BAMBOO_Y = GROUND_Y - 40;
 export const BAMBOO_VX = 600;
 export const BAMBOO_AX = 600;
