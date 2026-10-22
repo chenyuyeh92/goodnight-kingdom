@@ -3,6 +3,8 @@ import {
   BAT_SWOOP_Y,
   ENEMY_DEFS,
   bulletEffect,
+  SHIELD_HP,
+  wearShield,
   initialBrain,
   stepEnemy,
   type EnemyBrain,
@@ -96,6 +98,26 @@ test('刺盾:只擋迎面的水平子彈', () => {
   expect(bulletEffect(def, -1, -640, 0)).toBe('hit');
   expect(bulletEffect(def, -1, 0, 640)).toBe('hit');
   expect(bulletEffect(ENEMY_DEFS.alarmBug, -1, 640, 0)).toBe('hit');
+});
+
+test('盾牌擋下 15 點傷害就破掉,破掉之後正面也打得到', () => {
+  let shield = SHIELD_HP;
+  const broke: boolean[] = [];
+  for (let i = 0; i < 15; i++) {
+    const r = wearShield(shield, 1);
+    shield = r.shieldHp;
+    broke.push(r.broke);
+  }
+  expect(SHIELD_HP).toBe(15);
+  expect(shield).toBe(0);
+  expect(broke.filter(Boolean)).toHaveLength(1);
+  expect(broke[14]).toBe(true);
+  // 揮擊(5 點)三下就破。
+  expect(wearShield(wearShield(wearShield(SHIELD_HP, 5).shieldHp, 5).shieldHp, 5).broke).toBe(true);
+  expect(wearShield(0, 1)).toEqual({ shieldHp: 0, broke: false });
+  expect(bulletEffect(ENEMY_DEFS.tortoise, -1, 640, 0, false, false)).toBe('hit');
+  // 關主縮殼(armored)不會因為盾破掉就打得到。
+  expect(bulletEffect(ENEMY_DEFS.tortoise, -1, 640, 0, true, false)).toBe('blocked');
 });
 
 test('刺蝟不會瞬間轉身:玩家在背後超過 700ms 才轉過來', () => {

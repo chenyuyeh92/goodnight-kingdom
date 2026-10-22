@@ -16,7 +16,7 @@ import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
-import { ENEMY_DEFS, SPIT_GRAVITY, bulletEffect, pufferHit, type EnemyType } from '../game/enemies';
+import { ENEMY_DEFS, SPIT_GRAVITY, bulletEffect, pufferHit, wearShield, type EnemyType } from '../game/enemies';
 import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
@@ -365,6 +365,8 @@ export class TestRangeScene extends Phaser.Scene {
   private enemyGroup!: Phaser.Physics.Arcade.Group;
   private enemiesDefeated = 0;
   private blockedShots = 0;
+  /** 打破的盾牌數。 */
+  private shieldsBroken = 0;
   private meleeHits = 0;
   private meleeSwings = 0;
   private encounters: EncounterState = initialEncounters();
@@ -469,6 +471,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.enemies = [];
     this.enemiesDefeated = 0;
     this.blockedShots = 0;
+    this.shieldsBroken = 0;
     this.meleeHits = 0;
     this.meleeSwings = 0;
     this.encounters = initialEncounters();
@@ -1890,11 +1893,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.tweens.add({ targets: swing, alpha: 0, duration: SWING_MS, onComplete: () => swing.destroy() });
 
     if (target instanceof EnemyEntity) {
-      if (bulletEffect(target.def, target.brain.facing, reach.facing, 0, this.isArmored(target)) === 'blocked') {
-        this.blockedShots += 1;
-        audio.sfx('blocked');
-        return;
-      }
+      if (this.blockedBy(target, reach.facing, 0, MELEE_DAMAGE)) return;
       this.meleeHits += 1;
       audio.sfx('melee');
       this.damageEnemy(target, MELEE_DAMAGE, MELEE_IMPACT_SCALE);
@@ -1910,16 +1909,48 @@ export class TestRangeScene extends Phaser.Scene {
     return this.enemies.find((e) => e.body === obj);
   }
 
+  /**
+   * 這一擊被擋下了嗎?被盾牌擋下時盾牌扣掉這一擊的傷害、噴碎屑,扣完就破盾(之後正面也打得到)。
+   * 關主縮殼、河豚膨脹(armored)擋下的不會破。
+   */
+  private blockedBy(enemy: EnemyEntity, vx: number, vy: number, damage: number): boolean {
+    const armored = this.isArmored(enemy);
+    if (bulletEffect(enemy.def, enemy.brain.facing, vx, vy, armored, enemy.shieldUp) === 'hit') return false;
+    this.blockedShots += 1;
+    audio.sfx('blocked');
+    if (armored || !enemy.shieldUp) return true;
+    const r = wearShield(enemy.shieldHp, damage);
+    enemy.shieldHp = r.shieldHp;
+    const sx = enemy.x + enemy.brain.facing * (enemy.def.w / 2);
+    this.shieldChips(sx, enemy.body.y, r.broke ? 8 : 2);
+    if (r.broke) {
+      enemy.breakShield();
+      this.shieldsBroken += 1;
+      audio.sfx('melee');
+      const label = this.add
+        .text(sx, enemy.body.y - enemy.def.h / 2 - 8, '破盾!', { fontSize: '22px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 5 })
+        .setOrigin(0.5, 1)
+        .setDepth(6);
+      this.tweens.add({ targets: label, y: label.y - 24, alpha: 0, delay: 500, duration: 300, onComplete: () => label.destroy() });
+    }
+    return true;
+  }
+
+  /** 盾牌被打到時噴出碎屑(破掉時噴比較多)。 */
+  private shieldChips(x: number, y: number, n: number): void {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const d = this.add.circle(x, y, 3 + (i % 2), 0xc8c0d0).setDepth(5);
+      this.tweens.add({ targets: d, x: x + Math.cos(a) * 26, y: y + Math.sin(a) * 26 - 8, alpha: 0, duration: 320, onComplete: () => d.destroy() });
+    }
+  }
+
   /** 子彈命中:刺盾擋下、扣血、打倒;正在冒出的魔物與已倒下的靶不算。 */
   private onProjectileHit(obj: Phaser.GameObjects.GameObject, hit: ProjectileHit): HitResult {
     const enemy = this.enemyFor(obj);
     if (enemy) {
       if (enemy.emerging || enemy.hp <= 0 || this.isInvulnerable(enemy)) return 'ignored';
-      if (bulletEffect(enemy.def, enemy.brain.facing, hit.vx, hit.vy, this.isArmored(enemy)) === 'blocked') {
-        this.blockedShots += 1;
-        audio.sfx('blocked');
-        return 'blocked';
-      }
+      if (this.blockedBy(enemy, hit.vx, hit.vy, hit.damage)) return 'blocked';
       audio.sfx('hit');
       this.damageEnemy(enemy, hit.damage);
       if (enemy.def.type === 'puffer') enemy.brain = pufferHit(enemy.brain);
@@ -2118,6 +2149,7 @@ export class TestRangeScene extends Phaser.Scene {
       enemies: this.enemies.map((e) => e.debug()),
       enemiesDefeated: this.enemiesDefeated,
       blockedShots: this.blockedShots,
+      shieldsBroken: this.shieldsBroken,
       touch: this.touchControls !== null,
       level: this.level.id,
       meleeHits: this.meleeHits,

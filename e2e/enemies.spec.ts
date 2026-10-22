@@ -37,14 +37,25 @@ test.describe('魔物', () => {
     expect((await gk(page)).enemies).toHaveLength(0);
   });
 
-  test('刺蝟正面擋子彈', async ({ page }) => {
+  test('刺蝟正面擋子彈,盾牌被打得越來越破', async ({ page }) => {
     await spawn(page, 'hedgehog', 320);
     await page.keyboard.down('KeyC');
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(() => (window.__GK__!.blockedShots ?? 0) >= 3, undefined, { timeout: 3000 });
     await page.keyboard.up('KeyC');
     const s = await gk(page);
-    expect(s.blockedShots).toBeGreaterThan(0);
     expect(s.enemies![0].hp).toBe(6);
+    expect(s.enemies![0].shieldHp).toBeLessThan(15);
+    expect(s.enemies![0].shieldHp).toBeGreaterThan(0);
+  });
+
+  test('一直打刺蝟正面,擋下 15 點就破盾,之後打得到', async ({ page }) => {
+    await spawn(page, 'hedgehog', 320);
+    await page.keyboard.down('KeyC');
+    await page.waitForFunction(() => window.__GK__!.shieldsBroken === 1, undefined, { timeout: 8000 });
+    expect((await gk(page)).blockedShots).toBeGreaterThanOrEqual(15);
+    await page.waitForFunction(() => (window.__GK__!.enemies![0]?.hp ?? 0) < 6 || window.__GK__!.enemiesDefeated === 1, undefined, { timeout: 4000 });
+    await page.keyboard.up('KeyC');
+    expect((await gk(page)).enemies![0]?.shieldHp ?? 0).toBe(0);
   });
 
   test('蝙蝠在頭上,往上射打得到', async ({ page }) => {

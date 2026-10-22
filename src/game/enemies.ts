@@ -430,12 +430,23 @@ export function pufferHit(brain: EnemyBrain): EnemyBrain {
 
 /**
  * 刺盾擋住從正面迎面而來、偏水平(比 45 度平)的子彈,扇形與追蹤子彈也算;背後、上下都打得到。
+ * 盾牌破掉之後(shieldUp = false)正面也打得到。
  * 膨脹的河豚、縮進殼裡的寄居蟹(armored)什麼方向都擋。
  */
-export function bulletEffect(def: EnemyDef, enemyFacing: 1 | -1, bulletVx: number, bulletVy: number, armored = false): 'hit' | 'blocked' {
+export function bulletEffect(def: EnemyDef, enemyFacing: 1 | -1, bulletVx: number, bulletVy: number, armored = false, shieldUp = true): 'hit' | 'blocked' {
   if (armored) return 'blocked';
   const frontal = Math.sign(bulletVx) === -enemyFacing && Math.abs(bulletVy) < Math.abs(bulletVx);
-  return def.shield && frontal ? 'blocked' : 'hit';
+  return def.shield && shieldUp && frontal ? 'blocked' : 'hit';
+}
+
+/** 盾牌(刺盾、殼盾、冰盾、岩石盾)擋下這麼多傷害就破掉;基本武器一發 1 點(葉宸佑 2026-10-22)。 */
+export const SHIELD_HP = 15;
+
+/** 盾牌擋下一擊:扣掉這一擊的傷害,扣完就破掉(broke 只在破掉的那一下為 true)。 */
+export function wearShield(shieldHp: number, damage: number): { shieldHp: number; broke: boolean } {
+  if (shieldHp <= 0) return { shieldHp: 0, broke: false };
+  const left = Math.max(0, shieldHp - damage);
+  return { shieldHp: left, broke: left === 0 };
 }
 
 /** 拋物線子彈的飛行時間:越遠飛越久,夾在 0.6–1.4 秒。 */

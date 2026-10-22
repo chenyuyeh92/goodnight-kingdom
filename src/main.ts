@@ -56,6 +56,8 @@ export interface EnemyDebug {
   artBottom: number | null;
   /** 目前畫的是哪一張圖(關主的階段、動畫格)。 */
   artKey: string | null;
+  /** 盾牌還剩多少(沒有盾或破掉了是 0)。 */
+  shieldHp: number;
 }
 
 export interface GkDebug {
@@ -98,6 +100,8 @@ export interface GkDebug {
   enemies?: EnemyDebug[];
   enemiesDefeated?: number;
   blockedShots?: number;
+  /** 打破的盾牌數。 */
+  shieldsBroken?: number;
   meleeHits?: number;
   meleeSwings?: number;
   giveWeapon?: (index: number, id: SpecialWeaponId, stars?: number) => void;

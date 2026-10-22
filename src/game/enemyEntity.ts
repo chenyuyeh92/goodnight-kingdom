@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { EnemyDebug } from '../main';
-import { ENEMY_DEFS, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
+import { ENEMY_DEFS, SHIELD_HP, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
 import { ART_FACES_RIGHT, ENEMY_ART_SCALE, ENEMY_ART_TINT, SPRITES, enemySprite, type ArtKey } from '../art/sprites';
 import { IDLE, enemyPose } from '../art/motion';
 import { animFrame, enemyFrame } from '../art/frames';
@@ -17,13 +17,15 @@ export class EnemyEntity {
   readonly body: Phaser.GameObjects.Rectangle;
   brain: EnemyBrain;
   hp: number;
+  /** 盾牌還剩多少;擋下的傷害從這裡扣,扣完就破掉(沒有盾的魔物是 0)。 */
+  shieldHp: number;
   /** 正在從地面冒出,還不算上場。 */
   emerging = false;
   /** 關主的階段(選那一階段的圖與貓頭鷹拍翅的動畫格)。 */
   bossPhase: 1 | 2 | 3 = 1;
   /** 被打閃白光後恢復成的顏色(水怪第三階段帶紅色);沒有時用 ENEMY_ART_TINT。 */
   baseTint: number | undefined = undefined;
-  private readonly shield: Phaser.GameObjects.Rectangle | null;
+  private shield: Phaser.GameObjects.Rectangle | null;
   /** 美術圖;沒載入時為 null,改顯示色塊。 */
   private readonly art: Phaser.GameObjects.Image | null;
   private artFacing: 1 | -1 = -1;
@@ -40,6 +42,7 @@ export class EnemyEntity {
     this.def = ENEMY_DEFS[type];
     this.brain = initialBrain(type);
     this.hp = this.def.hp;
+    this.shieldHp = this.def.shield ? SHIELD_HP : 0;
     this.body = scene.add.rectangle(x, feetY - this.def.h / 2, this.def.w, this.def.h, this.def.color);
     scene.physics.add.existing(this.body);
     this.physicsBody().setAllowGravity(!this.def.flying);
@@ -154,6 +157,18 @@ export class EnemyEntity {
     this.art?.destroy();
   }
 
+  /** 有盾而且還沒破。 */
+  get shieldUp(): boolean {
+    return this.def.shield && this.shieldHp > 0;
+  }
+
+  /** 盾牌破掉:沒有圖時畫的白線盾也拿掉。 */
+  breakShield(): void {
+    this.shieldHp = 0;
+    this.shield?.destroy();
+    this.shield = null;
+  }
+
   debug(): EnemyDebug {
     return {
       type: this.def.type,
@@ -166,6 +181,7 @@ export class EnemyEntity {
       artX: this.art?.x ?? null,
       artBottom: this.art?.y ?? null,
       artKey: this.art?.texture.key ?? null,
+      shieldHp: this.shieldHp,
     };
   }
 }
