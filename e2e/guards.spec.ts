@@ -127,9 +127,38 @@ test.describe('畫你的守衛', () => {
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
     await page.keyboard.press('Digit3');
     await page.waitForFunction(() => (window.__GK__!.guardList ?? []).length === 8);
+    // 存滿時不打開畫布(不會畫完才發現存不了)。
+    await tapGame(page, 295, 495);
+    await page.waitForTimeout(300);
+    await expect(page.locator('#draw-studio')).toHaveCount(0);
+    expect((await gk(page)).guardList).toHaveLength(8);
+  });
+
+  test('輪廓模式什麼都沒畫不能存', async ({ page }) => {
+    await openRoom(page);
+    await tapGame(page, 110, 495);
+    await page.waitForTimeout(300);
+    await page.click('#draw-save');
+    await expect(page.locator('#draw-status')).toContainText('還沒畫');
+  });
+
+  test('名字欄按 Enter 儲存、Esc 取消', async ({ page }) => {
+    await openRoom(page);
     await tapGame(page, 295, 495);
     await scribble(page);
-    await page.click('#draw-save');
-    await expect(page.locator('#draw-status')).toContainText('最多存 8 個');
+    await page.fill('#draw-name', '小熊');
+    await page.press('#draw-name', 'Enter');
+    await page.waitForFunction(() => (window.__GK__!.guardList ?? []).length === 1);
+    await tapGame(page, 295, 495);
+    await page.press('#draw-name', 'Escape');
+    await expect(page.locator('#draw-studio')).toHaveCount(0);
+  });
+
+  test('手機直拿時畫布不變形(比例維持 320:512)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openRoom(page);
+    await tapGame(page, 295, 495);
+    const box = (await page.locator('#draw-canvas').boundingBox())!;
+    expect(box.width / box.height).toBeCloseTo(320 / 512, 2);
   });
 });

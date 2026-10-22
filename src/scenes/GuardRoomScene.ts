@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { createGuardStore, guardFileName, type GuardPlayer, type GuardStore } from '../draw/guards';
+import { MAX_GUARDS, createGuardStore, guardFileName, type GuardPlayer, type GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, ensureGuardTexture, guardTextureKey } from '../draw/guardTextures';
 import { mountDrawStudio, type DrawMode, type DrawStudio } from '../ui/drawStudio';
 import type { TestRangeData } from './TestRangeScene';
@@ -54,7 +54,7 @@ export class GuardRoomScene extends Phaser.Scene {
       A: smallButton(this, 400, 95, '幫 A 選', () => this.setTarget('A'), 140),
       B: smallButton(this, 560, 95, '幫 B 選', () => this.setTarget('B'), 140),
     };
-    this.message = this.add.text(480, 440, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
+    this.message = this.add.text(480, 128, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     smallButton(this, 110, 495, '畫新的(輪廓)', () => this.openStudio('outline'), 170);
     smallButton(this, 295, 495, '畫新的(空白)', () => this.openStudio('free'), 170);
     this.downloadButton = smallButton(this, 470, 495, '下載圖片', () => this.download(), 150);
@@ -133,15 +133,25 @@ export class GuardRoomScene extends Phaser.Scene {
 
   private openStudio(mode: DrawMode): void {
     if (this.studio) return;
+    // 存滿了先告訴玩家,不要讓人畫完才發現存不了。
+    if (this.store.get().guards.length >= MAX_GUARDS) {
+      this.message.setText(`最多存 ${MAX_GUARDS} 個守衛,請先刪掉一個再畫`);
+      return;
+    }
+    this.message.setText('');
+    const outline = this.textures.exists('pajama-outline') ? (this.textures.get('pajama-outline').getSourceImage() as HTMLImageElement) : null;
     this.studio = mountDrawStudio(document.body, {
       mode,
+      outline,
       outlineUrl: `${import.meta.env.BASE_URL}assets/characters/pajama-outline.png`,
       onSave: (name, png) => {
         const r = this.store.add(name, png);
         if (!r.ok) return r.reason === 'full' ? '最多存 8 個守衛,請先刪掉一個' : '這個瀏覽器存不了檔(例如無痕模式)';
         this.store.select(this.target, r.guard.id);
         this.closeStudio();
-        void ensureGuardTexture(this, r.guard).then(() => this.renderCards());
+        void ensureGuardTexture(this, r.guard).then(() => {
+          if (this.scene.isActive()) this.renderCards();
+        });
         return null;
       },
       onCancel: () => this.closeStudio(),
@@ -159,19 +169,27 @@ export class GuardRoomScene extends Phaser.Scene {
     const id = this.store.get().selected[this.target];
     const g = this.store.get().guards.find((x) => x.id === id);
     if (!g) return;
-    // 用 Blob 網址下載,瀏覽器才會用我們給的檔名(data: 網址會被當成「download」)。
+    const name = guardFileName(g.name);
     void fetch(g.png)
       .then((r) => r.blob())
-      .then((blob) => {
+      .then(async (blob) => {
+        // 手機上用系統的分享選單(可以存到相簿或傳到社群);不支援時下載檔案。
+        const file = new File([blob], name, { type: 'image/png' });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: '晚安王國' }).catch(() => undefined);
+          return;
+        }
+        // 用 Blob 網址下載,瀏覽器才會用我們給的檔名(data: 網址會被當成「download」)。
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = guardFileName(g.name);
+        a.download = name;
         document.body.append(a);
         a.click();
         a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      });
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      })
+      .catch(() => this.message.setText('下載失敗,請再試一次'));
   }
 
   /** 按一次變成「再按一次刪除」,3 秒內再按才真的刪。 */
@@ -181,6 +199,9 @@ export class GuardRoomScene extends Phaser.Scene {
     if (this.time.now > this.confirmDeleteUntil) {
       this.confirmDeleteUntil = this.time.now + CONFIRM_MS;
       this.deleteButton.setLabel('再按一次刪除');
+      this.time.delayedCall(CONFIRM_MS, () => {
+        if (this.time.now >= this.confirmDeleteUntil) this.deleteButton.setLabel('刪除');
+      });
       return;
     }
     this.store.remove(id);

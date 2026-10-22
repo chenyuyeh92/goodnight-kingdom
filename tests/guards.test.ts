@@ -74,3 +74,25 @@ test('下載檔名:晚安王國-名字.png,去掉不能用的字元', () => {
   expect(guardFileName('a/b:c*?')).toBe('晚安王國-abc.png');
   expect(guardFileName('  ')).toBe('晚安王國-守衛.png');
 });
+
+test('沒有存檔空間時不新增,也不會在記憶體裡多出重複的守衛', () => {
+  const s = createGuardStore(null);
+  expect(s.add('a', PNG)).toEqual({ ok: false, reason: 'storage' });
+  expect(s.add('a', PNG)).toEqual({ ok: false, reason: 'storage' });
+  expect(s.get().guards).toHaveLength(0);
+});
+
+test('名字用字元算長度,emoji 不會被切一半', () => {
+  const s = createGuardStore(memory());
+  const r = s.add('🐑🐑🐑🐑🐑🐑🐑🐑🐑', PNG);
+  expect(r.ok && Array.from(r.guard.name)).toHaveLength(8);
+  expect(r.ok && r.guard.name).toBe('🐑'.repeat(8));
+});
+
+test('清除所有守衛', () => {
+  const s = createGuardStore(memory());
+  const r = s.add('a', PNG);
+  s.select('A', r.ok ? r.guard.id : null);
+  s.clear();
+  expect(s.get()).toEqual({ version: 1, guards: [], selected: { A: null, B: null } });
+});

@@ -6,7 +6,8 @@ export type DrawMode = 'outline' | 'free';
 
 export interface DrawStudioOptions {
   mode: DrawMode;
-  /** 輪廓模式的睡衣小人輪廓圖網址。 */
+  /** 輪廓模式的睡衣小人輪廓圖(開機時已載入);沒有時用網址載入。 */
+  outline: CanvasImageSource | null;
   outlineUrl: string;
   /** 儲存;回傳錯誤訊息(例如存滿了),成功回傳 null。 */
   onSave(name: string, png: string): string | null;
@@ -39,14 +40,19 @@ const CSS = `
 #draw-studio button.on { background: #f8e08e; box-shadow: 0 0 0 3px #f8e08e55; }
 #draw-top { display: flex; gap: 8px; align-items: center; padding: 8px 12px; flex-wrap: wrap; }
 #draw-top .title { font-size: 20px; color: #ffe08a; margin-right: 8px; }
-#draw-name { font: inherit; width: 9em; padding: 6px 8px; border-radius: 10px; border: 2px solid #3a2a5a; }
+#draw-name { font: inherit; width: 9em; padding: 6px 8px; border-radius: 10px; border: 2px solid #3a2a5a;
+  user-select: text; -webkit-user-select: text; }
 #draw-status { color: #ffb3c7; min-height: 1.2em; }
 #draw-main { flex: 1; display: flex; gap: 10px; padding: 0 12px 10px; min-height: 0; align-items: stretch; }
 #draw-tools, #draw-colors { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
 #draw-board { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; }
-#draw-canvas { height: 100%; max-width: 100%; aspect-ratio: ${CANVAS_W} / ${CANVAS_H}; touch-action: none; border-radius: 12px;
+#draw-canvas { touch-action: none; border-radius: 12px;
   background: repeating-conic-gradient(#3b3366 0% 25%, #2f2a58 0% 50%) 50% / 24px 24px; cursor: crosshair; }
-.swatch { width: 36px; height: 36px; border-radius: 50%; padding: 0 !important; }
+.swatch { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%; padding: 0 !important; }
+.swatch.on { outline: 3px solid #fff6e5; outline-offset: 2px; }
+#draw-rotate { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center;
+  background: rgba(29, 26, 58, 0.95); font-size: 22px; padding: 24px; }
+@media (orientation: portrait) and (pointer: coarse) { #draw-rotate { display: flex; } }
 `;
 
 /** 全畫面的畫畫介面:畫筆、橡皮擦、油漆桶、復原、清除、10 色;離開時移除所有元素與監聽。 */
@@ -73,7 +79,8 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
       </div>
       <div id="draw-board"><canvas id="draw-canvas" width="${CANVAS_W}" height="${CANVAS_H}"></canvas></div>
       <div id="draw-colors">${PALETTE.map((c) => `<button class="swatch" data-color="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>
-    </div>`;
+    </div>
+    <div id="draw-rotate">請把手機轉成橫向再畫</div>`;
   parent.append(root);
 
   const canvas = root.querySelector('#draw-canvas') as HTMLCanvasElement;
@@ -84,25 +91,52 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
   let size: Size = 'mid';
   let color: string = PALETTE[0];
   const undo: ImageData[] = [];
-  let outline: HTMLImageElement | null = null;
+  let outline: CanvasImageSource | null = null;
+  /** 玩家有沒有真的畫過(輪廓模式什麼都沒畫不能存)。 */
+  let dirty = false;
 
-  const drawOutline = (): void => {
+  const drawOutline = (op: GlobalCompositeOperation = 'source-over'): void => {
     if (!outline) return;
-    const w = (outline.width / outline.height) * CANVAS_H;
+    const ow = Number((outline as HTMLImageElement).width);
+    const oh = Number((outline as HTMLImageElement).height);
+    const w = (ow / oh) * CANVAS_H;
+    ctx.save();
+    ctx.globalCompositeOperation = op;
     ctx.drawImage(outline, (CANVAS_W - w) / 2, 0, w, CANVAS_H);
+    ctx.restore();
   };
   const resetCanvas = (): void => {
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     drawOutline();
   };
   if (opts.mode === 'outline') {
-    const img = new Image();
-    img.onload = () => {
-      outline = img;
+    if (opts.outline) {
+      outline = opts.outline;
       resetCanvas();
-    };
-    img.src = opts.outlineUrl;
+    } else {
+      // 輪廓還沒載入:載好後畫在已經畫的線「下面」,不會蓋掉;之前的復原紀錄沒有輪廓,清掉。
+      const img = new Image();
+      img.onload = () => {
+        outline = img;
+        drawOutline('destination-over');
+        undo.length = 0;
+      };
+      img.src = opts.outlineUrl;
+    }
   }
+
+  // 畫布照 320:512 的比例放進可用空間,不會被拉長變形(手機直拿、iPad 直拿也一樣)。
+  const board = root.querySelector('#draw-board') as HTMLElement;
+  const fit = (): void => {
+    const r = board.getBoundingClientRect();
+    const scale = Math.max(0.1, Math.min(r.width / CANVAS_W, r.height / CANVAS_H));
+    canvas.style.width = `${CANVAS_W * scale}px`;
+    canvas.style.height = `${CANVAS_H * scale}px`;
+  };
+  const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+  resize?.observe(board);
+  window.addEventListener('resize', fit);
+  fit();
 
   const refreshButtons = (): void => {
     root.querySelectorAll<HTMLElement>('[data-size]').forEach((b) => b.classList.toggle('on', tool !== 'bucket' && b.dataset.size === size));
@@ -131,6 +165,7 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
     } else if (b.id === 'draw-clear') {
       remember();
       resetCanvas();
+      dirty = false;
     } else if (b.id === 'draw-save') {
       save();
     } else if (b.id === 'draw-cancel') {
@@ -159,11 +194,15 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
     ctx.stroke();
     ctx.restore();
   };
+  let activeType = '';
   const onDown = (e: PointerEvent): void => {
-    if (activePointer !== null) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // Apple Pencil 可以搶走手掌先碰到的那一筆。
+    if (activePointer !== null && !(e.pointerType === 'pen' && activeType === 'touch')) return;
     e.preventDefault();
     const p = toCanvas(e);
     remember();
+    dirty = true;
     if (tool === 'bucket') {
       const img = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
       floodFill(img, p.x, p.y, hexToRgba(color));
@@ -171,6 +210,7 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
       return;
     }
     activePointer = e.pointerId;
+    activeType = e.pointerType;
     canvas.setPointerCapture(e.pointerId);
     last = p;
     stroke(p, p);
@@ -191,6 +231,13 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
+  canvas.addEventListener('lostpointercapture', onUp);
+  // 名字欄裡 Enter 儲存、Esc 取消。
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Enter') save();
+    else if (e.key === 'Escape') opts.onCancel();
+  };
+  root.addEventListener('keydown', onKey);
   // 擋掉 iOS 的雙指縮放與長按選單。
   const block = (e: Event): void => e.preventDefault();
   root.addEventListener('gesturestart', block);
@@ -199,7 +246,7 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
   function save(): void {
     const full = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
     const box = contentBounds(full);
-    if (!box) {
+    if (!box || (opts.mode === 'outline' && !dirty)) {
       status.textContent = '還沒畫任何東西,不能儲存';
       return;
     }
@@ -215,6 +262,8 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
   refreshButtons();
   return {
     destroy() {
+      resize?.disconnect();
+      window.removeEventListener('resize', fit);
       root.remove();
       style.remove();
     },

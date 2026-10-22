@@ -16,6 +16,12 @@ const SHEEP_STAND = { w: 48, h: 55 };
 /** 玩家畫的守衛畫成這個高度,寬度照比例(最多 90)。 */
 const DRAWN_H = 60;
 const DRAWN_MAX_W = 90;
+/** 玩家畫的守衛顯示大小:高 60、寬最多 90,寬高比例不變(很寬的畫會一起縮小)。 */
+export function drawnGuardSize(w: number, h: number): { w: number; h: number } {
+  const s = Math.min(DRAWN_H / h, DRAWN_MAX_W / w);
+  return { w: w * s, h: h * s };
+}
+
 /** 蹲下時壓扁:寬一點、矮很多。 */
 const CROUCH_SCALE = { w: 1.12, h: 0.62 };
 const DOWN_ALPHA = 0.6;
@@ -74,8 +80,7 @@ export class PlayerEntity {
     this.zzz = scene.add.text(opts.x, opts.feetY, 'Zzz', { fontSize: '18px', color: '#f3e9d2' }).setOrigin(0.5, 1).setVisible(false);
     this.art = scene.textures.exists(opts.artKey) ? scene.add.image(opts.x, opts.feetY, opts.artKey).setOrigin(0.5, 1) : null;
     if (this.art && opts.artKey !== 'guard') {
-      const ratio = this.art.width / this.art.height;
-      this.artStand = { w: Math.min(DRAWN_MAX_W, DRAWN_H * ratio), h: DRAWN_H };
+      this.artStand = drawnGuardSize(this.art.width, this.art.height);
     } else {
       this.artStand = SHEEP_STAND;
     }

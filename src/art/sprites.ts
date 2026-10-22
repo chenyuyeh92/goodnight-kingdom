@@ -17,6 +17,7 @@ export const SPRITES = {
   'w1-s4-mid': { file: 'backgrounds/w1-s4-mid.png', w: 1516, h: 540 },
   'w1-s4-near': { file: 'backgrounds/w1-s4-near.png', w: 183, h: 540 },
   guard: { file: 'characters/default-guard.png', w: 48, h: 55 },
+  'pajama-outline': { file: 'characters/pajama-outline.png', w: 289, h: 512 },
   clockbug: { file: 'enemies/clockbug.png', w: 48, h: 56 },
   'clockbug-sleep': { file: 'enemies/clockbug-sleep.png', w: 47, h: 56 },
   'coffee-bean': { file: 'enemies/coffee-bean-sprite.png', w: 39, h: 52 },

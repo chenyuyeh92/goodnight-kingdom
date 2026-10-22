@@ -25,6 +25,11 @@ export interface GuardData {
 
 export type AddResult = { ok: true; guard: Guard } | { ok: false; reason: 'full' | 'storage' };
 
+/** 名字最多 8 個字(用字元算,emoji 不會被切一半)。 */
+function cutName(name: string): string {
+  return Array.from(name).slice(0, MAX_NAME).join('');
+}
+
 function empty(): GuardData {
   return { version: 1, guards: [], selected: { A: null, B: null } };
 }
@@ -42,7 +47,7 @@ export function sanitizeGuards(raw: unknown): GuardData {
     if (typeof g !== 'object' || g === null) continue;
     const { id, name, png, createdAt } = g as Record<string, unknown>;
     if (typeof id !== 'string' || typeof name !== 'string' || !validPng(png) || typeof createdAt !== 'number') continue;
-    if (out.guards.length < MAX_GUARDS) out.guards.push({ id, name: name.slice(0, MAX_NAME), png, createdAt });
+    if (out.guards.length < MAX_GUARDS) out.guards.push({ id, name: cutName(name), png, createdAt });
   }
   const sel = (typeof r.selected === 'object' && r.selected !== null ? r.selected : {}) as Record<string, unknown>;
   for (const p of ['A', 'B'] as const) {
@@ -54,7 +59,7 @@ export function sanitizeGuards(raw: unknown): GuardData {
 
 /** 下載用的檔名:去掉檔名不能用的字元。 */
 export function guardFileName(name: string): string {
-  const safe = name.replace(/[\\/:*?"<>|\s]+/g, '').slice(0, MAX_NAME) || '守衛';
+  const safe = cutName(name.replace(/[\\/:*?"<>|\s]+/g, '')) || '守衛';
   return `晚安王國-${safe}.png`;
 }
 
@@ -63,6 +68,8 @@ export interface GuardStore {
   add(name: string, png: string): AddResult;
   remove(id: string): void;
   select(player: GuardPlayer, id: string | null): void;
+  /** 清除所有守衛(設定畫面的清除存檔)。 */
+  clear(): void;
 }
 
 /** 守衛存在玩家自己的裝置上;讀壞的資料丟掉,寫不進去時回報。 */
@@ -74,11 +81,13 @@ export function createGuardStore(storage: StorageLike | null, now: () => number 
   } catch {
     current = empty();
   }
+  // 寫不進去(無痕模式、容量滿)時不改記憶體裡的資料,畫面和存檔保持一致。
   const write = (next: GuardData): boolean => {
+    if (!storage) return false;
     try {
-      storage?.setItem(GUARDS_KEY, JSON.stringify(next));
+      storage.setItem(GUARDS_KEY, JSON.stringify(next));
       current = next;
-      return storage !== null;
+      return true;
     } catch {
       return false;
     }
@@ -87,7 +96,7 @@ export function createGuardStore(storage: StorageLike | null, now: () => number 
     get: () => current,
     add(name, png) {
       if (current.guards.length >= MAX_GUARDS) return { ok: false, reason: 'full' };
-      const guard: Guard = { id: `g${now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`, name: name.trim().slice(0, MAX_NAME) || '守衛', png, createdAt: now() };
+      const guard: Guard = { id: `g${now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`, name: cutName(name.trim()) || '守衛', png, createdAt: now() };
       return write({ ...current, guards: [...current.guards, guard] }) ? { ok: true, guard } : { ok: false, reason: 'storage' };
     },
     remove(id) {
@@ -95,7 +104,12 @@ export function createGuardStore(storage: StorageLike | null, now: () => number 
       write({ ...current, guards: current.guards.filter((g) => g.id !== id), selected });
     },
     select(player, id) {
-      write({ ...current, selected: { ...current.selected, [player]: id } });
+      // 選擇就算存不進去,這次遊玩也照選的用。
+      const next = { ...current, selected: { ...current.selected, [player]: id } };
+      if (!write(next)) current = next;
+    },
+    clear() {
+      if (!write(empty())) current = empty();
     },
   };
 }
