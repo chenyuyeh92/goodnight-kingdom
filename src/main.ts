@@ -23,6 +23,7 @@ import { mountKeyTest } from './ui/keyTest';
 import { isTouchDevice } from './ui/touchControls';
 import { mountTuningPanel } from './ui/tuningPanel';
 import { installTextDefaults } from './ui/textDefaults';
+import { preventZoom } from './ui/noZoom';
 
 export interface PlayerDebug {
   x: number;
@@ -147,6 +148,8 @@ function safeLocalStorage(): StorageLike | null {
 }
 
 const params = new URLSearchParams(location.search);
+
+preventZoom();
 
 if (params.get('keytest') === '1') {
   mountKeyTest(document.body);
