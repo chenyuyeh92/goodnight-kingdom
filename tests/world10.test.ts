@@ -78,6 +78,10 @@ describe('失眠月兔', () => {
       expect(m.vx).toBeLessThan(0);
       expect(m.vy).toBeLessThan(0);
     }
+    // 第一顆直直丟向玩家:飛到玩家的 x 時剛好在玩家的高度。
+    const m = second.mochi[0];
+    const t = (300 - 650) / m.vx;
+    expect(430 + m.vy * t + 0.5 * MOCHI_GRAVITY * t * t).toBeCloseTo(456, 0);
     expect(MOCHI_GRAVITY).toBeGreaterThan(0);
   });
 

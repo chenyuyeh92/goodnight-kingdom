@@ -38,6 +38,7 @@ const KEEP = 280;
 const SECOND_WAVE_MS = 450;
 const MOCHI = { calm: 2, angry: 3 } as const;
 const MOCHI_SPREAD = 110;
+const MOCHI_OFFSETS = [0, -1, 1] as const;
 export const MOCHI_GRAVITY = 800;
 const ANGRY_RATIO = 0.5;
 
@@ -74,9 +75,8 @@ export function stepRabbit(b: RabbitBrain, s: RabbitSense): RabbitStep {
       }
       const n = angry ? MOCHI.angry : MOCHI.calm;
       const tx = s.targetX ?? s.x + b.facing * 300;
-      const mochi = Array.from({ length: n }, (_, i) =>
-        arcShot(s.handX, s.handY, tx + (i - (n - 1) / 2) * MOCHI_SPREAD, s.targetY ?? s.handY, MOCHI_GRAVITY),
-      );
+      // 第一顆直直丟向玩家,其他落在玩家前後。
+      const mochi = MOCHI_OFFSETS.slice(0, n).map((o) => arcShot(s.handX, s.handY, tx + o * MOCHI_SPREAD, s.targetY ?? s.handY, MOCHI_GRAVITY));
       return { ...none, vx: 0, mochi, brain: { ...b, mode: 'rest', timerMs: 0, slamNext: true } };
     }
     case 'rest': {
