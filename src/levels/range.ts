@@ -67,4 +67,5 @@ export const RANGE: LevelDef = {
     },
   ],
   boss: null,
+  scenes: [{ scene: 'w1-s3', fromScrollX: 0 }],
 };

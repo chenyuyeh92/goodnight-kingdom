@@ -1,33 +1,53 @@
 import Phaser from 'phaser';
+import { LAYER_FACTORS, SCENE_LAYERS, sceneBlend, tileCount, type ScenePlan, type SceneId } from '../art/scenes';
 
-const LAYERS = [
-  { key: 'bg-far', factor: 0.1 },
-  { key: 'bg-mid', factor: 0.35 },
-  { key: 'bg-near', factor: 0.7 },
-] as const;
 const DEPTH = -20;
 
+interface Layer {
+  images: Phaser.GameObjects.Image[];
+  w: number;
+  factor: number;
+  /** 遠景不透明,換場時舊的不用淡出;中景近景透明,舊的要跟著淡出。 */
+  opaque: boolean;
+}
+
 /**
- * 三層視差背景:越遠捲得越慢。每層用兩張圖頭尾相接輪流往左移(素材寬度都大於畫面,兩張就蓋得滿),
- * 比 TileSprite 省效能。素材沒載入時什麼都不畫,只剩底色。
+ * 三層視差背景:越遠捲得越慢,每層排幾張圖頭尾相接。關卡有多個場景時依鏡頭位置淡入下一個場景。
+ * 素材沒載入的場景不畫,只剩底色。
  */
 export class ParallaxBackground {
-  private readonly layers: { images: Phaser.GameObjects.Image[]; w: number; factor: number }[] = [];
+  private readonly scenes = new Map<SceneId, Layer[]>();
 
-  constructor(scene: Phaser.Scene) {
-    LAYERS.forEach((l, i) => {
-      if (!scene.textures.exists(l.key)) return;
-      const images = [0, 1].map(() => scene.add.image(0, 0, l.key).setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH + i));
-      this.layers.push({ images, w: images[0].width, factor: l.factor });
+  constructor(
+    scene: Phaser.Scene,
+    private readonly plan: readonly ScenePlan[],
+  ) {
+    plan.forEach((p, si) => {
+      const layers: Layer[] = [];
+      SCENE_LAYERS[p.scene].forEach((key, li) => {
+        if (!scene.textures.exists(key)) return;
+        const w = scene.textures.get(key).getSourceImage().width;
+        // 同一層裡後面的場景疊在前面的場景上面,淡入時蓋過去。
+        const depth = DEPTH + li + si * 0.1;
+        const images = Array.from({ length: tileCount(w) }, () =>
+          scene.add.image(0, 0, key).setOrigin(0, 0).setScrollFactor(0).setDepth(depth),
+        );
+        layers.push({ images, w, factor: LAYER_FACTORS[li], opaque: li === 0 });
+      });
+      this.scenes.set(p.scene, layers);
     });
     this.update(0);
   }
 
   update(scrollX: number): void {
-    for (const l of this.layers) {
-      const offset = (scrollX * l.factor) % l.w;
-      l.images[0].x = -offset;
-      l.images[1].x = l.w - offset;
+    const blend = sceneBlend(this.plan, scrollX);
+    for (const [id, layers] of this.scenes) {
+      const alpha = id === blend.to ? blend.t : id === blend.from ? 1 : 0;
+      for (const l of layers) {
+        const a = id === blend.from && blend.to && !l.opaque ? 1 - blend.t : alpha;
+        const offset = (scrollX * l.factor) % l.w;
+        l.images.forEach((img, i) => img.setVisible(a > 0).setAlpha(a).setX(i * l.w - offset));
+      }
     }
   }
 }

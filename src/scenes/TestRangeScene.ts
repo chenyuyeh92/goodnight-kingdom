@@ -21,7 +21,8 @@ import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
-import { artStatus, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
+import { artStatus, assetPath, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
+import { sceneKeys } from '../art/scenes';
 import { ParallaxBackground } from '../game/background';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
@@ -255,6 +256,26 @@ export class TestRangeScene extends Phaser.Scene {
     this.save = data?.save ?? createSaveStore(null);
   }
 
+  /** 這一關的背景在進關時才載入(主頁不用先下載全部背景)。 */
+  preload(): void {
+    if (artStatus.disabled) return;
+    const base = import.meta.env.BASE_URL;
+    const keys = sceneKeys(this.level.scenes.map((s) => s.scene)).filter((k) => !this.textures.exists(k));
+    if (keys.length === 0) return;
+    const label = this.add.text(480, 270, '載入中…', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+    const done = (): void => void (artStatus.loaded += 1);
+    const fail = (file: Phaser.Loader.File): void => void artStatus.missing.push(file.key);
+    this.load.on('filecomplete', done);
+    this.load.on('loaderror', fail);
+    // 載入器跟著場景一直存在,重來時不能讓監聽一直疊上去。
+    this.load.once('complete', () => {
+      this.load.off('filecomplete', done);
+      this.load.off('loaderror', fail);
+      label.destroy();
+    });
+    for (const k of keys) this.load.image(k, `${base}${assetPath(k)}`);
+  }
+
   create(): void {
     this.targets = [];
     this.enemies = [];
@@ -279,7 +300,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.terrainBodies.clear();
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
-    this.background = new ParallaxBackground(this);
+    this.background = new ParallaxBackground(this, this.level.scenes);
     this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
 
     this.terrain = this.physics.add.staticGroup();

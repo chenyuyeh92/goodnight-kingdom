@@ -5,8 +5,11 @@ const SHOT_H = 6;
 const SHOT_COLOR = 0xf3e9d2;
 const SHOT_LIFE_MS = 4000;
 
+const SHOT_TEXTURE = 'gk-feather';
+const SHOT_OUTLINE = 0x3a2a5a;
+
 interface Shot {
-  rect: Phaser.GameObjects.Rectangle;
+  rect: Phaser.GameObjects.Image;
   bornAt: number;
 }
 
@@ -20,6 +23,14 @@ export class EnemyShotSystem {
     terrain: Phaser.Physics.Arcade.StaticGroup,
   ) {
     this.group = scene.physics.add.group({ allowGravity: false });
+    if (!scene.textures.exists(SHOT_TEXTURE)) {
+      // 羽毛:奶油色加深紫外框,在亮暗背景都看得到。
+      const g = scene.make.graphics({}, false);
+      g.fillStyle(SHOT_OUTLINE).fillEllipse(SHOT_W / 2 + 2, SHOT_H / 2 + 2, SHOT_W + 4, SHOT_H + 4);
+      g.fillStyle(SHOT_COLOR).fillEllipse(SHOT_W / 2 + 2, SHOT_H / 2 + 2, SHOT_W, SHOT_H);
+      g.generateTexture(SHOT_TEXTURE, SHOT_W + 4, SHOT_H + 4);
+      g.destroy();
+    }
     scene.physics.add.overlap(this.group, terrain, (s) => this.removeObj(s));
   }
 
@@ -31,7 +42,7 @@ export class EnemyShotSystem {
   }
 
   fire(x: number, y: number, vx: number, vy: number): void {
-    const rect = this.scene.add.rectangle(x, y, SHOT_W, SHOT_H, SHOT_COLOR).setRotation(Math.atan2(vy, vx));
+    const rect = this.scene.add.image(x, y, SHOT_TEXTURE).setRotation(Math.atan2(vy, vx)).setDepth(4);
     this.group.add(rect);
     (rect.body as Phaser.Physics.Arcade.Body).setVelocity(vx, vy);
     this.shots.push({ rect, bornAt: this.scene.time.now });

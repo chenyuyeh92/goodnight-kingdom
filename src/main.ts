@@ -146,6 +146,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
     // 不平滑每格的時間:畫面掉格時遊戲照實際時間前進,不會變慢動作。
     fps: { smoothStep: false },
   });
+  // 測試用:讓 e2e 可以檢查畫面上的物件。
+  if (testHooks) (window as unknown as { __PHASER_GAME__: Phaser.Game }).__PHASER_GAME__ = game;
 
   const save = createSaveStore(safeLocalStorage());
   const touch = params.get('touch') === '1' || isTouchDevice();

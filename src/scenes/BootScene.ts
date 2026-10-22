@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SPRITE_KEYS, artStatus, assetPath } from '../art/sprites';
+import { SPRITES, SPRITE_KEYS, artStatus, assetPath } from '../art/sprites';
 import type { TestRangeData } from './TestRangeScene';
 import { loadGameFont } from '../ui/fonts';
 
@@ -37,7 +37,8 @@ export class BootScene extends Phaser.Scene {
     this.load.on('filecomplete', () => (artStatus.loaded += 1));
     this.load.on('loaderror', (file: Phaser.Loader.File) => artStatus.missing.push(file.key));
     const base = import.meta.env.BASE_URL;
-    for (const k of SPRITE_KEYS) this.load.image(k, `${base}${assetPath(k)}`);
+    // 背景很大,進關卡時才載入那一關用到的(TestRangeScene.preload)。
+    for (const k of SPRITE_KEYS) if (!SPRITES[k].file.startsWith('backgrounds/')) this.load.image(k, `${base}${assetPath(k)}`);
     window.__GK__ = { ready: false, screen: 'boot' };
   }
 

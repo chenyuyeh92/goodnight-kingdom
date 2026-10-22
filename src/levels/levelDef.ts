@@ -1,4 +1,5 @@
 import type { ArenaDef, TrickleDef } from '../game/encounters';
+import type { ScenePlan } from '../art/scenes';
 
 export type LevelId = 'range' | 'forest';
 
@@ -26,6 +27,8 @@ export interface LevelDef {
   trickles: readonly TrickleDef[];
   arenas: readonly ArenaDef[];
   boss: { lockScrollX: number; spawnX: number } | null;
+  /** 背景場景:第一個從頭開始,之後依鏡頭位置淡入。 */
+  scenes: readonly ScenePlan[];
 }
 
 export const WORLD_H = 540;

@@ -163,4 +163,9 @@ export const FOREST: LevelDef = {
     },
   ],
   boss: { lockScrollX: 10000, spawnX: 10660 },
+  // 深林(晚上),關主前換成貓頭鷹的大樹(深夜)。
+  scenes: [
+    { scene: 'w1-s3', fromScrollX: 0 },
+    { scene: 'w1-s4', fromScrollX: 9300 },
+  ],
 };
