@@ -138,8 +138,19 @@ describe.each(['w1-1', 'w1-2', 'forest'] as const)('世界 1 共通規則:%s', (
     }
   });
 
-  test('零星魔物夠多(邊走邊打)', () => {
-    expect(new Set(L.trickles.map((t) => t.triggerScrollX)).size).toBeGreaterThanOrEqual(25);
+  test('零星魔物夠多(邊走邊打):至少 28 組', () => {
+    // 同一組的魔物觸發位置相差 40,相差更多就算新的一組。
+    const xs = [...new Set(L.trickles.map((t) => t.triggerScrollX))].sort((a, b) => a - b);
+    const groups = xs.filter((x, i) => i === 0 || x - xs[i - 1] > 40).length;
+    expect(groups).toBeGreaterThanOrEqual(28);
+  });
+
+  test('檢查點(雙人時 B 在右邊 40)不在荊棘上', () => {
+    for (const cp of L.checkpoints) {
+      for (const t of L.thorns) {
+        expect(cp + 40 < t.x - 20 || cp > t.x + t.w + 20, `檢查點 ${cp} 荊棘 ${t.x}`).toBe(true);
+      }
+    }
   });
 
   test('戰鬥區鎖定範圍互不重疊,都在關主之前', () => {

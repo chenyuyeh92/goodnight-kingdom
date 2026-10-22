@@ -33,6 +33,16 @@ test('從河溝左岸重新出來', () => {
   expect(respawnX(3700, gaps)).toBe(3560);
 });
 
+test('左岸已經在畫面外(往回走掉下去)就從右岸出來,不會卡在一直掉的循環', () => {
+  // 鏡頭在 1300,畫面左邊界 1316:左岸 1160 看不到。
+  expect(respawnX(1230, gaps, 1316, 2240)).toBe(1316);
+  expect(respawnX(1230, gaps, 1316, 2240)).toBeGreaterThan(1270);
+  // 左岸看得到時照舊從左岸。
+  expect(respawnX(1230, gaps, 900, 1800)).toBe(1160);
+  // 右岸超出畫面右邊時夾在畫面內。
+  expect(respawnX(3700, gaps, 3600, 3860)).toBe(3860);
+});
+
 test('不在河溝上方(例如被擠出畫面外)就留在原地附近', () => {
   expect(respawnX(2000, gaps)).toBe(2000);
 });

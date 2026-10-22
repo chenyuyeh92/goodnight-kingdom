@@ -21,7 +21,7 @@ import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
-import { artStatus, assetPath, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
+import { ENEMY_ART_TINT, artStatus, assetPath, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
 import { SCENE_PALETTE, sceneKeys, type TerrainPalette } from '../art/scenes';
 import { WORLD1, levelNumber, nextLevel } from '../game/progress';
 import { ParallaxBackground } from '../game/background';
@@ -87,6 +87,11 @@ const BOSS_SHAKE_SCALE = 2;
 
 /** 荷葉的厚度;河岸擋魔物的隱形牆高度。 */
 const PAD_H = 10;
+/** 掉進河裡上岸後的無敵時間。 */
+const RIVER_INVULN_MS = 2000;
+const SHALLOW_DEPTH = 24;
+/** 角色判定寬 28 的一半。 */
+const STAND_HALF_W = 14;
 const BANK_H = 80;
 
 const THORN_H = 16;
@@ -277,16 +282,22 @@ export class TestRangeScene extends Phaser.Scene {
   preload(): void {
     if (artStatus.disabled) return;
     const base = import.meta.env.BASE_URL;
-    const keys = sceneKeys(this.level.scenes.map((s) => s.scene)).filter((k) => !this.textures.exists(k));
+    // 之前載入失敗的背景不再重抓(重來時不會一直卡在載入)。
+    const keys = sceneKeys(this.level.scenes.map((s) => s.scene)).filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
     if (keys.length === 0) return;
-    const label = this.add.text(480, 270, '載入中…', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+    const label = this.add.text(480, 270, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
     const done = (): void => void (artStatus.loaded += 1);
-    const fail = (file: Phaser.Loader.File): void => void artStatus.missing.push(file.key);
+    const fail = (file: Phaser.Loader.File): void => {
+      if (!artStatus.missing.includes(file.key)) artStatus.missing.push(file.key);
+    };
+    const progress = (v: number): void => void label.setText(`載入中 ${Math.round(v * 100)}%`);
+    this.load.on('progress', progress);
     this.load.on('filecomplete', done);
     this.load.on('loaderror', fail);
     // 載入器跟著場景一直存在,重來時不能讓監聽一直疊上去。
     this.load.once('complete', () => {
       this.load.off('filecomplete', done);
+      this.load.off('progress', progress);
       this.load.off('loaderror', fail);
       label.destroy();
     });
@@ -545,14 +556,19 @@ export class TestRangeScene extends Phaser.Scene {
     const water = this.level.water;
     if (!water) return;
     const pb = p.body();
-    if (!p.health.down && (pb.blocked.down || pb.touching.down) && inShallow(p.x, water.shallow)) {
+    // 在水裡跳來跳去也一樣慢(腳離地面 24 以內都算在水裡)。
+    if (!p.health.down && p.feetY > GROUND_Y - SHALLOW_DEPTH && inShallow(p.x, water.shallow)) {
       pb.setVelocityX(pb.velocity.x * SHALLOW_SPEED);
     }
     if (!fellIntoRiver(p.feetY)) return;
     this.splash(p.x);
-    p.teleport(respawnX(p.x, water.gaps), GROUND_Y);
+    const half = STAND_HALF_W + 2;
+    p.teleport(respawnX(p.x, water.gaps, minPlayerX(this.scrollX, SCREEN_MARGIN) + half, this.scrollX + VIEW_W - SCREEN_MARGIN - half), GROUND_Y);
     this.riverFalls += 1;
-    if (!p.health.down) this.hurtPlayer(p, false);
+    if (p.health.down) return;
+    this.hurtPlayer(p, false);
+    // 上岸後多一點無敵時間,岸邊剛好有魔物也不會馬上再被打。
+    p.health = { ...p.health, invulnMs: Math.max(p.health.invulnMs, RIVER_INVULN_MS) };
   }
 
   private splash(x: number): void {
@@ -1113,6 +1129,7 @@ export class TestRangeScene extends Phaser.Scene {
     const img = this.add
       .image(art.x, art.y, key)
       .setOrigin(art.originX, art.originY)
+      .setTint(ENEMY_ART_TINT[enemy.def.type] ?? 0xffffff)
       .setScale(art.scaleX, art.scaleY)
       .setFlipX(art.flipX)
       .setDepth(art.depth);

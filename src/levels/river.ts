@@ -61,7 +61,7 @@ export const RIVER: LevelDef = {
     { x: 8000, w: 60 },
   ],
   // 檢查點都在地面上(不在河溝),也不在戰鬥區(A 2400–3360、B 6200–7160)的畫面裡。
-  checkpoints: [150, 2100, 4100, 6000, 8000, 9100],
+  checkpoints: [150, 2100, 4100, 6000, 7880, 9100],
   chests: [
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
@@ -73,11 +73,16 @@ export const RIVER: LevelDef = {
     ...wave(200, [['alarmBug', 'right', 2]]),
     ...wave(500, [['coffeeBean', 'right', 1], ['alarmBug', 'right', 1]]),
     ...wave(800, [['nightBat', 'right', 1]]),
+    ...wave(950, [['coffeeBean', 'right', 1]]),
     ...wave(1100, [['alarmBug', 'right', 2]]),
     ...wave(1400, [['coffeeBean', 'right', 2]]),
+    ...wave(1550, [['alarmBug', 'right', 1]]),
     ...wave(1700, [['nightBat', 'right', 1], ['alarmBug', 'left', 1]]),
     // 2 淺灘
     ...wave(2000, [['alarmBug', 'right', 3]]),
+    ...wave(2250, [['alarmBug', 'right', 2]]),
+    ...wave(2700, [['coffeeBean', 'right', 2]]),
+    ...wave(3100, [['nightBat', 'right', 1]]),
     ...wave(3400, [['nightBat', 'right', 2]]),
     ...wave(3650, [['coffeeBean', 'right', 2]]),
     // 3 蘆葦叢
@@ -90,6 +95,9 @@ export const RIVER: LevelDef = {
     // 4 河灣
     ...wave(5400, [['nightBat', 'right', 1], ['coffeeBean', 'right', 1]]),
     ...wave(5650, [['alarmBug', 'right', 2]]),
+    ...wave(5900, [['alarmBug', 'left', 1], ['coffeeBean', 'right', 1]]),
+    ...wave(6450, [['nightBat', 'right', 2]]),
+    ...wave(6900, [['alarmBug', 'right', 2]]),
     ...wave(7250, [['hedgehog', 'right', 1], ['nightBat', 'right', 1]]),
     ...wave(7500, [['coffeeBean', 'right', 2], ['alarmBug', 'left', 1]]),
     // 5 木棧道

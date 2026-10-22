@@ -60,10 +60,13 @@ export const GRASSLAND: LevelDef = {
     ...wave(800, [['coffeeBean', 'right', 1]]),
     ...wave(1100, [['alarmBug', 'right', 2]]),
     ...wave(1400, [['coffeeBean', 'right', 1], ['alarmBug', 'right', 1]]),
+    ...wave(1550, [['coffeeBean', 'right', 1]]),
     ...wave(1700, [['alarmBug', 'right', 3]]),
     // 2 小山丘
     ...wave(2000, [['coffeeBean', 'right', 2]]),
     ...wave(2300, [['alarmBug', 'right', 2], ['alarmBug', 'left', 1]]),
+    ...wave(2450, [['coffeeBean', 'right', 2]]),
+    ...wave(3300, [['alarmBug', 'right', 2]]),
     ...wave(3650, [['coffeeBean', 'ground', 1], ['alarmBug', 'right', 2]], 4300),
     ...wave(3900, [['alarmBug', 'right', 3]]),
     // 3 柵欄邊
@@ -74,10 +77,14 @@ export const GRASSLAND: LevelDef = {
     ...wave(5150, [['alarmBug', 'right', 3]]),
     ...wave(5400, [['nightBat', 'right', 1]]),
     // 4 花田:蝙蝠登場
+    ...wave(5550, [['alarmBug', 'left', 1], ['coffeeBean', 'right', 1]]),
     ...wave(5700, [['nightBat', 'right', 1], ['alarmBug', 'right', 1]]),
     ...wave(5950, [['coffeeBean', 'right', 2]]),
     ...wave(6200, [['nightBat', 'right', 2]]),
     ...wave(6450, [['alarmBug', 'right', 2], ['alarmBug', 'left', 1]]),
+    ...wave(6800, [['nightBat', 'right', 1], ['alarmBug', 'right', 1]]),
+    ...wave(7150, [['coffeeBean', 'right', 2]]),
+    ...wave(7400, [['alarmBug', 'right', 2], ['nightBat', 'left', 1]]),
     ...wave(7650, [['nightBat', 'right', 1], ['coffeeBean', 'right', 1]]),
     // 5 森林邊緣
     ...wave(7900, [['alarmBug', 'right', 3]]),

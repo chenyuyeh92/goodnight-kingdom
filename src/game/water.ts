@@ -39,8 +39,14 @@ export function gapAt(x: number, gaps: readonly Span[]): Span | null {
   return gaps.find((g) => inside(x, g)) ?? null;
 }
 
-/** 掉進河溝後從左岸重新出來(大家都是往右走,左岸是剛走過的安全地面)。 */
-export function respawnX(x: number, gaps: readonly Span[]): number {
+/**
+ * 掉進河溝後重新出來的位置:平常是左岸(剛走過的安全地面);
+ * 左岸已經在畫面外(鏡頭只往前,往回走掉下去)就改用右岸,夾在畫面內,避免被推回河溝一直掉。
+ */
+export function respawnX(x: number, gaps: readonly Span[], minX = -Infinity, maxX = Infinity): number {
   const g = gapAt(x, gaps);
-  return g ? g.x - BANK_MARGIN : x;
+  if (!g) return x;
+  const left = g.x - BANK_MARGIN;
+  if (left >= minX) return left;
+  return Math.min(Math.max(g.x + g.w + BANK_MARGIN, minX), maxX);
 }

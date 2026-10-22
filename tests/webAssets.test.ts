@@ -14,7 +14,9 @@ test('子集字型包含原始碼裡所有中文字(漏字會顯示成方框,請
   const have = new Set(readFileSync('public/web/fonts/gk-huninn-chars.txt', 'utf8'));
   const missing = new Set<string>();
   for (const f of sourceFiles('src')) {
-    for (const ch of readFileSync(f, 'utf8')) {
+    // 註解不會顯示在畫面上,不算。
+    const code = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '');
+    for (const ch of code) {
       const c = ch.codePointAt(0)!;
       const cjk = (c >= 0x3000 && c <= 0x9fff) || (c >= 0xff00 && c <= 0xffef);
       if (cjk && !have.has(ch)) missing.add(ch);

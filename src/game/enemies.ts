@@ -23,8 +23,8 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   hedgehog: { type: 'hedgehog', name: '失眠刺蝟', tier: 'mid', hp: 6, w: 60, h: 48, color: 0xa0a0b8, flying: false, shield: true },
   nightOwl: { type: 'nightOwl', name: '熬夜貓頭鷹', tier: 'boss', hp: 60, w: 110, h: 100, color: 0x8a7a5c, flying: true, shield: false },
   // 小頭目:美術還沒有專屬的圖,先用原本的魔物放大、換顏色。
-  bigClockBug: { type: 'bigClockBug', name: '大鬧鐘蟲', tier: 'boss', hp: 25, w: 57, h: 66, color: 0xf0a060, flying: false, shield: false },
-  hedgehogCaptain: { type: 'hedgehogCaptain', name: '刺蝟隊長', tier: 'boss', hp: 30, w: 84, h: 66, color: 0xc08080, flying: false, shield: true },
+  bigClockBug: { type: 'bigClockBug', name: '大鬧鐘蟲', tier: 'boss', hp: 35, w: 57, h: 66, color: 0xf0a060, flying: false, shield: false },
+  hedgehogCaptain: { type: 'hedgehogCaptain', name: '刺蝟隊長', tier: 'boss', hp: 40, w: 84, h: 66, color: 0xc08080, flying: false, shield: true },
 };
 
 export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll';

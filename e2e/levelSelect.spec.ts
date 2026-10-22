@@ -47,6 +47,18 @@ test.describe('選關', () => {
     expect((await gk(page)).level).toBe('w1-2');
   });
 
+  test('手機上點「回到主頁」', async ({ page }) => {
+    await page.addInitScript(() => localStorage.removeItem('gk.save.v1'));
+    await page.goto('./?test=1&touch=1');
+    await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
+    const box = (await page.locator('canvas').boundingBox())!;
+    const tap = (x: number, y: number) => page.mouse.click(box.x + (x / 960) * box.width, box.y + (y / 540) * box.height);
+    await tap(480, 250);
+    await page.waitForFunction(() => window.__GK__!.screen === 'level-select');
+    await tap(480, 488);
+    await page.waitForFunction(() => window.__GK__!.screen === 'mode-select');
+  });
+
   test('Esc 回到主頁', async ({ page }) => {
     await openLevelSelect(page, null);
     await page.keyboard.press('Escape');

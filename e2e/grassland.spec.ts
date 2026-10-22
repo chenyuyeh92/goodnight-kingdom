@@ -22,10 +22,10 @@ test.describe('1-1 草原', () => {
     expect(s.art!.missing).toEqual([]);
   });
 
-  test('小頭目大鬧鐘蟲:血量 25,會叫小鬧鐘蟲', async ({ page }) => {
+  test('小頭目大鬧鐘蟲:血量 35,會叫小鬧鐘蟲', async ({ page }) => {
     await open(page);
     await enterBoss(page);
-    expect((await gk(page)).boss!.maxHp).toBe(25);
+    expect((await gk(page)).boss!.maxHp).toBe(35);
     await page.waitForFunction(
       () => window.__GK__!.enemies!.some((e) => e.type === 'alarmBug'),
       undefined,
@@ -36,7 +36,7 @@ test.describe('1-1 草原', () => {
   test('雙人時小頭目血量 1.5 倍', async ({ page }) => {
     await open(page, 'duo');
     await enterBoss(page);
-    expect((await gk(page)).boss!.maxHp).toBe(38);
+    expect((await gk(page)).boss!.maxHp).toBe(53);
   });
 
   test('小頭目不會走出鎖住的畫面', async ({ page }) => {
