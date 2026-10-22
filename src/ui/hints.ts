@@ -1,9 +1,9 @@
 import type { PlayMode } from '../input/playMode';
 
 /** 路邊的教學告示牌(1-1 教操作,世界 2 教流沙與壓力板)。 */
-export type HintKind = 'move' | 'jump' | 'aimUp' | 'crouch' | 'melee' | 'chest' | 'quicksand' | 'plate' | 'swim' | 'dive' | 'current' | 'ice' | 'icicle' | 'lava' | 'eruption' | 'vine' | 'stampede' | 'wind' | 'cloudGap';
+export type HintKind = 'move' | 'jump' | 'aimUp' | 'crouch' | 'melee' | 'chest' | 'quicksand' | 'plate' | 'swim' | 'dive' | 'current' | 'ice' | 'icicle' | 'lava' | 'eruption' | 'vine' | 'stampede' | 'wind' | 'cloudGap' | 'dark';
 
-export const HINT_KINDS: readonly HintKind[] = ['move', 'jump', 'aimUp', 'crouch', 'melee', 'chest', 'quicksand', 'plate', 'swim', 'dive', 'current', 'ice', 'icicle', 'lava', 'eruption', 'vine', 'stampede', 'wind', 'cloudGap'];
+export const HINT_KINDS: readonly HintKind[] = ['move', 'jump', 'aimUp', 'crouch', 'melee', 'chest', 'quicksand', 'plate', 'swim', 'dive', 'current', 'ice', 'icicle', 'lava', 'eruption', 'vine', 'stampede', 'wind', 'cloudGap', 'dark'];
 
 const WHAT: Record<HintKind, string> = {
   move: '往右走,邊走邊射擊',
@@ -25,6 +25,7 @@ const WHAT: Record<HintKind, string> = {
   stampede: '地面震動、揚起沙塵,角馬群要衝過來了!一組一組跳過去或站到岩石上',
   wind: '強風一陣一陣往回吹,風停的時候快往前走',
   cloudGap: '小心雲海!踩著雲朵平台跳過去',
+  dark: '洞裡很暗,只看得到身邊和發光水晶附近,慢慢走',
 };
 
 const KEYS: Record<HintKind, { a: string; b: string; touch: string } | null> = {
@@ -47,6 +48,7 @@ const KEYS: Record<HintKind, { a: string; b: string; touch: string } | null> = {
   stampede: null,
   wind: null,
   cloudGap: null,
+  dark: null,
 };
 
 /** 告示牌文字:依單人/雙人與是否觸控顯示對應的按鍵。 */

@@ -6,7 +6,7 @@ const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
 /** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡(章魚墨汁)、駱駝口水、沙球/沙塊、泡泡、松鼠的橡實。 */
-export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava' | 'mango' | 'sweep' | 'jet' | 'roar' | 'rock' | 'bamboo';
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava' | 'mango' | 'sweep' | 'jet' | 'roar' | 'rock' | 'bamboo' | 'stone' | 'waterBubble' | 'spark';
 
 /** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
 const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
@@ -28,10 +28,14 @@ const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
   // 山羊踢的石頭、熊貓的迴旋竹子。
   rock: { w: 20, h: 18, color: 0x8a8a9a },
   bamboo: { w: 38, h: 10, color: 0x7ac05a },
+  // 巨鼴鼠挖出的石塊、六角恐龍的水泡、螢火蟲女王的光點。
+  stone: { w: 20, h: 18, color: 0x7a6a6a },
+  waterBubble: { w: 16, h: 16, color: 0xa8e8ff },
+  spark: { w: 14, h: 14, color: 0xfff080 },
 };
 
 /** 有美術圖的子彈(載入了就用美術的圖,沒有就用上面程式畫的)。 */
-const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball', mango: 'b-mango', jet: 'b-water-jet', rock: 'b-w8-rock', bamboo: 'b-bamboo' };
+const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball', mango: 'b-mango', jet: 'b-water-jet', rock: 'b-w8-rock', bamboo: 'b-bamboo', stone: 'b-w9-rock', waterBubble: 'b-w9-bubble', spark: 'b-firefly' };
 
 const textureKey = (kind: ShotKind): string => `gk-shot-${kind}`;
 

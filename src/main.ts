@@ -132,6 +132,8 @@ export interface GkDebug {
   stampede?: { warnings: number; herds: number; beasts: number; hits: number };
   /** 世界 8:風區現在的風有多強(0–1)、雷鳥正在颳強風、被風推過的格數。 */
   wind?: { strength: number; gust: boolean; pushes: number };
+  /** 世界 9:黑暗多濃(0–1)、這一格有幾個光源、火螢女王閃光後的全黑中。 */
+  darkness?: { alpha: number; lights: number; blackout: boolean };
   /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
   desert?: { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number };
   /** 測試用:在 x 掉一塊沙磚。 */

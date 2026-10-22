@@ -24,6 +24,9 @@ import { PRIDE_ROCK } from './pride';
 import { MEADOW } from './meadow';
 import { CLOUD_SEA } from './cloudSea';
 import { CLIFF_BRIDGE } from './cliffBridge';
+import { MINE_ENTRANCE } from './mineEntrance';
+import { CRYSTAL_CAVE } from './crystalCave';
+import { UNDERGROUND_RIVER } from './undergroundRiver';
 
 export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   range: RANGE,
@@ -51,4 +54,7 @@ export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   'w8-1': MEADOW,
   'w8-2': CLOUD_SEA,
   'w8-3': CLIFF_BRIDGE,
+  'w9-1': MINE_ENTRANCE,
+  'w9-2': CRYSTAL_CAVE,
+  'w9-3': UNDERGROUND_RIVER,
 };

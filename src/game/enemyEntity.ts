@@ -118,7 +118,7 @@ export class EnemyEntity {
     this.shield?.setPosition(this.body.x + (this.brain.facing * (this.def.w - SHIELD_W)) / 2, this.body.y);
     // 沒有圖時:躲進地洞的狐獴畫成半透明(看得出來打不到)。
     if (!this.art) {
-      if (this.def.type === 'meerkat') this.body.setFillStyle(this.def.color, this.burrowed ? 0.3 : 1);
+      if (this.def.type === 'meerkat' || this.def.type === 'coffeeWorm') this.body.setFillStyle(this.def.color, this.burrowed ? 0.3 : 1);
       return;
     }
     // 素材朝左;貓頭鷹依飛行方向轉,其他魔物依面向。

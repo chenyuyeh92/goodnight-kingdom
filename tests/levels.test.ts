@@ -119,7 +119,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3', 'w9-1', 'w9-2', 'w9-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -595,4 +595,49 @@ test('世界 8 的小頭目是山羊、熊貓,關主是雷鳥;8-1 教強風、8-
   expect(LEVELS['w8-1'].hints!.map((h) => h.kind)).toContain('wind');
   expect(LEVELS['w8-2'].hints!.map((h) => h.kind)).toContain('cloudGap');
   expect(LEVELS['w8-3'].scenes.map((s) => s.scene)).toEqual(['w8-s3', 'w8-s4']);
+});
+
+describe.each(['w9-1', 'w9-2', 'w9-3'] as const)('世界 9 洞窟:%s', (id) => {
+  const L = LEVELS[id];
+  const dark = L.darkness ?? [];
+  const crystals = [...(L.crystals ?? [])].sort((a, b) => a - b);
+
+  test('屬於世界 9,有黑暗區與發光水晶,平台用礦坑木板', () => {
+    expect(L.world).toBe(9);
+    expect(dark.length).toBeGreaterThan(0);
+    expect(crystals.length).toBeGreaterThan(5);
+    expect(L.platformArt).toBe('mine-platform');
+    for (const s of L.scenes) expect(s.scene.startsWith('w9-')).toBe(true);
+  });
+
+  test('黑暗區裡一路都有發光水晶(相隔不超過 460,走著走著就看得到下一顆的光)', () => {
+    for (const z of dark) {
+      const inside = crystals.filter((c) => c >= z.x && c <= z.x + z.w);
+      expect(inside[0] - z.x, `黑暗區 ${z.x} 第一顆`).toBeLessThanOrEqual(460);
+      for (let i = 1; i < inside.length; i++) expect(inside[i] - inside[i - 1]).toBeLessThanOrEqual(460);
+    }
+  });
+
+  test('關主區裡至少兩顆發光水晶', () => {
+    const lock = L.boss!.lockScrollX;
+    expect(crystals.filter((c) => c >= lock && c <= lock + VIEW_W).length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('淺水不在戰鬥區與關主區', () => {
+    const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
+    for (const w of windows) for (const s of L.water?.shallow ?? []) expect(s.x + s.w <= w || s.x >= w + VIEW_W, `淺水 ${s.x}`).toBe(true);
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of L.chests.filter((c) => c.bottom < 300)) expectReachable(c, L);
+  });
+});
+
+test('世界 9 的小頭目是螢火蟲女王、六角恐龍,關主是巨鼴鼠;9-1 教黑暗;9-3 有地下河的淺水', () => {
+  expect(LEVELS['w9-1'].boss!.type).toBe('queen');
+  expect(LEVELS['w9-2'].boss!.type).toBe('axolotl');
+  expect(LEVELS['w9-3'].boss!.type).toBe('mole');
+  expect(LEVELS['w9-1'].hints!.map((h) => h.kind)).toContain('dark');
+  expect((LEVELS['w9-3'].water?.shallow ?? []).length).toBeGreaterThan(0);
+  expect(LEVELS['w9-3'].scenes.map((s) => s.scene)).toEqual(['w9-s3', 'w9-s4']);
 });

@@ -20,6 +20,8 @@ export interface FennecSense {
   arenaRight: number;
   /** 身體寬度的一半(獨角鯨也用這套行為);沒有時用耳廓狐的。 */
   halfW?: number;
+  /** 每次冒出來都往兩邊丟(巨鼴鼠用爪子挖出石塊);沒有時血量一半以下才丟。 */
+  alwaysThrow?: boolean;
   dtMs: number;
 }
 
@@ -78,7 +80,7 @@ export function stepFennec(b: FennecBrain, s: FennecSense): FennecStep {
     }
     case 'under': {
       if (timerMs < FENNEC_WARN_MS) return { ...none, vx: 0, vy: null, hidden: true, brain: { ...b, timerMs } };
-      const clumps = s.hpRatio <= ANGRY_RATIO ? [{ vx: -CLUMP.vx, vy: CLUMP.vy }, { ...CLUMP }] : [];
+      const clumps = s.hpRatio <= ANGRY_RATIO || s.alwaysThrow ? [{ vx: -CLUMP.vx, vy: CLUMP.vy }, { ...CLUMP }] : [];
       return { ...none, vx: 0, vy: POP_VY, clumps, brain: { ...b, mode: 'pop', timerMs: 0, facing } };
     }
     case 'pop': {

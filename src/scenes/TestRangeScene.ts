@@ -47,7 +47,11 @@ import { animFrame } from '../art/frames';
 import { BOSS_GUST_PUSH, WIND_PUSH, inWind, windStrength, windVx } from '../game/wind';
 import { ROCK_GRAVITY, initialGoatBrain, stepGoat, type GoatBrain } from '../game/goat';
 import { BAMBOO_AX, BAMBOO_VX, BAMBOO_Y, initialPandaBrain, stepPanda, type PandaBrain } from '../game/panda';
-import { initialThunderBrain, stepThunder, type ThunderBrain } from '../game/thunderbird';
+import { THUNDER_HOVER_Y, initialThunderBrain, stepThunder, type ThunderBrain } from '../game/thunderbird';
+import { BLACKOUT_ALPHA, BLACKOUT_PLAYER_RADIUS, DARK_ALPHA, LIGHT_RADIUS, fadeDark, inDark } from '../game/darkness';
+import { QUEEN_HOVER_Y, initialQueenBrain, stepQueen, type QueenBrain } from '../game/queen';
+import { initialAxolotlBrain, stepAxolotl, type AxolotlBrain } from '../game/axolotl';
+import { owlPhase } from '../game/owl';
 import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
 import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
@@ -118,13 +122,25 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王', thunderbird: '雷鳥' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王', thunderbird: '雷鳥', mole: '巨鼴鼠' };
 /** 冰柱:玩家走到左右這麼近就掉下來。 */
 const ICICLE_TRIGGER_X = 100;
 /** 熔岩圖流動一格(96 px)要多久。 */
 const LAVA_FLOW_MS = 4000;
 /** 角馬跑出畫面這麼遠才收掉。 */
 const HERD_DESPAWN = 100;
+/** 世界 9 黑暗遮罩:在世界上面、HUD 下面;光圈貼圖。 */
+const DARK_DEPTH = 8;
+const DARK_COLOR = 0x07040f;
+const LIGHT_KEY = 'gk-light';
+const LIGHT_TEX_R = 128;
+/** 火螢女王燈泡一閃後,四周很黑多久。 */
+const BLACKOUT_MS = 1200;
+/** 六角恐龍的水泡飄得慢,活久一點。 */
+const BUBBLE_LIFE_MS = 6000;
+/** 巨鼴鼠的土堆顏色、最多同時幾隻咖啡蚯蚓。 */
+const MOLE_DIRT = 0x5a3a2a;
+const MOLE_MAX_WORMS = 3;
 /** 雲海(世界 8 的河溝)的顏色。 */
 const CLOUD_GAP = { fill: 0xd8d0ec, light: 0xffffff } as const;
 /** 熊貓的迴旋竹子飛出去再飛回來,回到熊貓手上就消失(不會飛去打背後的人);雷鳥颳強風時畫面輕輕晃。 */
@@ -248,7 +264,7 @@ type BossAi =
   | { kind: 'squirrel'; brain: SquirrelBrain; armored: boolean }
   | { kind: 'beaver'; brain: BeaverBrain }
   | { kind: 'camel'; brain: CamelBrain }
-  | { kind: 'fennec'; brain: FennecBrain; mound: Phaser.GameObjects.Ellipse | null }
+  | { kind: 'fennec'; brain: FennecBrain; mound: Phaser.GameObjects.Ellipse | null; phase: 1 | 2 | 3 }
   | { kind: 'sphinx'; brain: SphinxBrain }
   | { kind: 'crab'; brain: CrabBrain; armored: boolean }
   | { kind: 'eel'; brain: EelBrain }
@@ -265,10 +281,12 @@ type BossAi =
   | { kind: 'lion'; brain: LionBrain }
   | { kind: 'goat'; brain: GoatBrain }
   | { kind: 'panda'; brain: PandaBrain }
-  | { kind: 'thunderbird'; brain: ThunderBrain };
+  | { kind: 'thunderbird'; brain: ThunderBrain }
+  | { kind: 'queen'; brain: QueenBrain }
+  | { kind: 'axolotl'; brain: AxolotlBrain; lastHp: number };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla', 'giraffe', 'elephant', 'lion', 'goat', 'panda', 'thunderbird']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla', 'giraffe', 'elephant', 'lion', 'goat', 'panda', 'thunderbird', 'queen', 'axolotl', 'mole']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -281,7 +299,7 @@ function initialAi(type: BossType): BossAi {
     case 'camel':
       return { kind: 'camel', brain: initialCamelBrain() };
     case 'fennec':
-      return { kind: 'fennec', brain: initialFennecBrain(), mound: null };
+      return { kind: 'fennec', brain: initialFennecBrain(), mound: null, phase: 1 };
     case 'sphinx':
       return { kind: 'sphinx', brain: initialSphinxBrain() };
     case 'hermitCrab':
@@ -294,7 +312,7 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'bear', brain: initialBearBrain() };
     // 獨角鯨用耳廓狐的行為(在冰面下)。
     case 'narwhal':
-      return { kind: 'fennec', brain: initialFennecBrain(), mound: null };
+      return { kind: 'fennec', brain: initialFennecBrain(), mound: null, phase: 1 };
     case 'yeti':
       return { kind: 'yeti', brain: initialYetiBrain() };
     case 'hippo':
@@ -322,12 +340,19 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'panda', brain: initialPandaBrain() };
     case 'thunderbird':
       return { kind: 'thunderbird', brain: initialThunderBrain() };
+    case 'queen':
+      return { kind: 'queen', brain: initialQueenBrain() };
+    case 'axolotl':
+      return { kind: 'axolotl', brain: initialAxolotlBrain(), lastHp: Infinity };
+    // 巨鼴鼠用耳廓狐的行為(鑽進地底、從玩家腳下冒出來),再加上三個階段。
+    case 'mole':
+      return { kind: 'fennec', brain: initialFennecBrain(), mound: null, phase: 1 };
   }
 }
 
 /** 有三階段的關主回傳目前階段,其他回傳 1。 */
 function aiPhase(ai: BossAi): 1 | 2 | 3 {
-  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' || ai.kind === 'lion' || ai.kind === 'thunderbird' ? ai.brain.phase : 1;
+  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' || ai.kind === 'lion' || ai.kind === 'thunderbird' ? ai.brain.phase : ai.kind === 'fennec' ? ai.phase : 1;
 }
 
 function aiMode(ai: BossAi): string {
@@ -483,6 +508,12 @@ export class TestRangeScene extends Phaser.Scene {
   private bossGust = false;
   private windSpawnMs = 0;
   private windPushes = 0;
+  /** 世界 9 的黑暗:遮罩(擦出光圈)、目前多黑、火螢女王閃光後更黑的剩餘時間、這一格有幾個光源。 */
+  private darkRt: Phaser.GameObjects.RenderTexture | null = null;
+  private lightPool: Phaser.GameObjects.Image[] = [];
+  private darkAlpha = 0;
+  private blackoutMs = 0;
+  private lightCount = 0;
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -673,6 +704,16 @@ export class TestRangeScene extends Phaser.Scene {
     this.bossGust = false;
     this.windSpawnMs = 0;
     this.windPushes = 0;
+    this.darkAlpha = 0;
+    this.blackoutMs = 0;
+    this.lightCount = 0;
+    this.lightPool = [];
+    this.darkRt = null;
+    for (const x of this.level.crystals ?? []) this.drawCrystal(x);
+    if (this.level.darkness?.length) {
+      this.makeLightTexture();
+      this.darkRt = this.add.renderTexture(0, 0, VIEW_W, WORLD_H).setOrigin(0, 0).setScrollFactor(0).setDepth(DARK_DEPTH).setVisible(false);
+    }
     this.beamGfx = this.add.graphics().setDepth(4);
     this.beamTiles = [];
 
@@ -845,6 +886,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.updateVines(dtMs);
     this.updateStampede(dtMs);
     this.updateWind(dtMs);
+    this.updateDarkness(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -997,6 +1039,72 @@ export class TestRangeScene extends Phaser.Scene {
       this.vineGrabs += 1;
       return;
     }
+  }
+
+  /** 柔和的光圈(中間全亮、往外慢慢變暗),擦黑暗遮罩用;半徑 LIGHT_TEX_R。 */
+  private makeLightTexture(): void {
+    if (this.textures.exists(LIGHT_KEY)) return;
+    const size = LIGHT_TEX_R * 2;
+    const tex = this.textures.createCanvas(LIGHT_KEY, size, size);
+    if (!tex) return;
+    const ctx = tex.getContext();
+    const g = ctx.createRadialGradient(LIGHT_TEX_R, LIGHT_TEX_R, 0, LIGHT_TEX_R, LIGHT_TEX_R, LIGHT_TEX_R);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.55, 'rgba(255,255,255,0.9)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    tex.refresh();
+  }
+
+  /** 發光水晶:立在地上、一閃一閃。 */
+  private drawCrystal(x: number): void {
+    const view = this.textures.exists('crystal')
+      ? this.add.image(x, GROUND_Y, 'crystal').setOrigin(0.5, 1)
+      : this.add.triangle(x, GROUND_Y - 18, 0, 36, 12, 0, 24, 36, 0xc0a0ff).setOrigin(0.5, 0.5);
+    view.setDepth(-1);
+    this.tweens.add({ targets: view, alpha: { from: 1, to: 0.75 }, duration: 900, yoyo: true, repeat: -1 });
+  }
+
+  /**
+   * 世界 9:黑暗區裡畫面蓋一層黑,只在玩家身邊、發光水晶、會發光的魔物(螢火蟲、發光蛾、女王、巨鼴鼠的頭燈)附近擦出光圈。
+   * 火螢女王閃光後一陣子更黑、玩家身邊的光變小。
+   */
+  private updateDarkness(dtMs: number): void {
+    this.blackoutMs = Math.max(0, this.blackoutMs - Math.min(dtMs, MAX_DT_MS));
+    const rt = this.darkRt;
+    if (!rt) return;
+    const dark = inDark(this.scrollX + VIEW_W / 2, this.level.darkness ?? []);
+    const blackout = this.blackoutMs > 0;
+    const target = !dark ? 0 : blackout ? BLACKOUT_ALPHA : DARK_ALPHA;
+    this.darkAlpha = blackout && dark ? target : fadeDark(this.darkAlpha, target, dtMs);
+    if (this.darkAlpha <= 0.01) {
+      rt.setVisible(false);
+      this.lightCount = 0;
+      return;
+    }
+    const lights: { x: number; y: number; r: number }[] = [];
+    for (const p of this.players) lights.push({ x: p.x, y: p.feetY - 24, r: blackout ? BLACKOUT_PLAYER_RADIUS : LIGHT_RADIUS.player });
+    for (const x of this.level.crystals ?? []) {
+      if (x > this.scrollX - LIGHT_RADIUS.crystal && x < this.scrollX + VIEW_W + LIGHT_RADIUS.crystal) lights.push({ x, y: GROUND_Y - 40, r: LIGHT_RADIUS.crystal });
+    }
+    for (const e of this.enemies) {
+      if (e.emerging) continue;
+      const t = e.def.type;
+      if (t === 'moth' || t === 'firefly' || t === 'queen') lights.push({ x: e.x, y: e.body.y, r: LIGHT_RADIUS[t] });
+      // 巨鼴鼠的頭燈:照著前面。
+      if (t === 'mole') lights.push({ x: e.x + e.brain.facing * 40, y: e.body.y - e.def.h / 4, r: LIGHT_RADIUS.headlamp });
+    }
+    while (this.lightPool.length < lights.length) this.lightPool.push(new Phaser.GameObjects.Image(this, 0, 0, LIGHT_KEY));
+    const used = lights.map((l, i) =>
+      this.lightPool[i].setPosition(l.x - this.scrollX, l.y).setScale(l.r / LIGHT_TEX_R),
+    );
+    this.lightCount = lights.length;
+    rt.setVisible(true);
+    rt.clear();
+    rt.fill(DARK_COLOR, this.darkAlpha);
+    if (used.length > 0) rt.erase(used);
+    rt.render();
   }
 
   /** 風區現在的風有多強(0–1)。 */
@@ -1596,6 +1704,8 @@ export class TestRangeScene extends Phaser.Scene {
       else if (ai.kind === 'goat') this.updateGoat(boss, ai, dtMs);
       else if (ai.kind === 'panda') this.updatePanda(boss, ai, dtMs);
       else if (ai.kind === 'thunderbird') this.updateThunder(boss, ai, dtMs);
+      else if (ai.kind === 'queen') this.updateQueen(boss, ai, dtMs);
+      else if (ai.kind === 'axolotl') this.updateAxolotl(boss, ai, dtMs);
       else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1712,11 +1822,14 @@ export class TestRangeScene extends Phaser.Scene {
       arenaLeft: lock + SCREEN_MARGIN,
       arenaRight: lock + VIEW_W - SCREEN_MARGIN,
       halfW: enemy.def.w / 2,
+      alwaysThrow: enemy.def.type === 'mole',
       dtMs,
     });
     ai.brain = step.brain;
     enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
     const icy = enemy.def.type === 'narwhal';
+    const mole = enemy.def.type === 'mole';
+    if (mole) this.updateMolePhase(boss, ai, was !== 'burrow' && step.brain.mode === 'burrow');
     if (step.teleportX !== null) pb.reset(step.teleportX, enemy.body.y);
     if (was !== 'burrow' && step.brain.mode === 'burrow') this.puffAt(enemy.x, icy);
     enemy.emerging = step.hidden;
@@ -1725,7 +1838,9 @@ export class TestRangeScene extends Phaser.Scene {
     if (step.vy !== null) pb.setVelocityY(step.vy);
     if (step.brain.mode === 'under' && !ai.mound) {
       // 耳廓狐冒出沙堆;獨角鯨是冰面的裂痕。
-      ai.mound = this.add.ellipse(step.brain.moundX, GROUND_Y - MOUND_H / 4, MOUND_W, MOUND_H, icy ? 0xd8f0ff : COLOR.dirt).setDepth(3);
+      // 巨鼴鼠是一大堆深色的土。
+      const w = mole ? MOUND_W * 1.6 : MOUND_W;
+      ai.mound = this.add.ellipse(step.brain.moundX, GROUND_Y - MOUND_H / 4, w, MOUND_H, icy ? 0xd8f0ff : mole ? MOLE_DIRT : COLOR.dirt).setDepth(3);
       if (icy) ai.mound.setStrokeStyle(2, 0x6fa8d8);
       this.tweens.add({ targets: ai.mound, scaleX: 1.15, duration: 90, yoyo: true, repeat: -1 });
     }
@@ -1734,7 +1849,92 @@ export class TestRangeScene extends Phaser.Scene {
       ai.mound = null;
       this.puffAt(enemy.x, icy);
     }
-    for (const c of step.clumps) this.shots.fire(enemy.x, enemy.body.y - 10, c.vx, c.vy, icy ? 'ice' : 'sand', SPIT_GRAVITY);
+    for (const c of step.clumps) this.shots.fire(enemy.x, enemy.body.y - 10, c.vx, c.vy, icy ? 'ice' : mole ? 'stone' : 'sand', SPIT_GRAVITY);
+  }
+
+  /** 巨鼴鼠:依血量換階段(換圖、跳出「越來越暴躁」);第二階段起每次鑽進地底叫一隻咖啡蚯蚓。 */
+  private updateMolePhase(boss: Boss, ai: Extract<BossAi, { kind: 'fennec' }>, burrowed: boolean): void {
+    const { enemy } = boss;
+    const phase = owlPhase(enemy.hp / boss.maxHp);
+    if (phase > ai.phase) {
+      ai.phase = phase;
+      this.announcePhase(boss);
+    }
+    enemy.setArt(enemySprite('mole', 'awake', ai.phase));
+    enemy.bossPhase = ai.phase;
+    if (burrowed && ai.phase >= 2 && boss.minions.size < MOLE_MAX_WORMS) {
+      boss.minions.add(this.spawnFrom({ type: 'coffeeWorm', from: 'right', delayMs: 0 }, false));
+    }
+  }
+
+  /** 熬夜螢火蟲女王:在半空中飄,叫會發光的小螢火蟲、射光點、燈泡一閃讓四周很黑一下。 */
+  private updateQueen(boss: Boss, ai: Extract<BossAi, { kind: 'queen' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const fireflies = [...boss.minions].filter((m) => m.def.type === 'firefly').length;
+    const step = stepQueen(ai.brain, {
+      x: enemy.x,
+      y: enemy.body.y,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      halfW: enemy.def.w / 2,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      firefliesAlive: fireflies,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: 'hover' };
+    enemy.physicsBody().setVelocity(step.vx, step.vy);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (let i = 0; i < step.summon; i++) {
+      boss.minions.add(this.spawnEnemy('firefly', enemy.x + (i - (step.summon - 1) / 2) * 40, enemy.body.y + 30));
+    }
+    for (const sp of step.sparks) this.shots.fire(enemy.x, enemy.body.y, sp.vx, sp.vy, 'spark');
+    if (step.flash) {
+      // 燈泡一閃:整個畫面白一下,然後很黑一陣子。
+      const flash = this.add.rectangle(VIEW_W / 2, WORLD_H / 2, VIEW_W, WORLD_H, 0xfff8d0, 0.8).setScrollFactor(0).setDepth(DARK_DEPTH + 1);
+      this.tweens.add({ targets: flash, alpha: 0, duration: 250, onComplete: () => flash.destroy() });
+      this.blackoutMs = BLACKOUT_MS;
+      audio.sfx('bossPhase');
+    }
+  }
+
+  /** 失眠六角恐龍:慢慢游、吐慢慢飄的水泡;3 秒沒被打就慢慢回血。 */
+  private updateAxolotl(boss: Boss, ai: Extract<BossAi, { kind: 'axolotl' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const was = ai.brain.mode;
+    const mouthX = enemy.x + ai.brain.facing * (enemy.def.w / 2);
+    const mouthY = enemy.body.y - enemy.def.h / 6;
+    const step = stepAxolotl(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      mouthX,
+      mouthY,
+      hurt: enemy.hp < ai.lastHp,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'swim' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const b of step.bubbles) this.shots.fire(mouthX, mouthY, b.vx, b.vy, 'waterBubble', 0, BUBBLE_LIFE_MS);
+    if (step.heal > 0 && enemy.hp > 0) {
+      enemy.hp = Math.min(boss.maxHp, enemy.hp + step.heal);
+      // 頭上冒出綠色的「+」,看得出來在回血。
+      const plus = this.add
+        .text(enemy.x, enemy.body.y - enemy.def.h / 2 - 6, '+', { fontSize: '26px', color: '#8fe08f', stroke: '#2a4a2a', strokeThickness: 5 })
+        .setOrigin(0.5, 1)
+        .setDepth(6);
+      this.tweens.add({ targets: plus, y: plus.y - 24, alpha: 0, duration: 500, onComplete: () => plus.destroy() });
+    }
+    ai.lastHp = enemy.hp;
   }
 
   /** 失眠寄居蟹:走一走,輪流縮進殼裡滑過來(打不動)與吐慢慢飄的泡泡。 */
@@ -2439,7 +2639,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.removeEnemy(e);
     }
     this.shots.clear();
-    const flyingY: Partial<Record<BossType, number>> = { nightOwl: OWL_HOVER_Y, eel: 200, nessie: NESSIE_HOME_Y };
+    const flyingY: Partial<Record<BossType, number>> = { nightOwl: OWL_HOVER_Y, eel: 200, nessie: NESSIE_HOME_Y, thunderbird: THUNDER_HOVER_Y, queen: QUEEN_HOVER_Y };
     const enemy = this.spawnEnemy(type, spawnX, flyingY[type]);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;
@@ -2796,6 +2996,7 @@ export class TestRangeScene extends Phaser.Scene {
       vines: { grabs: this.vineGrabs, holding: [...this.holding] },
       stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
       wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
+      darkness: { alpha: this.darkAlpha, lights: this.lightCount, blackout: this.blackoutMs > 0 },
       desert: this.desert.debug(),
       dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,
       enemyShots: this.shots.count(),

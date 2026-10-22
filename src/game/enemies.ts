@@ -57,7 +57,15 @@ export type EnemyType =
   | 'yak'
   | 'goat'
   | 'panda'
-  | 'thunderbird';
+  | 'thunderbird'
+  | 'mushroom'
+  | 'coffeeWorm'
+  | 'moth'
+  | 'beetle'
+  | 'firefly'
+  | 'queen'
+  | 'axolotl'
+  | 'mole';
 export type EnemyTier = 'minion' | 'mid' | 'high' | 'boss';
 
 export interface EnemyDef {
@@ -139,6 +147,15 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   goat: { type: 'goat', name: '熬夜山羊', tier: 'boss', hp: 45, w: 100, h: 115, color: 0xf6f6f6, flying: false, shield: false },
   panda: { type: 'panda', name: '失眠熊貓', tier: 'boss', hp: 50, w: 85, h: 110, color: 0xf6f6f6, flying: false, shield: false },
   thunderbird: { type: 'thunderbird', name: '熬夜雷鳥', tier: 'boss', hp: 120, w: 130, h: 150, color: 0x3a3a5a, flying: true, shield: false },
+  // 世界 9 地底洞窟。
+  mushroom: { type: 'mushroom', name: '熬夜蘑菇精靈', tier: 'minion', hp: 3, w: 38, h: 48, color: 0xd07a8a, flying: false, shield: false },
+  coffeeWorm: { type: 'coffeeWorm', name: '咖啡蚯蚓', tier: 'minion', hp: 2, w: 30, h: 48, color: 0xc07a6a, flying: false, shield: false },
+  moth: { type: 'moth', name: '吵鬧發光蛾', tier: 'minion', hp: 1, w: 44, h: 44, color: 0xe8e0a0, flying: true, shield: false },
+  beetle: { type: 'beetle', name: '失眠獨角仙', tier: 'mid', hp: 10, w: 52, h: 64, color: 0x5a3a2a, flying: false, shield: true },
+  firefly: { type: 'firefly', name: '小螢火蟲', tier: 'minion', hp: 1, w: 22, h: 22, color: 0xfff080, flying: true, shield: false },
+  queen: { type: 'queen', name: '熬夜螢火蟲女王', tier: 'boss', hp: 45, w: 80, h: 110, color: 0xe8d070, flying: true, shield: false },
+  axolotl: { type: 'axolotl', name: '失眠六角恐龍', tier: 'boss', hp: 50, w: 130, h: 100, color: 0xf0a0c0, flying: false, shield: false },
+  mole: { type: 'mole', name: '失眠巨鼴鼠', tier: 'boss', hp: 130, w: 150, h: 155, color: 0x6a5a5a, flying: false, shield: false },
 };
 
 export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll' | 'dash' | 'idle' | 'swim' | 'puff' | 'hide' | 'burrow';
@@ -197,6 +214,8 @@ const HEDGEHOG_TUNE = {
   rhino: { walkMs: 2600, rollMs: 900, rollSpeed: 320, walkSpeed: 40, turnMs: 900 },
   // 犛牛:角當盾,每隔一陣子低頭衝撞(不會滾)。
   yak: { walkMs: 2800, rollMs: 800, rollSpeed: 300, walkSpeed: 38, turnMs: 1000 },
+  // 獨角仙:角當盾,每隔一陣子低頭衝撞(不會滾)。
+  beetle: { walkMs: 2600, rollMs: 800, rollSpeed: 300, walkSpeed: 40, turnMs: 900 },
   tortoise: { walkMs: Infinity, rollMs: 0, rollSpeed: 0, walkSpeed: 30, turnMs: 1200 },
 } as const;
 /** 走一走衝一下:聖甲蟲推著鈴鐺球衝;企鵝搖搖擺擺走,肚子貼地滑一段。 */
@@ -227,6 +246,8 @@ const HOPPER_TUNE = {
   lavaBlob: { hopMs: 900, hopVy: -470, speed: 90 },
   // 樹蛙:跳得遠。
   treeFrog: { hopMs: 800, hopVy: -430, speed: 130 },
+  // 蘑菇精靈:鴨子般的小腳,一跳一跳。
+  mushroom: { hopMs: 900, hopVy: -380, speed: 80 },
 } as const;
 /** 咖啡沙蛇:原地不動,每 2.5 秒朝 500 以內的玩家吐一口咖啡。 */
 const SNAKE_SPIT_MS = 2500;
@@ -242,6 +263,7 @@ const DIVER_TUNE = {
   parrot: { hoverY: 220, speed: 160, swoopRange: 180, swoopVx: 230, hoverMs: 1600, swoopMs: 760 },
   hornbill: { hoverY: 240, speed: 130, swoopRange: 160, swoopVx: 200, hoverMs: 2000, swoopMs: 800 },
   eagle: { hoverY: 210, speed: 170, swoopRange: 190, swoopVx: 240, hoverMs: 1700, swoopMs: 760 },
+  moth: { hoverY: 260, speed: 120, swoopRange: 150, swoopVx: 180, hoverMs: 2100, swoopMs: 800 },
 } as const;
 /** 水母:上下漂(振幅 50、週期 2.4 秒),慢慢往玩家漂。 */
 const JELLY_BOB = 50;
@@ -250,6 +272,7 @@ const JELLY_SPEED = 40;
 /** 咖啡雲精靈飄的高度(上下飄 50,最低時身體底部 391,站著打得到、蹲下也碰不到)。 */
 export const CLOUD_HOVER_Y = 320;
 const CLOUD_SPRING = 2;
+const FIREFLY_SPRING = 1;
 /** 小丑魚:直直游過來,每 2.5 秒才重新看玩家在哪(游過頭後轉身)。 */
 const CLOWN_SPEED = 150;
 const CLOWN_TURN_MS = 2500;
@@ -323,6 +346,14 @@ const START_PHASE: Record<EnemyType, EnemyPhase> = {
   goat: 'idle',
   panda: 'idle',
   thunderbird: 'idle',
+  mushroom: 'hop',
+  coffeeWorm: 'walk',
+  moth: 'hover',
+  beetle: 'walk',
+  firefly: 'swim',
+  queen: 'idle',
+  axolotl: 'idle',
+  mole: 'idle',
 };
 
 export function initialBrain(type: EnemyType): EnemyBrain {
@@ -339,8 +370,9 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
   const hasTarget = sense.targetX !== null;
 
   switch (type) {
-    case 'meerkat': {
-      // 狐獴:往玩家跑一段,再躲進地洞(只露出頭頂,打不到也碰不到)一下,再冒出來。
+    case 'meerkat':
+    case 'coffeeWorm': {
+      // 狐獴(咖啡蚯蚓也一樣):往玩家跑一段,再躲進地洞(只露出頭頂,打不到也碰不到)一下,再冒出來。
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'burrow') {
         if (timerMs >= MEERKAT_BURROW_MS) return { vx: 0, vy: null, brain: { phase: 'walk', timerMs: 0, facing, turnMs: 0 } };
@@ -409,10 +441,14 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'goat':
     case 'panda':
     case 'thunderbird':
-      // 關主與小頭目由各自的檔案(owl.ts、squirrel.ts、beaver.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts、polarBear.ts、yeti.ts、hippo.ts、snail.ts、dragon.ts、sloth.ts、jaguar.ts、giraffe.ts、elephant.ts、lion.ts、goat.ts、panda.ts、thunderbird.ts)控制。
+    case 'queen':
+    case 'axolotl':
+    case 'mole':
+      // 關主與小頭目由各自的檔案(owl.ts、squirrel.ts、beaver.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts、polarBear.ts、yeti.ts、hippo.ts、snail.ts、dragon.ts、sloth.ts、jaguar.ts、giraffe.ts、elephant.ts、lion.ts、goat.ts、panda.ts、thunderbird.ts、queen.ts、axolotl.ts;巨鼴鼠用 fennec.ts)控制。
       return { vx: 0, vy: 0, brain: { ...brain, timerMs } };
     case 'jellyfish':
-    case 'coffeeCloud': {
+    case 'coffeeCloud':
+    case 'firefly': {
       // 水母在水裡上下漂;咖啡雲精靈在空中上下飄。
       const facing = faceTarget(brain, sense);
       const w = (Math.PI * 2) / JELLY_PERIOD_MS;
@@ -420,6 +456,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       let vy = JELLY_BOB * w * 1000 * Math.cos(w * timerMs);
       // 咖啡雲精靈從上面掉進來時,先飄到固定高度(不會一直停在畫面上面)。
       if (type === 'coffeeCloud') vy += (CLOUD_HOVER_Y - sense.y) * CLOUD_SPRING;
+      // 小螢火蟲從女王身邊飛出來,慢慢往玩家頭上飄。
+      if (type === 'firefly' && sense.targetY != null) vy += (sense.targetY - 90 - sense.y) * FIREFLY_SPRING;
       const dx = sense.targetX === null ? 0 : sense.targetX - sense.x;
       return { vx: Math.abs(dx) > 8 ? facing * JELLY_SPEED : 0, vy, brain: { phase: 'swim', timerMs, facing, turnMs: 0 } };
     }
@@ -484,7 +522,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     }
     case 'mummyCat':
     case 'lavaBlob':
-    case 'treeFrog': {
+    case 'treeFrog':
+    case 'mushroom': {
       const tune = HOPPER_TUNE[type];
       const facing = faceTarget(brain, sense);
       if (!sense.grounded) return { vx: facing * tune.speed, vy: null, brain: { phase: 'hop', timerMs, facing, turnMs: 0 } };
@@ -508,7 +547,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'volcanoBird':
     case 'parrot':
     case 'hornbill':
-    case 'eagle': {
+    case 'eagle':
+    case 'moth': {
       const tune = DIVER_TUNE[type];
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'swoop') {
@@ -528,7 +568,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'armadillo':
     case 'pangolin':
     case 'rhino':
-    case 'yak': {
+    case 'yak':
+    case 'beetle': {
       const tune = HEDGEHOG_TUNE[type];
       if (brain.phase === 'roll') {
         if (timerMs >= tune.rollMs) {
