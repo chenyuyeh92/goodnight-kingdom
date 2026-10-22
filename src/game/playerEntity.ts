@@ -60,6 +60,8 @@ export class PlayerEntity {
   health: Health = freshHealth();
   loadout: Loadout = { ...BASE_LOADOUT };
   buffs: Buffs = { ...NO_BUFFS };
+  /** 這一格剛起跳(播音效用)。 */
+  jumped = false;
 
   private readonly sprite: Phaser.GameObjects.Rectangle;
   private readonly tag: Phaser.GameObjects.Text | null;
@@ -108,6 +110,7 @@ export class PlayerEntity {
     pb.setGravityY(t.gravity);
     this.loadout = coolWeapon(this.loadout, dtMs);
     this.buffs = tickBuffs(this.buffs, dtMs);
+    this.jumped = false;
     if (this.health.down) {
       pb.setVelocityX(0);
       return { kind: 'none' };
@@ -119,6 +122,7 @@ export class PlayerEntity {
     if (out.state.crouching !== this.motor.crouching) this.resizeBody(out.state.crouching, feetY);
     this.motor = out.state;
     pb.setVelocity(out.vx, out.jumpVy ?? pb.velocity.y);
+    this.jumped = out.jumpVy !== null && out.jumpVy !== undefined;
 
     const m = this.motor;
     const reach: MeleeReach = {

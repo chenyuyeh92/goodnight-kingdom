@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/audio';
 import { MAX_GUARDS, createGuardStore, guardFileName, type GuardPlayer, type GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, ensureGuardTexture, guardTextureKey } from '../draw/guardTextures';
 import { mountDrawStudio, type DrawMode, type DrawStudio } from '../ui/drawStudio';
@@ -48,6 +49,7 @@ export class GuardRoomScene extends Phaser.Scene {
   }
 
   create(): void {
+    audio.music('menu');
     if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.4);
     this.add.text(480, 40, '畫你的守衛', { fontSize: '32px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
     this.targetButtons = {

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/audio';
 import { createSaveStore } from '../game/save';
 import { WORLD1, isUnlocked, levelNumber } from '../game/progress';
 import { formatDuration } from '../game/runStats';
@@ -29,6 +30,7 @@ export class LevelSelectScene extends Phaser.Scene {
   }
 
   create(): void {
+    audio.music('menu');
     const cleared = (this.data_.save ?? createSaveStore(null)).get().cleared;
     const touch = this.data_.touch ?? false;
     if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.45);

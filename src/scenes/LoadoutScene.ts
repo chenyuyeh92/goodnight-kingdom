@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/audio';
 import { createSaveStore } from '../game/save';
 import { BASE_LOADOUT, SPECIAL_WEAPONS, WEAPONS, ammoCapacity, equip, type Loadout, type WeaponId } from '../game/weapons';
 import type { TestRangeData } from './TestRangeScene';
@@ -47,6 +48,7 @@ export class LoadoutScene extends Phaser.Scene {
   }
 
   create(): void {
+    audio.music('menu');
     const owned = (this.data_.save ?? createSaveStore(null)).get().weapons;
     this.options = [
       { id: 'yawnBubble', label: '只帶哈欠泡泡', color: RARITY_COLOR.base, loadout: { ...BASE_LOADOUT } },

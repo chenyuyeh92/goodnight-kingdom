@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { audio } from '../audio/audio';
 
 const W = 240;
 const H = 64;
@@ -33,6 +34,7 @@ export function menuButton(
     img.on('pointerdown', () => set('-pressed'));
     img.on('pointerup', () => {
       set('-hover');
+      audio.sfx('select');
       onClick();
     });
     return img;
@@ -41,7 +43,10 @@ export function menuButton(
   scene.add.text(x, y, label, { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
   bg.on('pointerover', () => bg.setFillStyle(0x5a4f99));
   bg.on('pointerout', () => bg.setFillStyle(0x3b3366));
-  bg.on('pointerdown', onClick);
+  bg.on('pointerdown', () => {
+    audio.sfx('select');
+    onClick();
+  });
   return bg;
 }
 
@@ -59,7 +64,11 @@ export function smallButton(
   let enabled = true;
   bg.on('pointerover', () => enabled && bg.setFillStyle(0xf8e08e));
   bg.on('pointerout', () => bg.setFillStyle(0xfff6e5));
-  bg.on('pointerdown', () => enabled && onClick());
+  bg.on('pointerdown', () => {
+    if (!enabled) return;
+    audio.sfx('select');
+    onClick();
+  });
   return {
     setLabel: (t) => void text.setText(t),
     setEnabled(on) {

@@ -1,19 +1,23 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/audio';
 import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
 
-type Choice = PlayMode | 'backpack' | 'draw';
+type Choice = PlayMode | 'backpack' | 'draw' | 'settings';
 
 const BUTTONS: ReadonlyArray<{ choice: Choice; label: string; art: string; code: string }> = [
   { choice: 'single', label: '開始遊戲', art: 'btn-start', code: 'Digit1' },
   { choice: 'duo', label: '雙人遊戲', art: 'btn-duo', code: 'Digit2' },
   { choice: 'draw', label: '畫你的守衛', art: 'btn-draw', code: 'Digit3' },
   { choice: 'backpack', label: '背包', art: 'btn-backpack', code: 'Digit4' },
+  { choice: 'settings', label: '設定', art: 'btn-settings', code: 'Digit5' },
 ];
-const FIRST_BUTTON_Y = 232;
-const BUTTON_GAP = 68;
+const FIRST_BUTTON_Y = 226;
+const BUTTON_GAP = 62;
+/** 五顆按鈕排得下:按鈕縮成 0.9 倍。 */
+const BUTTON_SCALE = 0.9;
 /** 主頁右下角睡著的魔物(裝飾),輕輕上下飄。 */
 const SLEEPERS = [
   { key: 'clockbug-sleep', x: 700, y: 500 },
@@ -33,6 +37,7 @@ export class ModeSelectScene extends Phaser.Scene {
   }
 
   create(): void {
+    audio.music('menu');
     const tex = this.textures;
     if (tex.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540);
     if (tex.exists('ui-logo')) this.add.image(480, 110, 'ui-logo').setScale(0.3);
@@ -45,7 +50,7 @@ export class ModeSelectScene extends Phaser.Scene {
     }
     BUTTONS.forEach((b, i) => {
       const y = FIRST_BUTTON_Y + i * BUTTON_GAP;
-      menuButton(this, 480, y, b.label, () => this.choose(b.choice), b.art);
+      (menuButton(this, 480, y, b.label, () => this.choose(b.choice), b.art) as Phaser.GameObjects.Image).setScale(BUTTON_SCALE);
       this.add.text(620, y, `${i + 1}`, { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     });
     onMenuKey(this, (e) => {
@@ -64,6 +69,7 @@ export class ModeSelectScene extends Phaser.Scene {
   private choose(choice: Choice): void {
     if (choice === 'backpack') this.scene.start('Backpack', this.data_);
     else if (choice === 'draw') this.scene.start('GuardRoom', this.data_);
+    else if (choice === 'settings') this.scene.start('Settings', this.data_);
     else this.scene.start('LevelSelect', { ...this.data_, mode: choice });
   }
 }

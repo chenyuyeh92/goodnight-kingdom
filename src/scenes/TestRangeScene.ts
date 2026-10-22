@@ -25,6 +25,8 @@ import { ENEMY_ART_TINT, artStatus, assetPath, enemySprite, itemSprite, weaponIc
 import { SCENE_PALETTE, sceneKeys, type TerrainPalette } from '../art/scenes';
 import { WORLD1, levelNumber, nextLevel } from '../game/progress';
 import { ParallaxBackground } from '../game/background';
+import { audio } from '../audio/audio';
+import type { TrackId } from '../audio/tunes';
 import { hintText } from '../ui/hints';
 import type { GuardPlayer, GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
@@ -204,6 +206,12 @@ export interface TestRangeData {
   testHooks?: boolean;
 }
 
+/** 每一關的配樂依第一個場景的時段:白天、黃昏,其餘(晚上)。 */
+function levelTrack(level: LevelDef): TrackId {
+  const scene = level.scenes[0].scene;
+  return scene === 'w1-s1' ? 'day' : scene === 'w1-s2' ? 'dusk' : 'night';
+}
+
 /** 只保留跨關卡的設定(存檔、觸控、模式等),去掉這一輪的進度。 */
 export function sessionData(d: TestRangeData): TestRangeData {
   return { getTuning: d.getTuning, testHooks: d.testHooks, save: d.save, guards: d.guards, touch: d.touch, level: d.level, mode: d.mode };
@@ -334,6 +342,7 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
     this.background = new ParallaxBackground(this, this.level.scenes);
+    audio.music(levelTrack(this.level));
     this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
 
     this.terrain = this.physics.add.staticGroup();
@@ -509,7 +518,11 @@ export class TestRangeScene extends Phaser.Scene {
     this.players.forEach((p, i) => {
       p.health = tickHealth(p.health, dtMs);
       const r = p.update(intents[i], dtMs, t, (reach) => this.findMeleeTarget(reach) !== null);
-      if (r.kind === 'bullet') this.projectiles.fire(p, r.weapon, r.spawn, t);
+      if (p.jumped) audio.sfx('jump');
+      if (r.kind === 'bullet') {
+        this.projectiles.fire(p, r.weapon, r.spawn, t);
+        audio.sfx('shoot');
+      }
       else if (r.kind === 'melee') this.performMelee(r.reach);
       this.applyWater(p);
     });
@@ -577,6 +590,7 @@ export class TestRangeScene extends Phaser.Scene {
     }
     if (!fellIntoRiver(p.feetY)) return;
     this.splash(p.x);
+    audio.sfx('splash');
     const half = STAND_HALF_W + 2;
     p.teleport(respawnX(p.x, water.gaps, minPlayerX(this.scrollX, SCREEN_MARGIN) + half, this.scrollX + VIEW_W - SCREEN_MARGIN - half), GROUND_Y);
     this.riverFalls += 1;
@@ -655,6 +669,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (this.bossDefeated) return;
     const r = applyHit(p.health);
     p.health = r.health;
+    if (r.hit) audio.sfx('hurt');
     if (r.hit && bounce && !r.health.down) p.body().setVelocityY(THORN_BOUNCE_VY);
   }
 
@@ -754,6 +769,7 @@ export class TestRangeScene extends Phaser.Scene {
     const chest = this.chests.find((c) => c.rect === obj);
     if (!chest || chest.opened || p.health.down) return;
     this.markOpened(chest, true);
+    audio.sfx('chest');
     this.chestsOpened += 1;
 
     const owned = this.save.get().weapons;
@@ -820,6 +836,7 @@ export class TestRangeScene extends Phaser.Scene {
     const pickup = this.pickups.find((i) => i.rect === obj);
     if (!pickup || p.health.down) return;
     this.applyItemTo(p, pickup.id);
+    audio.sfx('item');
     const label = this.add
       .text(pickup.rect.x, pickup.rect.y - 20, ITEM_NAMES[pickup.id], { fontSize: '16px', color: '#ffe08a' })
       .setOrigin(0.5)
@@ -942,6 +959,7 @@ export class TestRangeScene extends Phaser.Scene {
     for (const side of step.summon) boss.minions.add(this.spawnFrom({ type: 'alarmBug', from: side, delayMs: 0 }, false));
     this.renderBossBar();
     if (step.enteredPhase) {
+      audio.sfx('bossPhase');
       this.bossPhaseText.setText('貓頭鷹越來越暴躁了!').setAlpha(1);
       this.tweens.add({ targets: this.bossPhaseText, alpha: 0, delay: BOSS_PHASE_TEXT_MS - 300, duration: 300 });
       this.cameras.main.shake(300, 0.008);
@@ -966,6 +984,8 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private startBoss(type: BossType, lockScrollX: number, spawnX: number): void {
+    audio.music('boss');
+    audio.sfx('bossAppear');
     this.bossTriggered = true;
     this.bossLock = lockScrollX;
     // 路上跟過來的魔物一起睡著,關主戰從乾淨的場地開始(不算打倒)。
@@ -1028,9 +1048,11 @@ export class TestRangeScene extends Phaser.Scene {
     if (target instanceof EnemyEntity) {
       if (bulletEffect(target.def, target.brain.facing, reach.facing, 0) === 'blocked') {
         this.blockedShots += 1;
+        audio.sfx('blocked');
         return;
       }
       this.meleeHits += 1;
+      audio.sfx('melee');
       this.damageEnemy(target, MELEE_DAMAGE, MELEE_IMPACT_SCALE);
       return;
     }
@@ -1050,8 +1072,10 @@ export class TestRangeScene extends Phaser.Scene {
       if (enemy.emerging || enemy.hp <= 0 || this.isInvulnerable(enemy)) return 'ignored';
       if (bulletEffect(enemy.def, enemy.brain.facing, hit.vx, hit.vy) === 'blocked') {
         this.blockedShots += 1;
+        audio.sfx('blocked');
         return 'blocked';
       }
+      audio.sfx('hit');
       this.damageEnemy(enemy, hit.damage);
       return 'consumed';
     }
@@ -1067,6 +1091,7 @@ export class TestRangeScene extends Phaser.Scene {
       return;
     }
     this.enemiesDefeated += 1;
+    audio.sfx('sleep');
     this.playDefeatEffect(enemy.body.x, enemy.body.y, impactScale);
     this.sleepAway(enemy, false);
     const drop = this.riggedDrop ?? rollDrop(Math.random);
@@ -1080,6 +1105,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.enemiesDefeated += 1;
     this.bossDefeated = true;
     this.boss = null;
+    audio.music(null);
+    audio.sfx('bossDown');
     const { x, y } = boss.enemy.body;
     this.playDefeatEffect(x, y, BOSS_HIT_STOP_SCALE, BOSS_SHAKE_SCALE);
     this.floatZzz(x, y - 30, 3, ZZZ_MS * 2);
@@ -1244,6 +1271,8 @@ export class TestRangeScene extends Phaser.Scene {
       bullets: this.projectiles.count(),
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
+      sfx: { ...audio.counts },
+      music: audio.currentTrack(),
       art: { loaded: artStatus.loaded, missing: [...artStatus.missing], disabled: artStatus.disabled },
       boss: this.boss
         ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: this.boss.brain.phase, mode: this.boss.brain.mode }

@@ -15,6 +15,8 @@ import { LevelCompleteScene } from './scenes/LevelCompleteScene';
 import { LoadoutScene } from './scenes/LoadoutScene';
 import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { GuardRoomScene } from './scenes/GuardRoomScene';
+import { SettingsScene } from './scenes/SettingsScene';
+import { audio } from './audio/audio';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
 import { mountKeyTest } from './ui/keyTest';
@@ -56,7 +58,13 @@ export interface EnemyDebug {
 
 export interface GkDebug {
   ready: boolean;
-  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'loadout' | 'guard-room' | 'draw';
+  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'loadout' | 'guard-room' | 'draw' | 'settings';
+  /** 設定畫面的音量與目前選到的列。 */
+  settings?: { music: number; sfx: number; muted: boolean };
+  settingsRow?: string;
+  /** 每種音效觸發的次數、目前的配樂。 */
+  sfx?: Partial<Record<string, number>>;
+  music?: string | null;
   /** 守衛房間:已存的守衛、A/B 選用、正在幫誰選。 */
   guardList?: { id: string; name: string }[];
   guardSelected?: { A: string | null; B: string | null };
@@ -168,6 +176,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   const touch = params.get('touch') === '1' || isTouchDevice();
   const level = parseLevelId(params.get('level'));
   const guards = createGuardStore(safeLocalStorage());
+  audio.init(safeLocalStorage(), `${import.meta.env.BASE_URL}assets/music/tracks.json`);
   const data: TestRangeData = { getTuning: () => store.get(), testHooks, save, touch, level, guards };
   game.scene.add('TestRange', TestRangeScene, false);
   game.scene.add('ModeSelect', ModeSelectScene, false);
@@ -176,6 +185,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('Loadout', LoadoutScene, false);
   game.scene.add('LevelSelect', LevelSelectScene, false);
   game.scene.add('GuardRoom', GuardRoomScene, false);
+  game.scene.add('Settings', SettingsScene, false);
   game.scene.add('Boot', BootScene, false);
   const noArt = params.get('noart') === '1';
   if (mode) game.scene.start('Boot', { next: 'TestRange', data: { ...data, mode }, noArt });

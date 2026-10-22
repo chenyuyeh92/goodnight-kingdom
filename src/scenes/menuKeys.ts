@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { audio } from '../audio/audio';
 
 /**
  * 選單用的按鍵監聽。Phaser 在同一格收到多個按鍵時,會把同一個按鍵事件再送一次;
@@ -9,6 +10,7 @@ export function onMenuKey(scene: Phaser.Scene, handler: (e: KeyboardEvent) => vo
   scene.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
     if (e.repeat || seen.has(e)) return;
     seen.add(e);
+    audio.sfx('select');
     handler(e);
   });
 }

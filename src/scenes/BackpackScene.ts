@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/audio';
 import { CHEST_RATES } from '../game/chest';
 import { createSaveStore } from '../game/save';
 import { MAX_STARS, SPECIAL_WEAPONS, WEAPONS, type SpecialWeaponId } from '../game/weapons';
@@ -30,6 +31,7 @@ export class BackpackScene extends Phaser.Scene {
   }
 
   create(): void {
+    audio.music('menu');
     const owned = (this.data_.save ?? createSaveStore(null)).get().weapons;
     const lines: string[] = [];
     this.add.text(480, 50, '背包', { fontSize: '36px', color: '#f3e9d2' }).setOrigin(0.5);

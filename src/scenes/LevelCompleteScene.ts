@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/audio';
 import { sessionData, type TestRangeData } from './TestRangeScene';
 import { startLevel } from './LoadoutScene';
 import { onMenuKey } from './menuKeys';
@@ -27,6 +28,8 @@ export class LevelCompleteScene extends Phaser.Scene {
   }
 
   create(): void {
+    audio.music(null);
+    audio.sfx('complete');
     const { levelName, summary } = this.data_;
     this.add.text(480, 90, `${levelName} 通關!`, { fontSize: '44px', color: '#ffe08a' }).setOrigin(0.5);
     summary.forEach((line, i) => {
