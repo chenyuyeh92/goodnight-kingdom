@@ -22,7 +22,7 @@ PICKS = {
     "w5-coffee-lava-blob": ("G11/w5/w5-coffee-lava-blob_00003_.png", (52, 56), False),
     "w5-noisy-volcano-bird": ("G11/w5/w5-noisy-volcano-bird_00003_.png", (60, 56), True),
     "w5-armadillo": ("G11/w5/w5-armadillo_00004_.png", (80, 72), True),
-    "w5-fire-dragon-boss": ("G11/w5/w5-fire-dragon-boss_00001_.png", (240, 220), True),
+    "w5-fire-dragon-boss": ("G11/w5/w5-fire-dragon-boss_00001_.png", (240, 220), False),
     "w6-tree-frog": ("G11/w6/w6-tree-frog_00004_.png", (52, 52), True),
     "w6-coffee-chameleon": ("G11/w6/w6-coffee-chameleon_00001_.png", (56, 56), True),
     "w6-alarm-parrot": ("G11/w6/w6-alarm-parrot_00002_.png", (60, 56), False),
@@ -35,7 +35,7 @@ PICKS = {
     "w7-lion-king-boss": ("G11/w7/w7-lion-king-boss_00004_.png", (240, 220), False),
     "w7-wildebeest": ("G11/w7/w7-wildebeest_00002_.png", (64, 56), False),
     "w5-armadillo-sleep": ("G12/w5s/w5-armadillo-sleep_00002_.png", (80, 72), False),
-    "w5-coffee-lava-blob-sleep": ("G12/w5s/w5-coffee-lava-blob-sleep_00002_.png", (52, 56), False),
+    "w5-coffee-lava-blob-sleep": ("G12/w5s/w5-coffee-lava-blob-sleep_00004_.png", (52, 56), False),
     "w5-fire-dragon-boss-phase2": ("G12/w5s/w5-fire-dragon-boss-phase2_00002_.png", (240, 220), False),
     "w5-fire-dragon-boss-phase3": ("G12/w5s/w5-fire-dragon-boss-phase3_00002_.png", (240, 220), False),
     "w5-fire-dragon-boss-sleep": ("G12/w5s/w5-fire-dragon-boss-sleep_00002_.png", (240, 220), False),
@@ -60,9 +60,16 @@ PICKS = {
 FAR_PICKS = {"w5-1": "00003", "w5-2": "00003", "w5-3": "00001", "w5-4": "00003",
              "w6-1": "00003", "w6-2": "00003", "w6-3": "00003", "w6-4": "00003",
              "w7-1": "00001", "w7-2": "00004", "w7-3": "00001", "w7-4": "00001"}
-FAR_PATCH = {}
+FAR_PATCH = {  # 蓋掉模型自己在遠景加的小動物、人影、多出來的月亮（座標是 1440×540 成品上的位置）
+    "w5-1": [((556, 424, 646, 496), -100)],
+    "w6-3": [((900, 448, 1000, 540), -160)],
+    "w6-4": [((770, 410, 870, 530), 160)],
+    "w7-2": [((745, 325, 835, 455), -140), ((745, 455, 835, 535), -140)],
+    "w7-3": [((850, 450, 950, 540), -160)],
+    "w7-4": [((1160, 228, 1250, 292), 95), ((830, 345, 896, 405), -120)],
+}
 # 原圖朝右的翻成朝左（睡著版、二三階段是照原圖修改的，跟著原圖一起翻）
-FLIP_BASE = ['w5-noisy-volcano-bird', 'w5-fire-dragon-boss', 'w5-armadillo', 'w6-coffee-chameleon', 'w6-pangolin', 'w6-tree-frog', 'w7-coffee-warthog']
+FLIP_BASE = ['w5-noisy-volcano-bird', 'w5-armadillo', 'w6-coffee-chameleon', 'w6-pangolin', 'w6-tree-frog', 'w7-coffee-warthog']
 for name, (src, box, flip) in PICKS.items():
     flip = flip or any(name.startswith(b) for b in FLIP_BASE)
     im = cutout(src.replace("G11/", G11 + "/").replace("G12/", G12 + "/"))

@@ -221,20 +221,17 @@ def rocks_mid(color, W=1440, seed=0, n=10, base=474, smoke=None):
                 rr = 10 + k * 6; d.ellipse((x - rr, base - 90 - k * 26 - rr, x + rr, base - 90 - k * 26 + rr), fill=smoke + (150,))
     return im
 
-def jungle_mid(color, W=1440, seed=0, n=8, base=474, leaf=None):
-    """雨林：粗樹幹、上方垂下的藤蔓、地上的大葉子。"""
+def jungle_mid(color, W=1440, seed=0, n=10, base=474, leaf=None):
+    """雨林中景：低矮的蕨類和灌木叢（遠景已經有大樹，中景只點綴、不擋遊戲區）。"""
     import random
     rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
     lc = (leaf or color) + (255,)
     for x in _spread(W, n, rnd):
-        w = rnd.randint(12, 22); d.polygon([(x - w, base), (x - w * 0.6, 0), (x + w * 0.6, 0), (x + w, base)], fill=c)
-        for _ in range(rnd.randint(1, 3)):  # 藤蔓
-            vx = x + rnd.randint(-70, 70); L = rnd.randint(120, 300)
-            d.line([(vx + 6 * math.sin(t / 2), L * t / 10) for t in range(11)], fill=c, width=4, joint="curve")
-        for k in range(rnd.randint(1, 2)):  # 大葉子
-            lx = x + rnd.randint(-60, 60); s = rnd.randint(22, 36)
-            d.ellipse((lx - s, base - s * 1.4, lx + s, base - 2), fill=lc)
-    d.rectangle((0, 0, W, 18), fill=c)  # 頂端的樹冠
+        for k in range(rnd.randint(5, 8)):  # 蕨類葉片：從底部往外彎
+            a0 = math.radians(rnd.uniform(200, 340)); L = rnd.randint(30, 60)
+            pts = [(x + L * t / 6 * math.cos(a0), base - L * t / 6 * abs(math.sin(a0)) + 10 * (t / 6) ** 2) for t in range(7)]
+            d.line(pts, fill=c, width=5, joint="curve")
+        r = rnd.randint(14, 22); d.ellipse((x - r * 1.4, base - r * 1.4, x + r * 1.4, base + 4), fill=lc)
     return im
 
 def acacia_mid(color, W=1440, seed=0, n=5, base=472):
