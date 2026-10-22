@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { parseLevelId } from '../src/levels/levelDef';
 import { LEVELS } from '../src/levels';
 
@@ -35,8 +35,8 @@ test('森林:四個寶箱,蘑菇坡上路一個、隱藏寶箱在高處', () => 
 });
 
 /** 從地面出發,能往上跳 ≤ 140、橫向間隔 ≤ 80 的平台都算到得了;寶箱所在的平台要到得了。 */
-function expectReachable(chest: { x: number; bottom: number }): void {
-  const plats = F.terrain.filter((r) => r.h <= 20);
+function expectReachable(chest: { x: number; bottom: number }, L = F): void {
+  const plats = L.terrain.filter((r) => r.h <= 20);
   const target = plats.find((r) => r.y === chest.bottom && chest.x >= r.x && chest.x <= r.x + r.w);
   expect(target, `寶箱 ${chest.x} 底下要有平台`).toBeDefined();
   const reached = new Set(plats.filter((r) => 480 - r.y <= 140));
@@ -116,4 +116,48 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
     const spawnX = t.triggerScrollX - 20;
     for (const c of tunnels) expect(spawnX < c.x - 30 || spawnX > c.x + c.w + 30, `${t.triggerScrollX}`).toBe(true);
   }
+});
+
+describe.each(['w1-1', 'w1-2', 'forest'] as const)('世界 1 共通規則:%s', (id) => {
+  const L = LEVELS[id];
+
+  test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
+    expect(L.boss).not.toBeNull();
+    expect(L.boss!.lockScrollX + VIEW_W).toBe(L.worldW);
+    expect(L.boss!.spawnX).toBeGreaterThan(L.boss!.lockScrollX);
+  });
+
+  test('檢查點不在戰鬥區鎖住的畫面裡', () => {
+    for (const a of L.arenas) for (const cp of L.checkpoints) expect(cp <= a.lockScrollX || cp > a.lockScrollX + VIEW_W).toBe(true);
+  });
+
+  test('零星魔物在關主前一個畫面結束,地面冒出的不在關主區', () => {
+    for (const t of L.trickles) {
+      expect(t.triggerScrollX + VIEW_W).toBeLessThanOrEqual(L.boss!.lockScrollX);
+      if (t.spawn.x !== undefined) expect(t.spawn.x).toBeLessThan(L.boss!.lockScrollX);
+    }
+  });
+
+  test('零星魔物夠多(邊走邊打)', () => {
+    expect(new Set(L.trickles.map((t) => t.triggerScrollX)).size).toBeGreaterThanOrEqual(25);
+  });
+
+  test('戰鬥區鎖定範圍互不重疊,都在關主之前', () => {
+    const locks = L.arenas.map((a) => a.lockScrollX).sort((x, y) => x - y);
+    for (let i = 1; i < locks.length; i++) expect(locks[i] - locks[i - 1]).toBeGreaterThanOrEqual(VIEW_W);
+    for (const l of locks) expect(l + VIEW_W).toBeLessThanOrEqual(L.boss!.lockScrollX);
+  });
+
+  test('地圖夠長(一局約 4–5 分鐘)', () => {
+    expect(L.worldW).toBeGreaterThanOrEqual(9000);
+  });
+});
+
+test('1-1:高處寶箱跳得上去、前面有教學告示牌', () => {
+  const G = LEVELS['w1-1'];
+  const high = G.chests.filter((c) => c.bottom < 300);
+  expect(high.length).toBeGreaterThan(0);
+  for (const c of high) expectReachable(c, G);
+  expect(G.hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['move', 'jump', 'aimUp', 'crouch', 'melee']));
+  expect(G.boss!.type).toBe('bigClockBug');
 });

@@ -87,17 +87,27 @@ export function assetPath(key: SpriteKey): string {
 /** 貓頭鷹原圖 200 高,畫成 0.75 倍。 */
 export const OWL_ART_SCALE = 0.75;
 
+/** 畫的時候要縮放的魔物(貓頭鷹縮小;小頭目用原本魔物的圖放大)。 */
+export const ENEMY_ART_SCALE: Partial<Record<EnemyType, number>> = { nightOwl: OWL_ART_SCALE, bigClockBug: 1.5, hedgehogCaptain: 1.4 };
+
+/** 小頭目染色,和一般魔物區分。 */
+export const ENEMY_ART_TINT: Partial<Record<EnemyType, number>> = { bigClockBug: 0xffc890, hedgehogCaptain: 0xffa8a8 };
+
 const ENEMY_AWAKE: Record<Exclude<EnemyType, 'nightOwl'>, SpriteKey> = {
   alarmBug: 'clockbug',
   coffeeBean: 'coffee-bean',
   nightBat: 'night-bat',
   hedgehog: 'hedgehog',
+  bigClockBug: 'clockbug',
+  hedgehogCaptain: 'hedgehog',
 };
 const ENEMY_SLEEP: Record<Exclude<EnemyType, 'nightOwl'>, SpriteKey> = {
   alarmBug: 'clockbug-sleep',
   coffeeBean: 'coffee-bean-sleep',
   nightBat: 'night-bat-sleep',
   hedgehog: 'hedgehog-sleep',
+  bigClockBug: 'clockbug-sleep',
+  hedgehogCaptain: 'hedgehog-sleep',
 };
 const OWL_PHASE: Record<1 | 2 | 3, SpriteKey> = { 1: 'owl', 2: 'owl-2', 3: 'owl-3' };
 

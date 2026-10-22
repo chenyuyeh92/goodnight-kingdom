@@ -10,6 +10,20 @@ export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, Sprit
   'w1-s4': ['w1-s4-far', 'w1-s4-mid', 'w1-s4-near'],
 };
 
+/** 地面與平台的配色,配合場景的時段(白天草地、黃昏泥土、夜晚深紫)。 */
+export interface TerrainPalette {
+  ground: number;
+  rim: number;
+  platform: number;
+}
+
+export const SCENE_PALETTE: Record<SceneId, TerrainPalette> = {
+  'w1-s1': { ground: 0x5b7f3e, rim: 0xa6d36b, platform: 0x8a6440 },
+  'w1-s2': { ground: 0x5e4a5c, rim: 0xe6a07a, platform: 0x7a5640 },
+  'w1-s3': { ground: 0x2b2a6b, rim: 0x9d8fe0, platform: 0x5a4a8f },
+  'w1-s4': { ground: 0x23224f, rim: 0x7fb4ff, platform: 0x4a3f7f },
+};
+
 /** 三層的捲動速度(相對鏡頭)。 */
 export const LAYER_FACTORS = [0.1, 0.35, 0.7] as const;
 

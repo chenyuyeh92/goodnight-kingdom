@@ -1,21 +1,5 @@
-import type { EnemyType } from '../game/enemies';
-import type { SpawnFrom, TrickleDef } from '../game/encounters';
+import { wave } from './build';
 import { GROUND_Y, type LevelDef } from './levelDef';
-
-/** 同一組魔物依序出現:觸發位置每隻差 40(鏡頭走約 0.2 秒)。 */
-const TRICKLE_GAP = 40;
-
-/** 一組零星魔物:[種類, 方向, 數量],ground 的 x 用 groundX。 */
-function wave(at: number, parts: readonly [EnemyType, SpawnFrom, number][], groundX?: number): TrickleDef[] {
-  const out: TrickleDef[] = [];
-  for (const [type, from, n] of parts) {
-    for (let i = 0; i < n; i++) {
-      const x = from === 'ground' || from === 'top' ? groundX : undefined;
-      out.push({ triggerScrollX: at + out.length * TRICKLE_GAP, spawn: { type, from, x, delayMs: 0 } });
-    }
-  }
-  return out;
-}
 
 /**
  * 世界 1-3「失眠森林」:五段加關主戰,一局約 4–5 分鐘,以邊走邊打為主。
@@ -162,7 +146,7 @@ export const FOREST: LevelDef = {
       ],
     },
   ],
-  boss: { lockScrollX: 10000, spawnX: 10660 },
+  boss: { type: 'nightOwl', lockScrollX: 10000, spawnX: 10660 },
   // 深林(晚上),關主前換成貓頭鷹的大樹(深夜)。
   scenes: [
     { scene: 'w1-s3', fromScrollX: 0 },

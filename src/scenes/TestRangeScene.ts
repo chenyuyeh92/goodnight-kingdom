@@ -11,7 +11,7 @@ import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
 import { weaponHud } from '../game/hud';
 import { mountTouchControls, type TouchControls } from '../ui/touchControls';
-import { GROUND_Y, WORLD_H, type LevelDef, type LevelId } from '../levels/levelDef';
+import { GROUND_Y, WORLD_H, type BossType, type LevelDef, type LevelId } from '../levels/levelDef';
 import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
@@ -22,9 +22,10 @@ import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
 import { artStatus, assetPath, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
-import { sceneKeys } from '../art/scenes';
+import { SCENE_PALETTE, sceneKeys, type TerrainPalette } from '../art/scenes';
 import { WORLD1, levelNumber, nextLevel } from '../game/progress';
 import { ParallaxBackground } from '../game/background';
+import { hintText } from '../ui/hints';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
   initialEncounters,
@@ -76,6 +77,9 @@ const BOSS_BAR_Y = 514;
 const BOSS_PHASE_TEXT_MS = 1500;
 /** 打倒關主後到結算畫面的時間。 */
 const BOSS_OUTRO_MS = 1500;
+/** 大鬧鐘蟲每 5 秒叫一隻小鬧鐘蟲,場上最多 3 隻。 */
+const MINI_BOSS_SUMMON_MS = 5000;
+const MINI_BOSS_MAX_MINIONS = 3;
 /** 打倒關主:停頓 ×3、晃動 ×2。 */
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
@@ -115,9 +119,6 @@ const COLOR = {
   terrain: 0x3b3366,
   /** 美術配色:外框深紫、平台本體、上緣亮邊、地面。 */
   outline: 0x3a2a5a,
-  platform: 0x5a4a8f,
-  rim: 0x9d8fe0,
-  ground: 0x2b2a6b,
   flagOff: 0x7b6bc9,
   flagOn: 0xf8e08e,
   playerA: 0xffd27a,
@@ -147,6 +148,9 @@ interface Boss {
   invulnerable: boolean;
   minions: Set<EnemyEntity>;
   wasAngry: boolean;
+  /** 小頭目叫小怪的計時與方向(左右輪流)。 */
+  summonMs: number;
+  summonSide: 'left' | 'right';
 }
 
 interface Chest {
@@ -229,6 +233,10 @@ export class TestRangeScene extends Phaser.Scene {
   private bossBar!: Phaser.GameObjects.Rectangle;
   private bossPhaseText!: Phaser.GameObjects.Text;
   private stats!: RunStats;
+  /** 地形配色跟著這一關第一個場景。 */
+  private get palette(): TerrainPalette {
+    return SCENE_PALETTE[this.level.scenes[0].scene];
+  }
   private background!: ParallaxBackground;
   private flags: { x: number; g: Phaser.GameObjects.Graphics; on: boolean | null }[] = [];
 
@@ -359,6 +367,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.maxReachedX = startX;
     this.restarting = false;
 
+    for (const h of this.level.hints ?? []) this.drawSign(h.x, hintText(h.kind, this.mode, this.initData.touch ?? false));
     this.flags = this.level.checkpoints.map((cp) => ({ x: cp, g: this.add.graphics().setDepth(-1), on: null }));
     const thorns = this.physics.add.staticGroup();
     for (const t of this.level.thorns) {
@@ -496,14 +505,27 @@ export class TestRangeScene extends Phaser.Scene {
   private drawTerrain(t: { x: number; y: number; w: number; h: number }, isGround: boolean): void {
     const g = this.add.graphics().setDepth(-2);
     if (isGround) {
-      g.fillStyle(COLOR.ground).fillRect(t.x, t.y, t.w, t.h);
-      g.fillStyle(COLOR.rim).fillRect(t.x, t.y, t.w, 3);
+      g.fillStyle(this.palette.ground).fillRect(t.x, t.y, t.w, t.h);
+      g.fillStyle(this.palette.rim).fillRect(t.x, t.y, t.w, 3);
       return;
     }
     const r = Math.min(8, t.h / 2);
     g.fillStyle(COLOR.outline).fillRoundedRect(t.x - 2, t.y - 2, t.w + 4, t.h + 4, r + 2);
-    g.fillStyle(COLOR.platform).fillRoundedRect(t.x, t.y, t.w, t.h, r);
-    g.fillStyle(COLOR.rim).fillRoundedRect(t.x + 3, t.y + 2, t.w - 6, 4, 2);
+    g.fillStyle(this.palette.platform).fillRoundedRect(t.x, t.y, t.w, t.h, r);
+    g.fillStyle(this.palette.rim).fillRoundedRect(t.x + 3, t.y + 2, t.w - 6, 4, 2);
+  }
+
+  /** 教學告示牌:木頭柱子加一塊板子,字寫在板子上方。 */
+  private drawSign(x: number, text: string): void {
+    const g = this.add.graphics().setDepth(-1);
+    g.fillStyle(COLOR.outline).fillRect(x - 3, GROUND_Y - 56, 6, 56);
+    g.fillStyle(COLOR.outline).fillRoundedRect(x - 26, GROUND_Y - 72, 52, 30, 6);
+    g.fillStyle(0xc98b4f).fillRoundedRect(x - 23, GROUND_Y - 69, 46, 24, 5);
+    g.fillStyle(0xf8e08e).fillCircle(x, GROUND_Y - 57, 5);
+    this.add
+      .text(x, GROUND_Y - 80, text, { fontSize: '16px', color: '#fff6e5', stroke: '#3a2a5a', strokeThickness: 4, align: 'center', wordWrap: { width: 280, useAdvancedWrap: true } })
+      .setOrigin(0.5, 1)
+      .setDepth(-1);
   }
 
   /** 荊棘:一排小三角形。 */
@@ -760,8 +782,10 @@ export class TestRangeScene extends Phaser.Scene {
   private updateEnemies(dtMs: number, t: Tuning): void {
     const awake = this.players.filter((p) => !p.health.down);
     for (const e of [...this.enemies]) {
-      if (e === this.boss?.enemy) continue;
-      if (e.x < this.scrollX - ENEMY_DESPAWN_BEHIND || e.body.y > WORLD_H + ENEMY_FALL_OUT) {
+      // 貓頭鷹由 updateBoss 控制;小頭目照一般魔物移動,但不會因為落在鏡頭後面被移除。
+      if (e === this.boss?.enemy && e.def.type === 'nightOwl') continue;
+      const isBoss = e === this.boss?.enemy;
+      if (!isBoss && (e.x < this.scrollX - ENEMY_DESPAWN_BEHIND || e.body.y > WORLD_H + ENEMY_FALL_OUT)) {
         this.removeEnemy(e);
         continue;
       }
@@ -782,9 +806,14 @@ export class TestRangeScene extends Phaser.Scene {
   /** 鏡頭到關主區就開戰;之後每格由 stepOwl 控制貓頭鷹。 */
   private updateBoss(dtMs: number, time: number): void {
     const def = this.level.boss;
-    if (def && !this.bossTriggered && this.scrollX >= def.lockScrollX) this.startBoss(def.lockScrollX, def.spawnX);
+    if (def && !this.bossTriggered && this.scrollX >= def.lockScrollX) this.startBoss(def.type, def.lockScrollX, def.spawnX);
     const boss = this.boss;
     if (!boss) return;
+    for (const m of [...boss.minions]) if (!this.enemies.includes(m)) boss.minions.delete(m);
+    if (boss.enemy.def.type !== 'nightOwl') {
+      this.updateMiniBoss(boss, dtMs);
+      return;
+    }
 
     const { enemy } = boss;
     const awake = this.players.filter((p) => !p.health.down);
@@ -792,7 +821,6 @@ export class TestRangeScene extends Phaser.Scene {
       (best, p) => (best === null || Math.abs(p.x - enemy.x) < Math.abs(best.x - enemy.x) ? p : best),
       null,
     );
-    for (const m of [...boss.minions]) if (!this.enemies.includes(m)) boss.minions.delete(m);
     const lock = this.bossLock ?? this.scrollX;
     const step = stepOwl(boss.brain, {
       x: enemy.body.x,
@@ -824,7 +852,24 @@ export class TestRangeScene extends Phaser.Scene {
     }
   }
 
-  private startBoss(lockScrollX: number, spawnX: number): void {
+  /** 小頭目照一般魔物的方式移動(updateEnemies);大鬧鐘蟲會一直叫小鬧鐘蟲。 */
+  private updateMiniBoss(boss: Boss, dtMs: number): void {
+    this.renderBossBar();
+    // 滾動時不能滾出鎖住的畫面。
+    const lock = this.bossLock ?? this.scrollX;
+    const half = boss.enemy.def.w / 2;
+    const pb = boss.enemy.physicsBody();
+    const x = Math.min(Math.max(boss.enemy.body.x, lock + half), lock + VIEW_W - half);
+    if (x !== boss.enemy.body.x) pb.reset(x, boss.enemy.body.y);
+    if (boss.enemy.def.type !== 'bigClockBug') return;
+    boss.summonMs += dtMs;
+    if (boss.summonMs < MINI_BOSS_SUMMON_MS || boss.minions.size >= MINI_BOSS_MAX_MINIONS) return;
+    boss.summonMs = 0;
+    boss.summonSide = boss.summonSide === 'left' ? 'right' : 'left';
+    boss.minions.add(this.spawnFrom({ type: 'alarmBug', from: boss.summonSide, delayMs: 0 }, false));
+  }
+
+  private startBoss(type: BossType, lockScrollX: number, spawnX: number): void {
     this.bossTriggered = true;
     this.bossLock = lockScrollX;
     // 路上跟過來的魔物一起睡著,關主戰從乾淨的場地開始(不算打倒)。
@@ -832,10 +877,10 @@ export class TestRangeScene extends Phaser.Scene {
       this.sleepAway(e, false);
       this.removeEnemy(e);
     }
-    const enemy = this.spawnEnemy('nightOwl', spawnX, OWL_HOVER_Y);
+    const enemy = this.spawnEnemy(type, spawnX, type === 'nightOwl' ? OWL_HOVER_Y : undefined);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;
-    this.boss = { enemy, brain: initialOwlBrain(), maxHp, invulnerable: false, minions: new Set(), wasAngry: false };
+    this.boss = { enemy, brain: initialOwlBrain(), maxHp, invulnerable: false, minions: new Set(), wasAngry: false, summonMs: 0, summonSide: 'left' };
     this.bossName.setText(enemy.def.name);
     this.bossBarBg.setVisible(true);
     this.bossBar.setVisible(true);

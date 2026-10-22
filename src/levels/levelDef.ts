@@ -1,5 +1,9 @@
 import type { ArenaDef, TrickleDef } from '../game/encounters';
 import type { ScenePlan } from '../art/scenes';
+import type { EnemyType } from '../game/enemies';
+import type { HintKind } from '../ui/hints';
+
+export type BossType = Extract<EnemyType, 'nightOwl' | 'bigClockBug' | 'hedgehogCaptain'>;
 
 export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2';
 
@@ -28,9 +32,12 @@ export interface LevelDef {
   targets: readonly { x: number; bottom: number }[];
   trickles: readonly TrickleDef[];
   arenas: readonly ArenaDef[];
-  boss: { lockScrollX: number; spawnX: number } | null;
+  /** 關尾的關主或小頭目;鏡頭到 lockScrollX 就鎖住開戰。 */
+  boss: { type: BossType; lockScrollX: number; spawnX: number } | null;
   /** 背景場景:第一個從頭開始,之後依鏡頭位置淡入。 */
   scenes: readonly ScenePlan[];
+  /** 路邊的教學告示牌(1-1)。 */
+  hints?: readonly { x: number; kind: HintKind }[];
 }
 
 export const WORLD_H = 540;

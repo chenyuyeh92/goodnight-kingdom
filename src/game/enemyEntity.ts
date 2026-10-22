@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { EnemyDebug } from '../main';
 import { ENEMY_DEFS, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
-import { OWL_ART_SCALE, enemySprite, type SpriteKey } from '../art/sprites';
+import { ENEMY_ART_SCALE, ENEMY_ART_TINT, enemySprite, type SpriteKey } from '../art/sprites';
 import { enemyPose } from '../art/motion';
 
 const SHIELD_W = 3;
@@ -47,7 +47,9 @@ export class EnemyEntity {
         : null;
     if (this.art) {
       this.body.setVisible(false);
-      if (type === 'nightOwl') this.art.setScale(OWL_ART_SCALE);
+      this.art.setScale(ENEMY_ART_SCALE[type] ?? 1);
+      const tint = ENEMY_ART_TINT[type];
+      if (tint !== undefined) this.art.setTint(tint);
     }
     this.render();
   }
@@ -89,7 +91,10 @@ export class EnemyEntity {
     this.art?.setTint(COLOR_FLASH).setTintMode(Phaser.TintModes.FILL);
     this.scene.time.delayedCall(FLASH_MS, () => {
       if (this.body.active) this.body.setFillStyle(this.def.color);
-      if (this.art?.active) this.art.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+      if (!this.art?.active) return;
+      this.art.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+      const tint = ENEMY_ART_TINT[this.def.type];
+      if (tint !== undefined) this.art.setTint(tint);
     });
   }
 
@@ -104,11 +109,13 @@ export class EnemyEntity {
       this.artFacing = this.brain.facing;
     }
     this.art.setFlipX(this.artFacing > 0);
-    if (this.def.type === 'hedgehog') this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
+    if (this.def.type === 'hedgehog' || this.def.type === 'hedgehogCaptain') {
+      this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
+    }
     const pb = this.physicsBody();
     const grounded = pb ? pb.blocked.down || pb.touching.down : true;
     const pose = enemyPose(this.def.type, this.brain.phase, this.scene.time.now + this.animOffset, pb?.velocity.x ?? 0, pb?.velocity.y ?? 0, grounded);
-    const base = this.def.type === 'nightOwl' ? OWL_ART_SCALE : 1;
+    const base = ENEMY_ART_SCALE[this.def.type] ?? 1;
     const bottom = this.body.y + this.def.h / 2;
     if (pose.spin) {
       this.art.setOrigin(0.5, 0.5).setPosition(this.body.x, bottom - (this.art.height * base) / 2);
