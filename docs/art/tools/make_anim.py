@@ -44,11 +44,11 @@ def flap(src, amp, band=(0.40, 0.85), inner=0.28, cells=24):
         else: w = 1.0
         return amp * s * w
     mesh = []
-    xs = [W * i / cells for i in range(cells + 1)]; ys = [H * j / cells for j in range(cells + 1)]
+    xs = [round(W * i / cells) for i in range(cells + 1)]; ys = [round(H * j / cells) for j in range(cells + 1)]  # 整數網格：彎曲量 0 時和原圖完全一樣，不會抖
     for i in range(cells):
         for j in range(cells):
             xa, xb, ya, yb = xs[i], xs[i + 1], ys[j], ys[j + 1]
-            box = (round(xa), round(ya), round(xb), round(yb))
+            box = (xa, ya, xb, yb)
             # 輸出格子的四個角 → 輸入的四個角（輸出位置往上移 d，等於從下方 d 取樣）
             quad = (xa, ya + off(xa, ya), xa, yb + off(xa, yb), xb, yb + off(xb, yb), xb, ya + off(xb, ya))
             mesh.append((box, quad))
@@ -62,6 +62,7 @@ def load(*p):
     return Image.open(A(*p)).convert("RGBA")
 
 def walk4(src, lean=0.06, squash=0.95, thin=0.95):
+    # lean：第 2 格的斜切量；正值第 2 格往左、第 4 格往右（魔物朝左，正值＝先往前）。朝右的守衛傳負值。
     """走路 4 格：踩地（變矮）→ 往前傾 → 踩地 → 往後傾。腳底都在同一條線，不往上抬（上下晃動交給程式）。"""
     return [frame(src, sy=squash), frame(src, sx=thin, shear=-lean), frame(src, sy=squash), frame(src, sx=thin, shear=lean)]
 
@@ -93,11 +94,11 @@ canvas.alpha_composite(ball, ((hog.width - ball.width) // 2, foot - ball.height)
 save_frames([canvas], "enemies", "insomnia-hedgehog-ball")
 
 # 熬夜貓頭鷹：三個階段各一套拍翅 4 格；翅膀在身體兩側中下段，避開睡帽、毛球和地上的羽毛、杯子
-OWL = dict(band=(0.45, 0.82), inner=0.30)
+OWL = dict(band=(0.42, 0.70), inner=0.30)  # 下緣收在 0.70（加過渡區約到 0.78），避開地上的羽毛和杯子
 for src_name, out_name in [("night-owl-boss.png", "night-owl-boss-flap"), ("night-owl-boss-phase2.png", "night-owl-boss-phase2-flap"), ("night-owl-boss-phase3.png", "night-owl-boss-phase3-flap")]:
     owl = load("enemies", src_name)
     save_frames([flap(owl, 10, **OWL), owl.copy(), flap(owl, -8, **OWL), owl.copy()], "enemies", out_name)
 # 俯衝：上半身往左下大幅前傾（斜切，不旋轉，地面和腳底不歪）
 owl = load("enemies", "night-owl-boss.png")
-save_frames([frame(owl, sy=0.92, shear=0.22)], "enemies", "night-owl-boss-dive")
+save_frames([frame(owl, sy=0.92, shear=-0.12)], "enemies", "night-owl-boss-dive")  # 負值＝上半身往左（前）
 print("ok")

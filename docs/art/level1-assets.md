@@ -57,7 +57,6 @@
 | `public/assets/bullets/milk-drop.png` | 晚安牛奶噴霧的子彈 | 10×10 | 牛奶滴，尖端朝左（往右飛）；扇形噴灑由程式排列 |
 | `public/assets/bullets/music-note.png` | 搖籃曲豎琴的子彈 | 11×14 | 音符 |
 | `public/assets/bullets/moon-beam.png` | 月亮催眠燈的光束 | 32×10 | 橫向重複接成長光束 |
-
 | `public/assets/enemies/insomnia-hedgehog-roll.png` | 失眠刺蝟 滾球（滾動撞人時用） | 48×48 | 程式畫；可以讓程式旋轉 |
 
 棉被迴力鏢的子彈就是武器圖本身（`weapons/blanket-boomerang.png`），旋轉著飛。
@@ -82,9 +81,9 @@
 | `public/assets/enemies/night-owl-boss-dive.png` | 熬夜貓頭鷹 俯衝 1 格（往左下） | 181×200 |
 
 - 拍翅的「平」格（第 2、4 格）就是原圖本身。
-- 貓頭鷹的翅膀收在身體兩側、抱著咖啡杯，拍翅動作比較小；程式可以再加上下浮動讓飛行更明顯。俯衝格是上半身往左前傾。
+- 貓頭鷹的翅膀收在身體兩側、抱著咖啡杯，拍翅動作比較小；程式可以再加上下浮動讓飛行更明顯。俯衝格是上半身往左前傾，身體會比原圖窄一點（斜切後為了不超出畫布）。
 - 小綿羊守衛的動畫放在 `characters/`（和原圖 `default-guard.png` 同一個資料夾），魔物放在 `enemies/`。
-- 關著的寶箱（`items/treasure-chest-closed.png`）和刺蝟正面的刺盾（新版 `enemies/insomnia-hedgehog.png`）在第三批已經交付，請拉最新的 `art/style-guide` 分支。
+- 關著的寶箱（`items/treasure-chest-closed.png`）和刺蝟正面的刺盾（新版 `enemies/insomnia-hedgehog.png`，見第一張表）已經交付，請拉最新的 `art/style-guide` 分支。
 
 ## 還沒做 / 已知問題
 
