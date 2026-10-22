@@ -6,7 +6,7 @@ import { audio } from '../audio/audio';
  * 這裡記住處理過的事件,每次按鍵只處理一次。按住不放的重複事件也略過。
  */
 /** 選單會用到的鍵才發出「選擇」的聲音。 */
-const MENU_KEYS = /^(Digit\d|Enter|Space|Escape|Arrow\w+|Key[WASDC]|Comma)$/;
+const MENU_KEYS = /^(Digit\d|Enter|Space|Escape|Arrow\w+|Key[WASDCQE]|Comma)$/;
 
 export function onMenuKey(scene: Phaser.Scene, handler: (e: KeyboardEvent) => void): void {
   const seen = new WeakSet<KeyboardEvent>();

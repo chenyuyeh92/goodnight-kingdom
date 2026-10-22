@@ -50,6 +50,8 @@ function airborne(vy: number): Pose {
 
 export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: number, vx: number, vy: number, grounded: boolean): Pose {
   if (type === 'nightBat') return flap(tMs);
+  // 禿鷹翅膀大,拍得比蝙蝠慢。
+  if (type === 'vulture') return flap(tMs, 300, 0.1);
   if (type === 'nightOwl') {
     // 貓頭鷹:慢慢拍翅,俯衝時身體往前傾。
     const p = flap(tMs, 420, 0.06);

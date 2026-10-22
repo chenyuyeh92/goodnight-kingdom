@@ -1,13 +1,33 @@
 import type { SpriteKey } from './sprites';
 
-/** 場景:一組三層背景(遠景、中景、近景)。世界 1:草原白天、河邊黃昏、深林晚上、貓頭鷹大樹深夜。 */
-export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4';
+/**
+ * 場景:一組三層背景(遠景、中景、近景)。
+ * 世界 1:草原白天、河邊黃昏、深林晚上、貓頭鷹大樹深夜。
+ * 世界 2:綠洲白天、沙丘商隊路黃昏、金字塔外晚上、人面獅身神殿深夜。
+ */
+export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4';
 
 export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, SpriteKey]> = {
   'w1-s1': ['w1-s1-far', 'w1-s1-mid', 'w1-s1-near'],
   'w1-s2': ['w1-s2-far', 'w1-s2-mid', 'w1-s2-near'],
   'w1-s3': ['bg-far', 'bg-mid', 'bg-near'],
   'w1-s4': ['w1-s4-far', 'w1-s4-mid', 'w1-s4-near'],
+  'w2-s1': ['w2-s1-far', 'w2-s1-mid', 'w2-s1-near'],
+  'w2-s2': ['w2-s2-far', 'w2-s2-mid', 'w2-s2-near'],
+  'w2-s3': ['w2-s3-far', 'w2-s3-mid', 'w2-s3-near'],
+  'w2-s4': ['w2-s4-far', 'w2-s4-mid', 'w2-s4-near'],
+};
+
+/** 場景的時段,決定配樂。 */
+export const SCENE_TIME: Record<SceneId, 'day' | 'dusk' | 'night'> = {
+  'w1-s1': 'day',
+  'w1-s2': 'dusk',
+  'w1-s3': 'night',
+  'w1-s4': 'night',
+  'w2-s1': 'day',
+  'w2-s2': 'dusk',
+  'w2-s3': 'night',
+  'w2-s4': 'night',
 };
 
 /** 地面與平台的配色,配合場景的時段(白天草地、黃昏泥土、夜晚深紫)。 */
@@ -22,6 +42,11 @@ export const SCENE_PALETTE: Record<SceneId, TerrainPalette> = {
   'w1-s2': { ground: 0x5e4a5c, rim: 0xe6a07a, platform: 0x7a5640 },
   'w1-s3': { ground: 0x2b2a6b, rim: 0x9d8fe0, platform: 0x5a4a8f },
   'w1-s4': { ground: 0x23224f, rim: 0x7fb4ff, platform: 0x4a3f7f },
+  // 沙漠:白天淺沙、黃昏橘紫沙、夜晚藍紫沙與石磚。
+  'w2-s1': { ground: 0xc98f5a, rim: 0xf6d6a0, platform: 0xa0703f },
+  'w2-s2': { ground: 0x8a5a6a, rim: 0xf0a878, platform: 0x7a4f5a },
+  'w2-s3': { ground: 0x4a4a8a, rim: 0xe8d4a0, platform: 0x6a5a9a },
+  'w2-s4': { ground: 0x3a3570, rim: 0xc8b8f0, platform: 0x5a4f8f },
 };
 
 /** 三層的捲動速度(相對鏡頭)。 */

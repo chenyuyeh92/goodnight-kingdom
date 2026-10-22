@@ -16,6 +16,18 @@ export const SPRITES = {
   'w1-s4-far': { file: 'backgrounds/w1-s4-far.png', w: 1440, h: 540 },
   'w1-s4-mid': { file: 'backgrounds/w1-s4-mid.png', w: 1516, h: 540 },
   'w1-s4-near': { file: 'backgrounds/w1-s4-near.png', w: 183, h: 540 },
+  'w2-s1-far': { file: 'backgrounds/w2-s1-far.png', w: 1440, h: 540 },
+  'w2-s1-mid': { file: 'backgrounds/w2-s1-mid.png', w: 1376, h: 540 },
+  'w2-s1-near': { file: 'backgrounds/w2-s1-near.png', w: 1103, h: 540 },
+  'w2-s2-far': { file: 'backgrounds/w2-s2-far.png', w: 1440, h: 540 },
+  'w2-s2-mid': { file: 'backgrounds/w2-s2-mid.png', w: 1606, h: 540 },
+  'w2-s2-near': { file: 'backgrounds/w2-s2-near.png', w: 1440, h: 540 },
+  'w2-s3-far': { file: 'backgrounds/w2-desert-far.png', w: 1440, h: 540 },
+  'w2-s3-mid': { file: 'backgrounds/w2-desert-mid.png', w: 1393, h: 540 },
+  'w2-s3-near': { file: 'backgrounds/w2-desert-near.png', w: 1440, h: 540 },
+  'w2-s4-far': { file: 'backgrounds/w2-s4-far.png', w: 1440, h: 540 },
+  'w2-s4-mid': { file: 'backgrounds/w2-s4-mid.png', w: 1376, h: 540 },
+  'w2-s4-near': { file: 'backgrounds/w2-s4-near.png', w: 1440, h: 540 },
   guard: { file: 'characters/default-guard.png', w: 48, h: 55 },
   'pajama-outline': { file: 'characters/pajama-outline.png', w: 289, h: 512 },
   clockbug: { file: 'enemies/clockbug.png', w: 48, h: 56 },
@@ -31,6 +43,23 @@ export const SPRITES = {
   'owl-2': { file: 'enemies/night-owl-boss-phase2.png', w: 183, h: 200 },
   'owl-3': { file: 'enemies/night-owl-boss-phase3.png', w: 176, h: 200 },
   'owl-sleep': { file: 'enemies/night-owl-boss-sleep.png', w: 184, h: 200 },
+  'bell-scarab': { file: 'enemies/w2-bell-scarab.png', w: 43, h: 52 },
+  'bell-scarab-sleep': { file: 'enemies/w2-bell-scarab-sleep.png', w: 42, h: 52 },
+  'mummy-cat': { file: 'enemies/w2-mummy-cat.png', w: 56, h: 52 },
+  'mummy-cat-sleep': { file: 'enemies/w2-mummy-cat-sleep.png', w: 56, h: 53 },
+  'sand-snake': { file: 'enemies/w2-coffee-sand-snake.png', w: 52, h: 53 },
+  'sand-snake-sleep': { file: 'enemies/w2-coffee-sand-snake-sleep.png', w: 52, h: 53 },
+  vulture: { file: 'enemies/w2-insomnia-vulture.png', w: 60, h: 56 },
+  'vulture-sleep': { file: 'enemies/w2-insomnia-vulture-sleep.png', w: 59, h: 56 },
+  tortoise: { file: 'enemies/w2-desert-tortoise.png', w: 55, h: 64 },
+  'tortoise-sleep': { file: 'enemies/w2-desert-tortoise-sleep.png', w: 56, h: 64 },
+  sphinx: { file: 'enemies/w2-sphinx-boss.png', w: 205, h: 200 },
+  'sphinx-2': { file: 'enemies/w2-sphinx-boss-phase2.png', w: 220, h: 200 },
+  'sphinx-3': { file: 'enemies/w2-sphinx-boss-phase3.png', w: 213, h: 200 },
+  'sphinx-sleep': { file: 'enemies/w2-sphinx-boss-sleep.png', w: 206, h: 200 },
+  quicksand: { file: 'items/w2-quicksand.png', w: 96, h: 24 },
+  'pressure-plate': { file: 'items/w2-pressure-plate.png', w: 40, h: 12 },
+  'falling-block': { file: 'items/w2-falling-block.png', w: 40, h: 39 },
   zzz: { file: 'fx/zzz.png', w: 32, h: 31 },
   'dream-sheep': { file: 'fx/dream-sheep.png', w: 40, h: 36 },
   'hot-cocoa': { file: 'items/hot-cocoa.png', w: 23, h: 32 },
@@ -81,6 +110,20 @@ export type SpriteKey = keyof typeof SPRITES;
 
 export const SPRITE_KEYS = Object.keys(SPRITES) as SpriteKey[];
 
+/**
+ * 進關卡時才載入的圖:背景,以及世界 2 起的魔物與機關(檔名 w2-、w3-…開頭)。
+ * 開機只載入主頁與世界 1 用得到的小圖。
+ */
+export function isLevelAsset(key: SpriteKey): boolean {
+  const file = SPRITES[key].file;
+  return file.startsWith('backgrounds/') || /\/w\d+-/.test(file);
+}
+
+/** 某個世界專屬的魔物與機關圖(不含背景)。 */
+export function worldSpriteKeys(world: number): SpriteKey[] {
+  return SPRITE_KEYS.filter((k) => !SPRITES[k].file.startsWith('backgrounds/') && SPRITES[k].file.includes(`/w${world}-`));
+}
+
 /** 這些大圖用 tools/build_web_assets.py 轉成 WebP 載入。 */
 const WEBP = /^(backgrounds\/|ui\/cover-bg\.png$)/;
 
@@ -94,32 +137,66 @@ export function assetPath(key: SpriteKey): string {
 /** 貓頭鷹原圖 200 高,畫成 0.75 倍。 */
 export const OWL_ART_SCALE = 0.75;
 
-/** 畫的時候要縮放的魔物(貓頭鷹縮小;小頭目用原本魔物的圖放大)。 */
-export const ENEMY_ART_SCALE: Partial<Record<EnemyType, number>> = { nightOwl: OWL_ART_SCALE, bigClockBug: 1.5, hedgehogCaptain: 1.4 };
+/** 人面獅身原圖 200 高,畫成 0.75 倍。 */
+export const SPHINX_ART_SCALE = 0.75;
+
+/** 畫的時候要縮放的魔物(關主縮小;世界 1 的小頭目暫時用原本魔物的圖放大)。 */
+export const ENEMY_ART_SCALE: Partial<Record<EnemyType, number>> = {
+  nightOwl: OWL_ART_SCALE,
+  sphinx: SPHINX_ART_SCALE,
+  bigClockBug: 1.5,
+  hedgehogCaptain: 1.4,
+};
 
 /** 小頭目染色,和一般魔物區分。 */
 export const ENEMY_ART_TINT: Partial<Record<EnemyType, number>> = { bigClockBug: 0xffc890, hedgehogCaptain: 0xffa8a8 };
 
-const ENEMY_AWAKE: Record<Exclude<EnemyType, 'nightOwl'>, SpriteKey> = {
+/**
+ * 美術還沒畫的小頭目(駱駝、耳廓狐)先用程式畫的造型(src/art/placeholders.ts);
+ * 美術畫好後加進 SPRITES,把這裡的對照換成正式的圖。
+ */
+export type PlaceholderKey = 'gk-camel' | 'gk-camel-sleep' | 'gk-fennec' | 'gk-fennec-sleep';
+export type ArtKey = SpriteKey | PlaceholderKey;
+
+type PhasedBoss = 'nightOwl' | 'sphinx';
+
+const ENEMY_AWAKE: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   alarmBug: 'clockbug',
   coffeeBean: 'coffee-bean',
   nightBat: 'night-bat',
   hedgehog: 'hedgehog',
   bigClockBug: 'clockbug',
   hedgehogCaptain: 'hedgehog',
+  bellScarab: 'bell-scarab',
+  mummyCat: 'mummy-cat',
+  sandSnake: 'sand-snake',
+  vulture: 'vulture',
+  tortoise: 'tortoise',
+  camel: 'gk-camel',
+  fennec: 'gk-fennec',
 };
-const ENEMY_SLEEP: Record<Exclude<EnemyType, 'nightOwl'>, SpriteKey> = {
+const ENEMY_SLEEP: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   alarmBug: 'clockbug-sleep',
   coffeeBean: 'coffee-bean-sleep',
   nightBat: 'night-bat-sleep',
   hedgehog: 'hedgehog-sleep',
   bigClockBug: 'clockbug-sleep',
   hedgehogCaptain: 'hedgehog-sleep',
+  bellScarab: 'bell-scarab-sleep',
+  mummyCat: 'mummy-cat-sleep',
+  sandSnake: 'sand-snake-sleep',
+  vulture: 'vulture-sleep',
+  tortoise: 'tortoise-sleep',
+  camel: 'gk-camel-sleep',
+  fennec: 'gk-fennec-sleep',
 };
-const OWL_PHASE: Record<1 | 2 | 3, SpriteKey> = { 1: 'owl', 2: 'owl-2', 3: 'owl-3' };
+const BOSS_PHASES: Record<PhasedBoss, { 1: SpriteKey; 2: SpriteKey; 3: SpriteKey; sleep: SpriteKey }> = {
+  nightOwl: { 1: 'owl', 2: 'owl-2', 3: 'owl-3', sleep: 'owl-sleep' },
+  sphinx: { 1: 'sphinx', 2: 'sphinx-2', 3: 'sphinx-3', sleep: 'sphinx-sleep' },
+};
 
-export function enemySprite(type: EnemyType, state: 'awake' | 'sleep', owlPhase: 1 | 2 | 3 = 1): SpriteKey {
-  if (type === 'nightOwl') return state === 'sleep' ? 'owl-sleep' : OWL_PHASE[owlPhase];
+export function enemySprite(type: EnemyType, state: 'awake' | 'sleep', phase: 1 | 2 | 3 = 1): ArtKey {
+  if (type === 'nightOwl' || type === 'sphinx') return state === 'sleep' ? BOSS_PHASES[type].sleep : BOSS_PHASES[type][phase];
   return state === 'sleep' ? ENEMY_SLEEP[type] : ENEMY_AWAKE[type];
 }
 

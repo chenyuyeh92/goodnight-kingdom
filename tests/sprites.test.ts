@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { SPRITES, SPRITE_KEYS, bulletSprite, enemySprite, itemSprite, weaponIcon } from '../src/art/sprites';
+import { SPRITES, SPRITE_KEYS, bulletSprite, enemySprite, isLevelAsset, itemSprite, weaponIcon, worldSpriteKeys } from '../src/art/sprites';
 import { ENEMY_DEFS, type EnemyType } from '../src/game/enemies';
 import { WEAPONS, type WeaponId } from '../src/game/weapons';
 import type { ItemId } from '../src/game/items';
@@ -18,13 +18,32 @@ test('每張素材都在 public/assets 且大小和對照表一致', () => {
   }
 });
 
-test('每種魔物都有醒著和睡著的圖,貓頭鷹三個階段各一張', () => {
+/** 美術還沒畫、先用程式畫的造型。 */
+const PLACEHOLDERS = new Set(['gk-camel', 'gk-camel-sleep', 'gk-fennec', 'gk-fennec-sleep']);
+
+test('每種魔物都有醒著和睡著的圖,貓頭鷹與人面獅身三個階段各一張', () => {
   for (const t of Object.keys(ENEMY_DEFS) as EnemyType[]) {
-    expect(SPRITES[enemySprite(t, 'awake')]).toBeDefined();
-    expect(SPRITES[enemySprite(t, 'sleep')]).toBeDefined();
+    for (const state of ['awake', 'sleep'] as const) {
+      const key = enemySprite(t, state);
+      expect(PLACEHOLDERS.has(key) || key in SPRITES, `${t} ${state}`).toBe(true);
+    }
     expect(enemySprite(t, 'sleep')).not.toBe(enemySprite(t, 'awake'));
   }
-  expect(new Set([1, 2, 3].map((p) => enemySprite('nightOwl', 'awake', p as 1 | 2 | 3))).size).toBe(3);
+  for (const boss of ['nightOwl', 'sphinx'] as const) {
+    expect(new Set([1, 2, 3].map((p) => enemySprite(boss, 'awake', p as 1 | 2 | 3))).size).toBe(3);
+  }
+});
+
+test('世界 2 的魔物與機關圖進關卡才載入,世界 1 的開機就載入', () => {
+  expect(isLevelAsset('bell-scarab')).toBe(true);
+  expect(isLevelAsset('sphinx')).toBe(true);
+  expect(isLevelAsset('quicksand')).toBe(true);
+  expect(isLevelAsset('w2-s1-far')).toBe(true);
+  expect(isLevelAsset('clockbug')).toBe(false);
+  expect(isLevelAsset('owl')).toBe(false);
+  expect(worldSpriteKeys(2)).toEqual(expect.arrayContaining(['bell-scarab', 'sphinx-3', 'falling-block']));
+  expect(worldSpriteKeys(2).some((k) => k.startsWith('w2-s'))).toBe(false);
+  expect(worldSpriteKeys(1)).toEqual([]);
 });
 
 test('道具與武器都有圖', () => {

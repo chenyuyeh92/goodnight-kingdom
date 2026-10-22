@@ -7,7 +7,6 @@ import type { Aim, Facing } from './game/playerMotor';
 import type { SpecialWeaponId, WeaponId } from './game/weapons';
 import type { ItemId } from './game/items';
 import { parseLevelId, type LevelId } from './levels/levelDef';
-import type { OwlMode } from './game/owl';
 import { parsePlayMode, type PlayMode } from './input/playMode';
 import { BackpackScene } from './scenes/BackpackScene';
 import { BootScene } from './scenes/BootScene';
@@ -75,6 +74,8 @@ export interface GkDebug {
   guardTarget?: 'A' | 'B';
   /** 選關畫面:每一關是否解鎖、最佳時間。 */
   levels?: { id: LevelId; unlocked: boolean; best: number | null }[];
+  /** 選關畫面正在看第幾個世界。 */
+  world?: number;
   /** 美術素材載入狀態。 */
   art?: { loaded: number; missing: string[]; disabled: boolean };
   /** 通關結算的文字列。 */
@@ -107,7 +108,7 @@ export interface GkDebug {
   /** 是否顯示觸控操作。 */
   touch?: boolean;
   level?: LevelId;
-  boss?: { hp: number; maxHp: number; phase: 1 | 2 | 3; mode: OwlMode } | null;
+  boss?: { hp: number; maxHp: number; phase: 1 | 2 | 3; mode: string; type: EnemyType; hidden: boolean } | null;
   bossDefeated?: boolean;
   /** 場上魔物子彈(羽毛)數。 */
   enemyShots?: number;
@@ -116,6 +117,10 @@ export interface GkDebug {
   bossLockX?: number | null;
   /** 掉進河溝的次數。 */
   riverFalls?: number;
+  /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
+  desert?: { blocks: number; landed: number; waves: number; sink: number[]; sinks: number; platesFired: number };
+  /** 測試用:在 x 掉一塊沙磚。 */
+  dropBlock?: (x: number) => void;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
   lastChest?: 'new' | 'starUp' | 'maxed' | null;

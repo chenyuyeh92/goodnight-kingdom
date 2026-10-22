@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { EnemyDebug } from '../main';
 import { ENEMY_DEFS, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
-import { ENEMY_ART_SCALE, ENEMY_ART_TINT, enemySprite, type SpriteKey } from '../art/sprites';
+import { ENEMY_ART_SCALE, ENEMY_ART_TINT, enemySprite, type ArtKey } from '../art/sprites';
 import { enemyPose } from '../art/motion';
 
 const SHIELD_W = 3;
@@ -55,7 +55,7 @@ export class EnemyEntity {
   }
 
   /** 換圖(貓頭鷹換階段);沒有這張圖時維持原樣。 */
-  setArt(key: SpriteKey): void {
+  setArt(key: ArtKey): void {
     if (this.art && this.scene.textures.exists(key) && this.art.texture.key !== key) this.art.setTexture(key);
   }
 
@@ -72,7 +72,8 @@ export class EnemyEntity {
     return this.body.x;
   }
 
-  update(targetX: number | null, dtMs: number, gravity: number): void {
+  /** 回傳這一格吐出的子彈(咖啡沙蛇),沒有時為 null。 */
+  update(targetX: number | null, targetY: number | null, dtMs: number, gravity: number): { vx: number; vy: number } | null {
     const pb = this.physicsBody();
     if (!this.def.flying) pb.setGravityY(gravity);
     const move = stepEnemy(this.def.type, this.brain, {
@@ -80,10 +81,12 @@ export class EnemyEntity {
       y: this.body.y,
       grounded: pb.blocked.down || pb.touching.down,
       targetX,
+      targetY,
       dtMs,
     });
     this.brain = move.brain;
     pb.setVelocity(move.vx, move.vy ?? pb.velocity.y);
+    return move.spit ?? null;
   }
 
   flash(): void {

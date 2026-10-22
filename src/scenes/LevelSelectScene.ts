@@ -1,31 +1,38 @@
 import Phaser from 'phaser';
 import { audio } from '../audio/audio';
 import { createSaveStore } from '../game/save';
-import { WORLD1, isUnlocked, levelNumber } from '../game/progress';
+import { WORLDS, WORLD_NAMES, isUnlocked, levelNumber, previousLevel } from '../game/progress';
 import { formatDuration } from '../game/runStats';
 import { LEVELS } from '../levels';
 import type { LevelId } from '../levels/levelDef';
 import type { TestRangeData } from './TestRangeScene';
 import { startLevel } from './LoadoutScene';
 import { onMenuKey } from './menuKeys';
-import { menuButton } from './menuButton';
+import { menuButton, smallButton } from './menuButton';
 
 const CARD_W = 250;
 const CARD_H = 230;
 const CARD_Y = 290;
 const CARD_GAP = 280;
-/** 每一關的時段(一個世界玩完剛好過了一天)。 */
-const TIME_OF_DAY: Partial<Record<LevelId, string>> = { 'w1-1': '白天', 'w1-2': '黃昏', forest: '晚上 → 深夜' };
+/** 每個世界三小關的時段(一個世界玩完剛好過了一天)。 */
+const TIME_OF_DAY = ['白天', '黃昏', '晚上 → 深夜'] as const;
+const PREV_WORLD = new Set(['KeyQ', 'ArrowLeft']);
+const NEXT_WORLD = new Set(['KeyE', 'ArrowRight']);
 
-/** 世界 1 選關:依序解鎖,顯示最佳時間。 */
+export interface LevelSelectData extends TestRangeData {
+  /** 要顯示第幾個世界(1 起算);沒有時顯示最後一個已開放的世界。 */
+  world?: number;
+}
+
+/** 選關:可以切換世界;所有小關依序解鎖,顯示最佳時間。 */
 export class LevelSelectScene extends Phaser.Scene {
-  private data_: TestRangeData = {};
+  private data_: LevelSelectData = {};
 
   constructor() {
     super('LevelSelect');
   }
 
-  init(data: TestRangeData): void {
+  init(data: LevelSelectData): void {
     this.data_ = data ?? {};
   }
 
@@ -34,9 +41,16 @@ export class LevelSelectScene extends Phaser.Scene {
     const cleared = (this.data_.save ?? createSaveStore(null)).get().cleared;
     const touch = this.data_.touch ?? false;
     if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.45);
-    this.add.text(480, 70, '世界 1  失眠森林', { fontSize: '36px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
+    const opened = WORLDS.filter((w) => isUnlocked(w[0], cleared)).length;
+    const world = Math.min(Math.max(this.data_.world ?? opened, 1), WORLDS.length);
+    this.add.text(480, 70, `世界 ${world}  ${WORLD_NAMES[world - 1]}`, { fontSize: '36px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
+    const go = (w: number): void => {
+      if (w >= 1 && w <= WORLDS.length && w !== world) this.scene.restart({ ...this.data_, world: w });
+    };
+    if (world > 1) smallButton(this, 100, 70, touch ? `← 世界 ${world - 1}` : `← 世界 ${world - 1}(Q)`, () => go(world - 1), 160);
+    if (world < WORLDS.length) smallButton(this, 860, 70, touch ? `世界 ${world + 1} →` : `世界 ${world + 1} →(E)`, () => go(world + 1), 160);
 
-    const levels = WORLD1.map((id) => ({ id, unlocked: isUnlocked(id, cleared), best: cleared[id] ?? null }));
+    const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: isUnlocked(id, cleared), best: cleared[id] ?? null }));
     levels.forEach((l, i) => {
       const x = 480 + (i - 1) * CARD_GAP;
       const card = this.textures.exists('ui-panel')
@@ -47,9 +61,10 @@ export class LevelSelectScene extends Phaser.Scene {
       const ink = l.unlocked ? '#3a2a5a' : '#6f6a8a';
       this.add.text(x, CARD_Y - 75, levelNumber(l.id), { fontSize: '40px', color: ink }).setOrigin(0.5);
       this.add.text(x, CARD_Y - 20, LEVELS[l.id].name, { fontSize: '22px', color: ink }).setOrigin(0.5);
-      this.add.text(x, CARD_Y + 18, TIME_OF_DAY[l.id] ?? '', { fontSize: '18px', color: ink }).setOrigin(0.5);
-      const status = !l.unlocked
-        ? `鎖住:先通過 ${levelNumber(WORLD1[i - 1])}`
+      this.add.text(x, CARD_Y + 18, TIME_OF_DAY[i], { fontSize: '18px', color: ink }).setOrigin(0.5);
+      const prev = previousLevel(l.id);
+      const status = !l.unlocked && prev
+        ? `鎖住:先通過 ${levelNumber(prev)}`
         : l.best !== null
           ? `最佳 ${formatDuration(l.best)}`
           : '還沒通關';
@@ -61,13 +76,15 @@ export class LevelSelectScene extends Phaser.Scene {
 
     onMenuKey(this, (e) => {
       if (e.code === 'Escape') this.back();
+      if (PREV_WORLD.has(e.code)) go(world - 1);
+      if (NEXT_WORLD.has(e.code)) go(world + 1);
       const i = /^Digit([1-3])$/.exec(e.code);
       if (i) {
         const l = levels[Number(i[1]) - 1];
         this.play(l.id, l.unlocked);
       }
     });
-    window.__GK__ = { ready: true, screen: 'level-select', levels };
+    window.__GK__ = { ready: true, screen: 'level-select', levels, world };
   }
 
   private play(id: LevelId, unlocked: boolean): void {
@@ -80,7 +97,7 @@ export class LevelSelectScene extends Phaser.Scene {
   }
 
   private back(): void {
-    const { mode: _mode, ...rest } = this.data_;
+    const { mode: _mode, world: _world, ...rest } = this.data_;
     this.scene.start('ModeSelect', rest);
   }
 }

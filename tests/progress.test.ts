@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { WORLD1, isUnlocked, levelNumber, nextLevel } from '../src/game/progress';
+import { WORLD1, WORLD2, isUnlocked, levelNumber, nextLevel, worldOf } from '../src/game/progress';
 import { createSaveStore, sanitizeSave, SAVE_KEY } from '../src/game/save';
 import type { StorageLike } from '../src/config/tuning';
 
@@ -15,10 +15,26 @@ test('只有 1-1 一開始就能玩,通關才解鎖下一關', () => {
   expect(isUnlocked('forest', { 'w1-1': 200000 })).toBe(false);
 });
 
-test('下一關', () => {
+test('下一關:1-3 通關後接 2-1,最後一關沒有下一關', () => {
   expect(nextLevel('w1-1')).toBe('w1-2');
-  expect(nextLevel('forest')).toBeNull();
+  expect(nextLevel('forest')).toBe('w2-1');
+  expect(nextLevel('w2-3')).toBeNull();
   expect(nextLevel('range')).toBeNull();
+});
+
+test('世界 2 是 2-1 綠洲、2-2 沙丘、2-3 金字塔,先通過 1-3 才開放', () => {
+  expect(WORLD2.map(levelNumber)).toEqual(['2-1', '2-2', '2-3']);
+  expect(WORLD2.map(worldOf)).toEqual([2, 2, 2]);
+  expect(worldOf('range')).toBeNull();
+  expect(isUnlocked('w2-1', { 'w1-1': 1, 'w1-2': 1 })).toBe(false);
+  expect(isUnlocked('w2-1', { forest: 1 })).toBe(true);
+  expect(isUnlocked('w2-2', { forest: 1 })).toBe(false);
+  expect(isUnlocked('w2-3', { 'w2-2': 1 })).toBe(true);
+  expect(isUnlocked('range', {})).toBe(true);
+});
+
+test('舊存檔裡世界 2 的通關紀錄也讀得進來', () => {
+  expect(sanitizeSave({ version: 1, weapons: {}, cleared: { 'w2-1': 240000 } }).cleared).toEqual({ 'w2-1': 240000 });
 });
 
 test('舊存檔沒有通關紀錄,讀進來是空的', () => {

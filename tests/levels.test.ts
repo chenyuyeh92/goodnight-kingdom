@@ -118,7 +118,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest'] as const)('世界 1 共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -210,4 +210,60 @@ describe('1-2 河邊', () => {
   test('高處寶箱跳得上去', () => {
     for (const c of R.chests.filter((c) => c.bottom < 300)) expectReachable(c, R);
   });
+});
+
+describe.each(['w2-1', 'w2-2', 'w2-3'] as const)('世界 2 沙漠:%s', (id) => {
+  const L = LEVELS[id];
+  const sand = L.sand ?? [];
+  const onSand = (x: number, margin = 0): boolean => sand.some((s) => x >= s.x - margin && x <= s.x + s.w + margin);
+
+  test('屬於世界 2,用沙漠場景', () => {
+    expect(L.world).toBe(2);
+    for (const s of L.scenes) expect(s.scene.startsWith('w2-')).toBe(true);
+  });
+
+  test('流沙走得過去:每段不超過 200 寬(走路約 1.7 秒,不到陷下去的 2 秒)', () => {
+    expect(sand.length).toBeGreaterThan(0);
+    for (const s of sand) expect(s.w).toBeLessThanOrEqual(200);
+  });
+
+  test('檢查點(雙人 B 在右邊 40)、地上的寶箱不在流沙或壓力板上', () => {
+    for (const cp of L.checkpoints) {
+      expect(onSand(cp, 20) || onSand(cp + 40, 20), `檢查點 ${cp}`).toBe(false);
+      for (const p of L.plates ?? []) expect(Math.abs(cp - p.x) > 60 && Math.abs(cp + 40 - p.x) > 60, `檢查點 ${cp}`).toBe(true);
+    }
+    for (const c of L.chests.filter((c) => c.bottom === 480)) expect(onSand(c.x, 20), `寶箱 ${c.x}`).toBe(false);
+  });
+
+  test('咖啡沙蛇從流沙裡冒出來', () => {
+    const snakes = [...L.trickles.map((t) => t.spawn), ...L.arenas.flatMap((a) => a.waves.flat())].filter((s) => s.type === 'sandSnake');
+    expect(snakes.length).toBeGreaterThan(0);
+    for (const s of snakes) {
+      expect(s.from).toBe('ground');
+      expect(onSand(s.x!), `沙蛇 ${s.x}`).toBe(true);
+    }
+  });
+
+  test('關主區沒有流沙、壓力板與仙人掌', () => {
+    const lock = L.boss!.lockScrollX;
+    for (const s of sand) expect(s.x + s.w).toBeLessThan(lock);
+    for (const p of L.plates ?? []) for (const x of [p.x, ...p.drops]) expect(x).toBeLessThan(lock - 20);
+    for (const t of L.thorns) expect(t.x + t.w).toBeLessThan(lock);
+  });
+
+  test('高處寶箱跳得上去', () => {
+    const high = L.chests.filter((c) => c.bottom < 300);
+    expect(high.length).toBeGreaterThan(0);
+    for (const c of high) expectReachable(c, L);
+  });
+});
+
+test('世界 2 的小頭目是新的魔物,關主是人面獅身', () => {
+  expect(LEVELS['w2-1'].boss!.type).toBe('camel');
+  expect(LEVELS['w2-2'].boss!.type).toBe('fennec');
+  expect(LEVELS['w2-3'].boss!.type).toBe('sphinx');
+  expect(LEVELS['w2-1'].hints!.map((h) => h.kind)).toContain('quicksand');
+  expect(LEVELS['w2-3'].hints!.map((h) => h.kind)).toContain('plate');
+  expect(LEVELS['w2-3'].plates!.length).toBeGreaterThanOrEqual(4);
+  expect(LEVELS['w2-3'].scenes.map((s) => s.scene)).toEqual(['w2-s3', 'w2-s4']);
 });

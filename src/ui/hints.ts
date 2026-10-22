@@ -1,9 +1,9 @@
 import type { PlayMode } from '../input/playMode';
 
-/** 1-1 路邊的教學告示牌。 */
-export type HintKind = 'move' | 'jump' | 'aimUp' | 'crouch' | 'melee' | 'chest';
+/** 路邊的教學告示牌(1-1 教操作,世界 2 教流沙與壓力板)。 */
+export type HintKind = 'move' | 'jump' | 'aimUp' | 'crouch' | 'melee' | 'chest' | 'quicksand' | 'plate';
 
-export const HINT_KINDS: readonly HintKind[] = ['move', 'jump', 'aimUp', 'crouch', 'melee', 'chest'];
+export const HINT_KINDS: readonly HintKind[] = ['move', 'jump', 'aimUp', 'crouch', 'melee', 'chest', 'quicksand', 'plate'];
 
 const WHAT: Record<HintKind, string> = {
   move: '往右走,邊走邊射擊',
@@ -12,6 +12,8 @@ const WHAT: Record<HintKind, string> = {
   crouch: '蹲下躲開低飛的蝙蝠',
   melee: '貼近魔物會揮枕頭,傷害更高',
   chest: '寶箱裡有新武器,碰到就打開',
+  quicksand: '流沙會變慢,站太久會陷下去,快走過去或跳過去',
+  plate: '踩到壓力板會掉沙磚,看到影子快躲開',
 };
 
 const KEYS: Record<HintKind, { a: string; b: string; touch: string } | null> = {
@@ -21,6 +23,8 @@ const KEYS: Record<HintKind, { a: string; b: string; touch: string } | null> = {
   crouch: { a: '按住 S', b: '按住 ↓', touch: '左邊往下拖' },
   melee: { a: 'C', b: ',', touch: '射擊鈕' },
   chest: null,
+  quicksand: null,
+  plate: null,
 };
 
 /** 告示牌文字:依單人/雙人與是否觸控顯示對應的按鍵。 */

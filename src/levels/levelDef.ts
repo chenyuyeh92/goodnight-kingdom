@@ -3,12 +3,13 @@ import type { ScenePlan } from '../art/scenes';
 import type { EnemyType } from '../game/enemies';
 import type { HintKind } from '../ui/hints';
 import type { Span } from '../game/water';
+import type { PlateDef } from '../game/traps';
 
-export type BossType = Extract<EnemyType, 'nightOwl' | 'bigClockBug' | 'hedgehogCaptain'>;
+export type BossType = Extract<EnemyType, 'nightOwl' | 'bigClockBug' | 'hedgehogCaptain' | 'camel' | 'fennec' | 'sphinx'>;
 
-export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2';
+export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2' | 'w2-1' | 'w2-2' | 'w2-3';
 
-const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2'];
+const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3'];
 
 /** 左上角座標與寬高。 */
 export interface Rect {
@@ -21,6 +22,8 @@ export interface Rect {
 export interface LevelDef {
   id: LevelId;
   name: string;
+  /** 第幾個世界(決定進關時要載入哪個世界的魔物圖)。 */
+  world: number;
   worldW: number;
   /** 平台與天花板;地面由場景依 worldW 自動加上。 */
   terrain: readonly Rect[];
@@ -39,7 +42,11 @@ export interface LevelDef {
   scenes: readonly ScenePlan[];
   /** 河邊的水(1-2):淺水區變慢、河溝要跳過、荷葉可以踩。 */
   water?: { shallow: readonly Span[]; gaps: readonly Span[]; pads: readonly { x: number; y: number; w: number }[] };
-  /** 路邊的教學告示牌(1-1)。 */
+  /** 流沙(世界 2):走得慢、站久了會陷下去。 */
+  sand?: readonly Span[];
+  /** 壓力板(世界 2):踩到會讓上面掉沙磚。 */
+  plates?: readonly PlateDef[];
+  /** 路邊的教學告示牌。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }
 

@@ -16,14 +16,19 @@ import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
-import { ENEMY_DEFS, bulletEffect, type EnemyType } from '../game/enemies';
+import { ENEMY_DEFS, SPIT_GRAVITY, bulletEffect, type EnemyType } from '../game/enemies';
 import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
-import { ENEMY_ART_TINT, artStatus, assetPath, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
-import { SCENE_PALETTE, sceneKeys, type TerrainPalette } from '../art/scenes';
-import { WORLD1, levelNumber, nextLevel } from '../game/progress';
+import { ENEMY_ART_TINT, artStatus, assetPath, enemySprite, itemSprite, weaponIcon, worldSpriteKeys } from '../art/sprites';
+import { SCENE_PALETTE, SCENE_TIME, sceneKeys, type TerrainPalette } from '../art/scenes';
+import { makePlaceholderArt } from '../art/placeholders';
+import { isStoryLevel, levelNumber, nextLevel } from '../game/progress';
+import { DesertHazards } from '../game/desertHazards';
+import { initialCamelBrain, stepCamel, type CamelBrain } from '../game/camel';
+import { initialFennecBrain, stepFennec, type FennecBrain } from '../game/fennec';
+import { initialSphinxBrain, stepSphinx, type SphinxBrain } from '../game/sphinx';
 import { ParallaxBackground } from '../game/background';
 import { audio } from '../audio/audio';
 import type { TrackId } from '../audio/tunes';
@@ -88,6 +93,13 @@ const MINI_BOSS_MAX_MINIONS = 3;
 /** 打倒關主:停頓 ×3、晃動 ×2。 */
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
+/** 換階段時顯示的關主簡稱。 */
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身' };
+/** 小頭目出招前頭上冒「!」的時間。 */
+const TELL_MS = 450;
+/** 耳廓狐鑽在沙裡時,玩家腳下冒出的沙堆。 */
+const MOUND_W = 70;
+const MOUND_H = 16;
 
 /** 荷葉的厚度;河岸擋魔物的隱形牆高度。 */
 const PAD_H = 10;
@@ -157,9 +169,44 @@ interface Target {
 }
 
 
+/** 各種關主與小頭目的行為狀態;walker 是世界 1 暫代的小頭目,照一般魔物移動。 */
+type BossAi =
+  | { kind: 'owl'; brain: OwlBrain }
+  | { kind: 'walker' }
+  | { kind: 'camel'; brain: CamelBrain }
+  | { kind: 'fennec'; brain: FennecBrain; mound: Phaser.GameObjects.Ellipse | null }
+  | { kind: 'sphinx'; brain: SphinxBrain };
+
+/** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'camel', 'fennec', 'sphinx']);
+
+function initialAi(type: BossType): BossAi {
+  switch (type) {
+    case 'nightOwl':
+      return { kind: 'owl', brain: initialOwlBrain() };
+    case 'camel':
+      return { kind: 'camel', brain: initialCamelBrain() };
+    case 'fennec':
+      return { kind: 'fennec', brain: initialFennecBrain(), mound: null };
+    case 'sphinx':
+      return { kind: 'sphinx', brain: initialSphinxBrain() };
+    default:
+      return { kind: 'walker' };
+  }
+}
+
+/** 有三階段的關主回傳目前階段,其他回傳 1。 */
+function aiPhase(ai: BossAi): 1 | 2 | 3 {
+  return ai.kind === 'owl' || ai.kind === 'sphinx' ? ai.brain.phase : 1;
+}
+
+function aiMode(ai: BossAi): string {
+  return ai.kind === 'walker' ? 'walk' : ai.brain.mode;
+}
+
 interface Boss {
   enemy: EnemyEntity;
-  brain: OwlBrain;
+  ai: BossAi;
   maxHp: number;
   invulnerable: boolean;
   minions: Set<EnemyEntity>;
@@ -232,10 +279,9 @@ function makeHeartTextures(scene: Phaser.Scene): void {
   draw(HEART_EMPTY, null);
 }
 
-/** 每一關的配樂依第一個場景的時段:白天、黃昏,其餘(晚上)。 */
+/** 每一關的配樂依第一個場景的時段:白天、黃昏、晚上。 */
 function levelTrack(level: LevelDef): TrackId {
-  const scene = level.scenes[0].scene;
-  return scene === 'w1-s1' ? 'day' : scene === 'w1-s2' ? 'dusk' : 'night';
+  return SCENE_TIME[level.scenes[0].scene];
 }
 
 /** 只保留跨關卡的設定(存檔、觸控、模式等),去掉這一輪的進度。 */
@@ -289,6 +335,7 @@ export class TestRangeScene extends Phaser.Scene {
     return SCENE_PALETTE[this.level.scenes[0].scene];
   }
   private background!: ParallaxBackground;
+  private desert!: DesertHazards;
   private flags: { x: number; g: Phaser.GameObjects.Graphics; on: boolean | null }[] = [];
 
   constructor() {
@@ -321,7 +368,8 @@ export class TestRangeScene extends Phaser.Scene {
     if (artStatus.disabled) return;
     const base = import.meta.env.BASE_URL;
     // 之前載入失敗的背景不再重抓(重來時不會一直卡在載入)。
-    const keys = sceneKeys(this.level.scenes.map((s) => s.scene)).filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
+    const wanted = [...sceneKeys(this.level.scenes.map((s) => s.scene)), ...worldSpriteKeys(this.level.world)];
+    const keys = wanted.filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
     if (keys.length === 0) return;
     const label = this.add.text(480, 270, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
     const done = (): void => void (artStatus.loaded += 1);
@@ -367,6 +415,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.terrainBodies.clear();
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
+    if (!artStatus.disabled) makePlaceholderArt(this);
     this.background = new ParallaxBackground(this, this.level.scenes);
     audio.music(levelTrack(this.level));
     this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
@@ -413,6 +462,15 @@ export class TestRangeScene extends Phaser.Scene {
     this.encounters = initialEncounters(this.scrollX, this.level.trickles, this.initData.arenasCleared ?? 0);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
     this.players.forEach((p, i) => (p.loadout = { ...(this.initData.loadouts?.[i] ?? BASE_LOADOUT) }));
+    this.desert = new DesertHazards(this, {
+      sand: this.level.sand ?? [],
+      plates: this.level.plates ?? [],
+      platforms: this.level.terrain,
+      terrain: this.terrain,
+      terrainBodies: this.terrainBodies,
+      players: () => this.players,
+      hurt: (p) => this.hurtPlayer(p, false),
+    });
 
     const chestGroup = this.physics.add.staticGroup();
     const alreadyOpened = new Set(this.initData.openedChests ?? []);
@@ -559,12 +617,14 @@ export class TestRangeScene extends Phaser.Scene {
       }
       else if (r.kind === 'melee') this.performMelee(r.reach);
       this.applyWater(p);
+      this.desert.applySand(p, i, dtMs);
     });
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
     this.updateEnemies(dtMs, t);
     this.updateBoss(dtMs, time);
+    this.desert.update(dtMs);
     this.shots.update();
     this.updatePickups(time);
     this.handleTeam();
@@ -934,9 +994,12 @@ export class TestRangeScene extends Phaser.Scene {
   private updateEnemies(dtMs: number, t: Tuning): void {
     const awake = this.players.filter((p) => !p.health.down);
     for (const e of [...this.enemies]) {
-      // 貓頭鷹由 updateBoss 控制;小頭目照一般魔物移動,但不會因為落在鏡頭後面被移除。
-      if (e === this.boss?.enemy && e.def.type === 'nightOwl') continue;
+      // 關主與新的小頭目由 updateBoss 控制;世界 1 的小頭目照一般魔物移動,但不會因為落在鏡頭後面被移除。
       const isBoss = e === this.boss?.enemy;
+      if (isBoss && SCRIPTED_BOSSES.has(e.def.type)) {
+        if (!e.def.flying) e.physicsBody().setGravityY(t.gravity);
+        continue;
+      }
       if (!isBoss && (e.x < this.scrollX - ENEMY_DESPAWN_BEHIND || e.body.y > WORLD_H + ENEMY_FALL_OUT)) {
         this.removeEnemy(e);
         continue;
@@ -945,7 +1008,8 @@ export class TestRangeScene extends Phaser.Scene {
         (best, p) => (best === null || Math.abs(p.x - e.x) < Math.abs(best.x - e.x) ? p : best),
         null,
       );
-      e.update(nearest ? nearest.x : null, dtMs, t.gravity);
+      const spit = e.update(nearest ? nearest.x : null, nearest ? nearest.feetY - 20 : null, dtMs, t.gravity);
+      if (spit) this.shots.fire(e.x, e.body.y - e.def.h / 2, spit.vx, spit.vy, 'coffee', SPIT_GRAVITY);
       e.render();
     }
   }
@@ -955,26 +1019,36 @@ export class TestRangeScene extends Phaser.Scene {
     this.projectiles.renderAll();
   }
 
-  /** 鏡頭到關主區就開戰;之後每格由 stepOwl 控制貓頭鷹。 */
+  /** 鏡頭到關主區就開戰;之後每格依關主種類控制。 */
   private updateBoss(dtMs: number, time: number): void {
     const def = this.level.boss;
     if (def && !this.bossTriggered && this.scrollX >= def.lockScrollX) this.startBoss(def.type, def.lockScrollX, def.spawnX);
     const boss = this.boss;
     if (!boss) return;
     for (const m of [...boss.minions]) if (!this.enemies.includes(m)) boss.minions.delete(m);
-    if (boss.enemy.def.type !== 'nightOwl') {
-      this.updateMiniBoss(boss, dtMs);
-      return;
+    const ai = boss.ai;
+    if (ai.kind === 'owl') this.updateOwl(boss, ai, dtMs, time);
+    else if (ai.kind === 'sphinx') this.updateSphinx(boss, ai, dtMs);
+    else {
+      if (ai.kind === 'camel') this.updateCamel(boss, ai, dtMs);
+      else if (ai.kind === 'fennec') this.updateFennec(boss, ai, dtMs);
+      else this.updateWalkerBoss(boss, dtMs);
+      this.keepInArena(boss.enemy);
     }
+    this.renderBossBar();
+  }
 
+  private nearestAwake(x: number): PlayerEntity | null {
+    return this.players
+      .filter((p) => !p.health.down)
+      .reduce<PlayerEntity | null>((best, p) => (best === null || Math.abs(p.x - x) < Math.abs(best.x - x) ? p : best), null);
+  }
+
+  private updateOwl(boss: Boss, ai: Extract<BossAi, { kind: 'owl' }>, dtMs: number, time: number): void {
     const { enemy } = boss;
-    const awake = this.players.filter((p) => !p.health.down);
-    const nearest = awake.reduce<PlayerEntity | null>(
-      (best, p) => (best === null || Math.abs(p.x - enemy.x) < Math.abs(best.x - enemy.x) ? p : best),
-      null,
-    );
+    const nearest = this.nearestAwake(enemy.x);
     const lock = this.bossLock ?? this.scrollX;
-    const step = stepOwl(boss.brain, {
+    const step = stepOwl(ai.brain, {
       x: enemy.body.x,
       y: enemy.body.y,
       hpRatio: enemy.hp / boss.maxHp,
@@ -985,41 +1059,162 @@ export class TestRangeScene extends Phaser.Scene {
       dtMs,
       minionsAlive: boss.minions.size,
     });
-    boss.brain = step.brain;
+    ai.brain = step.brain;
     boss.invulnerable = step.invulnerable;
-    enemy.setArt(enemySprite('nightOwl', 'awake', boss.brain.phase));
-    const art = enemy.artImage();
-    if (art && step.brain.mode === 'angry') art.setTint(COLOR.angry).setTintMode(Phaser.TintModes.MULTIPLY);
-    else if (art && step.enteredPhase === null && boss.wasAngry) art.clearTint();
-    boss.wasAngry = step.brain.mode === 'angry';
+    enemy.setArt(enemySprite('nightOwl', 'awake', ai.brain.phase));
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
     enemy.physicsBody().setVelocity(step.vx, step.vy);
     const bottom = enemy.body.y + enemy.def.h / 2;
     for (const f of step.feathers) this.shots.fire(enemy.body.x, bottom, f.vx, f.vy);
     for (const side of step.summon) boss.minions.add(this.spawnFrom({ type: 'alarmBug', from: side, delayMs: 0 }, false));
-    this.renderBossBar();
-    if (step.enteredPhase) {
+    if (step.enteredPhase) this.announcePhase(boss);
+  }
+
+  /** 人面獅身:趴在原地,輪流沙磚雨、拍出沙浪、吐沙球;第二階段起叫木乃伊貓。 */
+  private updateSphinx(boss: Boss, ai: Extract<BossAi, { kind: 'sphinx' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const front = enemy.x - enemy.def.w / 2;
+    const mouthX = front + 20;
+    const mouthY = enemy.body.y - enemy.def.h / 2 + 30;
+    const step = stepSphinx(ai.brain, {
+      mouthX,
+      mouthY,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 20 : null,
+      dropLeft: lock + SCREEN_MARGIN + 30,
+      dropRight: front - 40,
+      minionsAlive: boss.minions.size,
+      dtMs,
+      rand: Math.random,
+    });
+    ai.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('sphinx', 'awake', ai.brain.phase));
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
+    enemy.physicsBody().setVelocityX(step.vx);
+    for (const x of step.blocks) this.desert.dropBlock(x);
+    for (const delay of step.waves) this.desert.sendWave(front, -1, delay);
+    for (const b of step.balls) this.shots.fire(mouthX, mouthY, b.vx, b.vy, 'sand');
+    if (step.blocks.length + step.waves.length + step.balls.length > 0) audio.sfx('bossPhase');
+    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'mummyCat', from: 'left', delayMs: 0 }, false));
+    if (step.enteredPhase) this.announcePhase(boss);
+  }
+
+  /** 失眠駱駝:走一走,頭上冒「!」後吐口水或踢沙浪。 */
+  private updateCamel(boss: Boss, ai: Extract<BossAi, { kind: 'camel' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const step = stepCamel(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 20 : null,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    const mouthX = enemy.x + step.brain.facing * (enemy.def.w / 2);
+    const mouthY = GROUND_Y - enemy.def.h + 16;
+    for (const sp of step.spits) this.shots.fire(mouthX, mouthY, sp.vx, sp.vy, 'spit', SPIT_GRAVITY);
+    if (step.wave) {
+      this.desert.sendWave(enemy.x + step.wave * (enemy.def.w / 2), step.wave);
       audio.sfx('bossPhase');
-      this.bossPhaseText.setText('貓頭鷹越來越暴躁了!').setAlpha(1);
-      this.tweens.add({ targets: this.bossPhaseText, alpha: 0, delay: BOSS_PHASE_TEXT_MS - 300, duration: 300 });
-      this.cameras.main.shake(300, 0.008);
     }
   }
 
-  /** 小頭目照一般魔物的方式移動(updateEnemies);大鬧鐘蟲會一直叫小鬧鐘蟲。 */
-  private updateMiniBoss(boss: Boss, dtMs: number): void {
-    this.renderBossBar();
-    // 滾動時不能滾出鎖住的畫面。
+  /** 熬夜耳廓狐:鑽進沙裡(打不到也碰不到)→ 玩家腳下冒沙堆 → 跳出來 → 頭暈可以打。 */
+  private updateFennec(boss: Boss, ai: Extract<BossAi, { kind: 'fennec' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
     const lock = this.bossLock ?? this.scrollX;
-    const half = boss.enemy.def.w / 2;
-    const pb = boss.enemy.physicsBody();
-    const x = Math.min(Math.max(boss.enemy.body.x, lock + half), lock + VIEW_W - half);
-    if (x !== boss.enemy.body.x) pb.reset(x, boss.enemy.body.y);
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const step = stepFennec(ai.brain, {
+      x: enemy.x,
+      grounded: pb.blocked.down || pb.touching.down,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      arenaLeft: lock + SCREEN_MARGIN,
+      arenaRight: lock + VIEW_W - SCREEN_MARGIN,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    if (step.teleportX !== null) pb.reset(step.teleportX, enemy.body.y);
+    if (was !== 'burrow' && step.brain.mode === 'burrow') this.puffAt(enemy.x);
+    enemy.emerging = step.hidden;
+    enemy.body.setAlpha(step.hidden ? 0 : 1);
+    pb.setVelocityX(step.vx);
+    if (step.vy !== null) pb.setVelocityY(step.vy);
+    if (step.brain.mode === 'under' && !ai.mound) {
+      ai.mound = this.add.ellipse(step.brain.moundX, GROUND_Y - MOUND_H / 4, MOUND_W, MOUND_H, COLOR.dirt).setDepth(3);
+      this.tweens.add({ targets: ai.mound, scaleX: 1.15, duration: 90, yoyo: true, repeat: -1 });
+    }
+    if (step.brain.mode !== 'under' && ai.mound) {
+      ai.mound.destroy();
+      ai.mound = null;
+      this.puffAt(enemy.x);
+    }
+    for (const c of step.clumps) this.shots.fire(enemy.x, enemy.body.y - 10, c.vx, c.vy, 'sand', SPIT_GRAVITY);
+  }
+
+  /** 世界 1 暫代的小頭目照一般魔物的方式移動(updateEnemies);大鬧鐘蟲會一直叫小鬧鐘蟲。 */
+  private updateWalkerBoss(boss: Boss, dtMs: number): void {
     if (boss.enemy.def.type !== 'bigClockBug') return;
     boss.summonMs += dtMs;
     if (boss.summonMs < MINI_BOSS_SUMMON_MS || boss.minions.size >= MINI_BOSS_MAX_MINIONS) return;
     boss.summonMs = 0;
     boss.summonSide = boss.summonSide === 'left' ? 'right' : 'left';
     boss.minions.add(this.spawnFrom({ type: 'alarmBug', from: boss.summonSide, delayMs: 0 }, false));
+  }
+
+  /** 走路的小頭目不能走出鎖住的畫面。 */
+  private keepInArena(e: EnemyEntity): void {
+    const lock = this.bossLock ?? this.scrollX;
+    const half = e.def.w / 2;
+    const x = Math.min(Math.max(e.body.x, lock + half), lock + VIEW_W - half);
+    if (x !== e.body.x) e.physicsBody().reset(x, e.body.y);
+  }
+
+  /** 換階段發抖時染紅,結束後恢復。 */
+  private angryTint(boss: Boss, angry: boolean, entered: 2 | 3 | null): void {
+    const art = boss.enemy.artImage();
+    if (art && angry) art.setTint(COLOR.angry).setTintMode(Phaser.TintModes.MULTIPLY);
+    else if (art && entered === null && boss.wasAngry) art.clearTint();
+    boss.wasAngry = angry;
+  }
+
+  private announcePhase(boss: Boss): void {
+    audio.sfx('bossPhase');
+    const name = BOSS_SHORT_NAME[boss.enemy.def.type as BossType] ?? boss.enemy.def.name;
+    this.bossPhaseText.setText(`${name}越來越暴躁了!`).setAlpha(1);
+    this.tweens.add({ targets: this.bossPhaseText, alpha: 0, delay: BOSS_PHASE_TEXT_MS - 300, duration: 300 });
+    this.cameras.main.shake(300, 0.008);
+  }
+
+  /** 小頭目出招前頭上冒一個「!」。 */
+  private tell(e: EnemyEntity): void {
+    const mark = this.add
+      .text(e.x, e.body.y - e.def.h / 2 - 12, '!', { fontSize: '30px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 5 })
+      .setOrigin(0.5, 1)
+      .setDepth(6);
+    this.tweens.add({ targets: mark, y: mark.y - 10, alpha: 0, delay: TELL_MS - 150, duration: 150, onComplete: () => mark.destroy() });
+  }
+
+  private puffAt(x: number): void {
+    for (let i = 0; i < 6; i++) {
+      const d = this.add.circle(x + (i - 2.5) * 9, GROUND_Y - 4, 6, 0xe8c27a).setDepth(5);
+      this.tweens.add({ targets: d, y: GROUND_Y - 28 - (i % 3) * 8, alpha: 0, duration: 420, onComplete: () => d.destroy() });
+    }
   }
 
   private startBoss(type: BossType, lockScrollX: number, spawnX: number): void {
@@ -1035,7 +1230,7 @@ export class TestRangeScene extends Phaser.Scene {
     const enemy = this.spawnEnemy(type, spawnX, type === 'nightOwl' ? OWL_HOVER_Y : undefined);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;
-    this.boss = { enemy, brain: initialOwlBrain(), maxHp, invulnerable: false, minions: new Set(), wasAngry: false, summonMs: 0, summonSide: 'left' };
+    this.boss = { enemy, ai: initialAi(type), maxHp, invulnerable: false, minions: new Set(), wasAngry: false, summonMs: 0, summonSide: 'left' };
     this.bossName.setText(enemy.def.name);
     this.bossBarBg.setVisible(true);
     this.bossBar.setVisible(true);
@@ -1046,7 +1241,7 @@ export class TestRangeScene extends Phaser.Scene {
     const boss = this.boss;
     if (!boss) return;
     this.bossBar.width = (BOSS_BAR_W * boss.enemy.hp) / boss.maxHp;
-    this.bossBar.setFillStyle(boss.brain.phase === 3 ? 0xff5a6e : 0xffb3c7);
+    this.bossBar.setFillStyle(aiPhase(boss.ai) === 3 ? 0xff5a6e : 0xffb3c7);
   }
 
   private isInvulnerable(e: EnemyEntity): boolean {
@@ -1156,6 +1351,8 @@ export class TestRangeScene extends Phaser.Scene {
       this.removeEnemy(e);
     }
     this.shots.clear();
+    this.desert.clear();
+    if (boss.ai.kind === 'fennec') boss.ai.mound?.destroy();
     this.bossName.setText('');
     this.bossBarBg.setVisible(false);
     this.bossBar.setVisible(false);
@@ -1170,7 +1367,7 @@ export class TestRangeScene extends Phaser.Scene {
       restarts: this.restarts,
     };
     const endedAt = Date.now();
-    if (WORLD1.includes(this.level.id)) this.save.markCleared(this.level.id, endedAt - stats.startedAt);
+    if (isStoryLevel(this.level.id)) this.save.markCleared(this.level.id, endedAt - stats.startedAt);
     const data: LevelCompleteData = {
       ...sessionData(this.initData),
       mode: this.mode,
@@ -1316,11 +1513,13 @@ export class TestRangeScene extends Phaser.Scene {
       musicSchedulers: audio.activeSchedulers,
       art: { loaded: artStatus.loaded, missing: [...artStatus.missing], disabled: artStatus.disabled },
       boss: this.boss
-        ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: this.boss.brain.phase, mode: this.boss.brain.mode }
+        ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: aiPhase(this.boss.ai), mode: aiMode(this.boss.ai), type: this.boss.enemy.def.type, hidden: this.boss.enemy.emerging }
         : null,
       bossDefeated: this.bossDefeated,
       bossLockX: this.level.boss?.lockScrollX ?? null,
       riverFalls: this.riverFalls,
+      desert: this.desert.debug(),
+      dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,
       enemyShots: this.shots.count(),
       hurtBoss: this.testHooks
         ? (n: number) => {

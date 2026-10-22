@@ -4,6 +4,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
 export const RANGE: LevelDef = {
   id: 'range',
   name: '測試靶場',
+  world: 1,
   worldW: 3200,
   terrain: [
     { x: 600, y: 380, w: 200, h: 20 },

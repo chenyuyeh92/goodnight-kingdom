@@ -62,6 +62,8 @@ export class PlayerEntity {
   buffs: Buffs = { ...NO_BUFFS };
   /** 這一格剛起跳(播音效用)。 */
   jumped = false;
+  /** 陷進流沙的深度(px),只影響畫面。 */
+  sink = 0;
 
   private readonly sprite: Phaser.GameObjects.Rectangle;
   private readonly tag: Phaser.GameObjects.Text | null;
@@ -163,7 +165,7 @@ export class PlayerEntity {
   render(timeMs: number): void {
     const down = this.health.down;
     const h = down ? DOWN_HEIGHT : this.motor.crouching ? CROUCH_HITBOX.h : STAND_HITBOX.h;
-    const feetY = this.zone.y + this.body().height / 2;
+    const feetY = this.zone.y + this.body().height / 2 + this.sink;
     this.sprite.setPosition(this.zone.x, feetY);
     this.sprite.setSize(STAND_HITBOX.w, h);
     this.sprite.setDisplaySize(down ? STAND_HITBOX.w + 12 : STAND_HITBOX.w, h);

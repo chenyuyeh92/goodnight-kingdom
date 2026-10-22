@@ -9,6 +9,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
 export const FOREST: LevelDef = {
   id: 'forest',
   name: '失眠森林',
+  world: 1,
   worldW: 10960,
   terrain: [
     // 1 林間小路

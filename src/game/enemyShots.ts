@@ -1,12 +1,20 @@
 import Phaser from 'phaser';
 
-const SHOT_W = 12;
-const SHOT_H = 6;
-const SHOT_COLOR = 0xf3e9d2;
 const SHOT_LIFE_MS = 4000;
-
-const SHOT_TEXTURE = 'gk-feather';
 const SHOT_OUTLINE = 0x3a2a5a;
+
+/** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡、駱駝口水、沙球/沙塊。 */
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand';
+
+/** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
+const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
+  feather: { w: 12, h: 6, color: 0xf3e9d2 },
+  coffee: { w: 11, h: 11, color: 0x8b5e3c },
+  spit: { w: 12, h: 12, color: 0xd8f0ff },
+  sand: { w: 13, h: 13, color: 0xf0c060 },
+};
+
+const textureKey = (kind: ShotKind): string => `gk-shot-${kind}`;
 
 interface Shot {
   rect: Phaser.GameObjects.Image;
@@ -23,12 +31,14 @@ export class EnemyShotSystem {
     terrain: Phaser.Physics.Arcade.StaticGroup,
   ) {
     this.group = scene.physics.add.group({ allowGravity: false });
-    if (!scene.textures.exists(SHOT_TEXTURE)) {
-      // 羽毛:奶油色加深紫外框,在亮暗背景都看得到。
+    for (const [kind, look] of Object.entries(SHOT_LOOK)) {
+      const key = textureKey(kind as ShotKind);
+      if (scene.textures.exists(key)) continue;
       const g = scene.make.graphics({}, false);
-      g.fillStyle(SHOT_OUTLINE).fillEllipse(SHOT_W / 2 + 2, SHOT_H / 2 + 2, SHOT_W + 4, SHOT_H + 4);
-      g.fillStyle(SHOT_COLOR).fillEllipse(SHOT_W / 2 + 2, SHOT_H / 2 + 2, SHOT_W, SHOT_H);
-      g.generateTexture(SHOT_TEXTURE, SHOT_W + 4, SHOT_H + 4);
+      g.fillStyle(SHOT_OUTLINE).fillEllipse(look.w / 2 + 2, look.h / 2 + 2, look.w + 4, look.h + 4);
+      g.fillStyle(look.color).fillEllipse(look.w / 2 + 2, look.h / 2 + 2, look.w, look.h);
+      g.fillStyle(0xffffff, 0.6).fillCircle(look.w / 2, look.h / 2, Math.min(look.w, look.h) / 5);
+      g.generateTexture(key, look.w + 4, look.h + 4);
       g.destroy();
     }
     scene.physics.add.overlap(this.group, terrain, (s) => this.removeObj(s));
@@ -41,10 +51,13 @@ export class EnemyShotSystem {
     });
   }
 
-  fire(x: number, y: number, vx: number, vy: number): void {
-    const rect = this.scene.add.image(x, y, SHOT_TEXTURE).setRotation(Math.atan2(vy, vx)).setDepth(4);
+  /** gravity > 0 時走拋物線(沙蛇咖啡、駱駝口水、沙塊)。 */
+  fire(x: number, y: number, vx: number, vy: number, kind: ShotKind = 'feather', gravity = 0): void {
+    const rect = this.scene.add.image(x, y, textureKey(kind)).setRotation(Math.atan2(vy, vx)).setDepth(4);
     this.group.add(rect);
-    (rect.body as Phaser.Physics.Arcade.Body).setVelocity(vx, vy);
+    const body = rect.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(vx, vy);
+    if (gravity > 0) body.setAllowGravity(true).setGravityY(gravity);
     this.shots.push({ rect, bornAt: this.scene.time.now });
   }
 
