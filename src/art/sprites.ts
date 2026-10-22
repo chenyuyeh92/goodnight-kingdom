@@ -14,8 +14,9 @@ export const SPRITES = {
   'coffee-bean-sleep': { file: 'enemies/coffee-bean-sprite-sleep.png', w: 38, h: 52 },
   'night-bat': { file: 'enemies/night-bat.png', w: 56, h: 56 },
   'night-bat-sleep': { file: 'enemies/night-bat-sleep.png', w: 54, h: 56 },
-  hedgehog: { file: 'enemies/insomnia-hedgehog.png', w: 80, h: 72 },
-  'hedgehog-sleep': { file: 'enemies/insomnia-hedgehog-sleep.png', w: 81, h: 72 },
+  hedgehog: { file: 'enemies/insomnia-hedgehog.png', w: 57, h: 72 },
+  'hedgehog-sleep': { file: 'enemies/insomnia-hedgehog-sleep.png', w: 61, h: 72 },
+  'hedgehog-roll': { file: 'enemies/insomnia-hedgehog-roll.png', w: 48, h: 48 },
   owl: { file: 'enemies/night-owl-boss.png', w: 181, h: 200 },
   'owl-2': { file: 'enemies/night-owl-boss-phase2.png', w: 183, h: 200 },
   'owl-3': { file: 'enemies/night-owl-boss-phase3.png', w: 176, h: 200 },
@@ -27,6 +28,7 @@ export const SPRITES = {
   'small-pillow': { file: 'items/small-pillow.png', w: 32, h: 24 },
   'milk-bottle': { file: 'items/milk-bottle.png', w: 15, h: 32 },
   chest: { file: 'items/treasure-chest.png', w: 40, h: 38 },
+  'chest-closed': { file: 'items/treasure-chest-closed.png', w: 40, h: 37 },
   target: { file: 'items/practice-target.png', w: 40, h: 40 },
   'w-yawn-bubble': { file: 'weapons/yawn-bubble.png', w: 43, h: 36 },
   'w-sheep-gun': { file: 'weapons/sheep-machine-gun.png', w: 48, h: 21 },
@@ -35,6 +37,12 @@ export const SPRITES = {
   'w-lullaby-harp': { file: 'weapons/lullaby-harp.png', w: 40, h: 38 },
   'w-blanket-boomerang': { file: 'weapons/blanket-boomerang.png', w: 40, h: 37 },
   'w-moon-lamp': { file: 'weapons/moon-lamp.png', w: 27, h: 40 },
+  'b-yawn': { file: 'bullets/yawn-bubble.png', w: 12, h: 12 },
+  'b-sheep': { file: 'bullets/sheep.png', w: 20, h: 16 },
+  'b-pillow': { file: 'bullets/pillow.png', w: 32, h: 19 },
+  'b-milk': { file: 'bullets/milk-drop.png', w: 10, h: 10 },
+  'b-note': { file: 'bullets/music-note.png', w: 11, h: 14 },
+  'b-moon': { file: 'bullets/moon-beam.png', w: 32, h: 10 },
 } as const satisfies Record<string, { file: string; w: number; h: number }>;
 
 export type SpriteKey = keyof typeof SPRITES;
@@ -86,6 +94,21 @@ const WEAPON_ICONS: Record<WeaponId, SpriteKey> = {
 
 export function weaponIcon(id: WeaponId): SpriteKey {
   return WEAPON_ICONS[id];
+}
+
+/** 子彈圖;棉被迴力鏢直接用武器圖旋轉著飛。 */
+const BULLETS: Record<WeaponId, SpriteKey> = {
+  yawnBubble: 'b-yawn',
+  sheepGun: 'b-sheep',
+  pillowCannon: 'b-pillow',
+  milkSpray: 'b-milk',
+  lullabyHarp: 'b-note',
+  blanketBoomerang: 'w-blanket-boomerang',
+  moonLamp: 'b-moon',
+};
+
+export function bulletSprite(id: WeaponId): SpriteKey {
+  return BULLETS[id];
 }
 
 /** 圖片載入狀態:BootScene 寫入,場景與測試讀取。 */

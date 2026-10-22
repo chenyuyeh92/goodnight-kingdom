@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { SPRITES, SPRITE_KEYS, enemySprite, itemSprite, weaponIcon } from '../src/art/sprites';
+import { SPRITES, SPRITE_KEYS, bulletSprite, enemySprite, itemSprite, weaponIcon } from '../src/art/sprites';
 import { ENEMY_DEFS, type EnemyType } from '../src/game/enemies';
 import { WEAPONS, type WeaponId } from '../src/game/weapons';
 import type { ItemId } from '../src/game/items';
@@ -32,4 +32,8 @@ test('道具與武器都有圖', () => {
   for (const i of items) expect(SPRITES[itemSprite(i)]).toBeDefined();
   const icons = (Object.keys(WEAPONS) as WeaponId[]).map(weaponIcon);
   expect(new Set(icons).size).toBe(icons.length);
+});
+
+test('每把武器都有子彈圖', () => {
+  for (const id of Object.keys(WEAPONS) as WeaponId[]) expect(SPRITES[bulletSprite(id)]).toBeDefined();
 });

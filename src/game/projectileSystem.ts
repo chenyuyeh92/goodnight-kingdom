@@ -3,9 +3,12 @@ import type { Tuning } from '../config/tuning';
 import type { BulletSpawn, PlayerEntity } from './playerEntity';
 import { BOOMERANG_OUT_MS, HOMING_TURN_DEG_PER_SEC, boomerangVelocity, pelletVelocities, steerToward } from './projectileMath';
 import type { WeaponDef } from './weapons';
+import { bulletSprite } from '../art/sprites';
 
 const OFF_VIEW_MARGIN = 50;
 const BULLET_OUTLINE = 2;
+/** 棉被迴力鏢飛行時的旋轉速度。 */
+const SPIN_DEG_PER_MS = 0.9;
 const BULLET_OUTLINE_COLOR = 0x3a2a5a;
 /** 迴力鏢飛回主人身邊這麼近就收回。 */
 const BOOMERANG_CATCH_DIST = 24;
@@ -21,6 +24,8 @@ export type HitResult = 'consumed' | 'blocked' | 'ignored';
 
 interface Projectile {
   shape: Phaser.GameObjects.Arc;
+  /** 子彈圖,跟著判定移動並朝飛行方向轉;沒有圖時為 null,顯示描邊圓點。 */
+  art: Phaser.GameObjects.Image | null;
   owner: PlayerEntity;
   def: WeaponDef;
   bornAt: number;
@@ -68,7 +73,11 @@ export class ProjectileSystem {
       const shape = this.scene.add.circle(spawn.x, spawn.y, def.size / 2 + 1, def.color).setStrokeStyle(BULLET_OUTLINE, BULLET_OUTLINE_COLOR).setDepth(4);
       this.group.add(shape);
       (shape.body as Phaser.Physics.Arcade.Body).setVelocity(v.vx, v.vy);
-      this.projectiles.push({ shape, owner, def, bornAt: this.scene.time.now, initial: v, hits: new Set(), blockedOut: new Set() });
+      const art = this.makeArt(def, spawn.x, spawn.y);
+      if (art) shape.setVisible(false);
+      const p: Projectile = { shape, art, owner, def, bornAt: this.scene.time.now, initial: v, hits: new Set(), blockedOut: new Set() };
+      this.projectiles.push(p);
+      this.renderArt(p);
     }
   }
 
@@ -112,6 +121,30 @@ export class ProjectileSystem {
     return this.projectiles.length;
   }
 
+  /** 物理移動完後呼叫:把子彈圖對到判定上。 */
+  renderAll(): void {
+    for (const p of this.projectiles) this.renderArt(p);
+  }
+
+  private makeArt(def: WeaponDef, x: number, y: number): Phaser.GameObjects.Image | null {
+    const key = bulletSprite(def.id);
+    if (!this.scene.textures.exists(key)) return null;
+    const img = this.scene.add.image(x, y, key).setDepth(4);
+    // 小子彈放大到至少「判定 + 6」看得清楚;大的照原尺寸。
+    const want = def.size + 6;
+    const big = Math.max(img.width, img.height);
+    if (big < want) img.setScale(want / big);
+    return img;
+  }
+
+  private renderArt(p: Projectile): void {
+    if (!p.art) return;
+    const body = p.shape.body as Phaser.Physics.Arcade.Body;
+    p.art.setPosition(p.shape.x, p.shape.y);
+    if (p.def.kind === 'boomerang') p.art.setAngle((this.scene.time.now - p.bornAt) * SPIN_DEG_PER_MS);
+    else if (body.velocity.lengthSq() > 0) p.art.setRotation(Math.atan2(body.velocity.y, body.velocity.x));
+  }
+
   clear(): void {
     for (const p of [...this.projectiles]) this.remove(p);
   }
@@ -141,5 +174,6 @@ export class ProjectileSystem {
   private remove(p: Projectile): void {
     this.projectiles = this.projectiles.filter((q) => q !== p);
     p.shape.destroy();
+    p.art?.destroy();
   }
 }

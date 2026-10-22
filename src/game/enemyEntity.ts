@@ -38,11 +38,13 @@ export class EnemyEntity {
     this.body = scene.add.rectangle(x, feetY - this.def.h / 2, this.def.w, this.def.h, this.def.color);
     scene.physics.add.existing(this.body);
     this.physicsBody().setAllowGravity(!this.def.flying);
-    this.shield = this.def.shield
-      ? scene.add.rectangle(x, this.body.y, SHIELD_W, this.def.h, COLOR_SHIELD).setAlpha(SHIELD_ALPHA)
-      : null;
     const key = enemySprite(type, 'awake');
     this.art = scene.textures.exists(key) ? scene.add.image(x, feetY, key).setOrigin(0.5, 1) : null;
+    // 有圖時刺盾畫在圖上(刺蝟正面的刺),沒有圖才用白線表示。
+    this.shield =
+      this.def.shield && !this.art
+        ? scene.add.rectangle(x, this.body.y, SHIELD_W, this.def.h, COLOR_SHIELD).setAlpha(SHIELD_ALPHA)
+        : null;
     if (this.art) {
       this.body.setVisible(false);
       if (type === 'nightOwl') this.art.setScale(OWL_ART_SCALE);
@@ -102,6 +104,7 @@ export class EnemyEntity {
       this.artFacing = this.brain.facing;
     }
     this.art.setFlipX(this.artFacing > 0);
+    if (this.def.type === 'hedgehog') this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
     const pb = this.physicsBody();
     const grounded = pb ? pb.blocked.down || pb.touching.down : true;
     const pose = enemyPose(this.def.type, this.brain.phase, this.scene.time.now + this.animOffset, pb?.velocity.x ?? 0, pb?.velocity.y ?? 0, grounded);

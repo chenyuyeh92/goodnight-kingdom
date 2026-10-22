@@ -89,9 +89,8 @@ const REVIVE_DROP_Y = 40;
 const CHEST_W = 32;
 const CHEST_H = 24;
 const CHEST_POPUP_MS = 2000;
-/** 打開寶箱時蓋子往上飛走。 */
-const LID_FLY = 30;
-const LID_MS = 400;
+/** 打開寶箱時彈一下。 */
+const CHEST_POP_MS = 120;
 const ITEM_SIZE = 16;
 const ITEM_LIFE_MS = 8000;
 const ITEM_BLINK_MS = 2000;
@@ -151,9 +150,8 @@ interface Boss {
 interface Chest {
   rect: Phaser.GameObjects.Rectangle;
   opened: boolean;
-  /** 寶箱圖(只有打開的樣子)與程式畫的蓋子;沒有圖時都是 null。 */
+  /** 寶箱圖(關著/打開兩張);沒有圖時為 null。 */
   art: Phaser.GameObjects.Image | null;
-  lid: Phaser.GameObjects.Graphics | null;
 }
 
 interface ItemPickup {
@@ -323,10 +321,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.level.chests.forEach((c, i) => {
       const rect = this.add.rectangle(c.x, c.bottom - CHEST_H / 2, CHEST_W, CHEST_H, 0xc98b4f).setStrokeStyle(2, 0xffe08a);
       chestGroup.add(rect);
-      const art = this.textures.exists('chest') ? this.add.image(c.x, c.bottom, 'chest').setOrigin(0.5, 1) : null;
-      const lid = art ? this.drawChestLid(c.x, c.bottom) : null;
+      const closedKey = this.textures.exists('chest-closed') ? 'chest-closed' : 'chest';
+      const art = this.textures.exists(closedKey) ? this.add.image(c.x, c.bottom, closedKey).setOrigin(0.5, 1) : null;
       if (art) rect.setVisible(false);
-      const chest: Chest = { rect, opened: false, art, lid };
+      const chest: Chest = { rect, opened: false, art };
       if (alreadyOpened.has(i)) this.markOpened(chest, false);
       this.chests.push(chest);
     });
@@ -642,40 +640,26 @@ export class TestRangeScene extends Phaser.Scene {
     this.tweens.add({ targets: [title, sub], alpha: 0, delay: CHEST_POPUP_MS - 400, duration: 400, onComplete: () => [title, sub].forEach((o) => o.destroy()) });
   }
 
-  /** 打開寶箱:有圖時蓋子飛走(animate)或直接消失;沒有圖時色塊變暗。 */
+  /** 打開寶箱:有圖時換成打開的圖並彈一下;沒有圖時色塊變暗。 */
   private markOpened(chest: Chest, animate: boolean): void {
     chest.opened = true;
-    if (!chest.lid) {
+    const art = chest.art;
+    if (!art) {
       chest.rect.setFillStyle(0x5a4636).setAlpha(0.6);
       return;
     }
-    const lid = chest.lid;
-    this.tweens.killTweensOf(lid);
-    if (!animate) {
-      lid.setVisible(false);
-      return;
-    }
-    this.tweens.add({ targets: lid, y: lid.y - LID_FLY, angle: -25, alpha: 0, duration: LID_MS, onComplete: () => lid.setVisible(false) });
+    if (this.textures.exists('chest')) art.setTexture('chest');
+    if (animate) this.tweens.add({ targets: art, scaleX: 1.2, scaleY: 0.85, duration: CHEST_POP_MS, yoyo: true });
   }
 
   private closeChest(chest: Chest): void {
     chest.opened = false;
-    if (!chest.lid) {
+    if (!chest.art) {
       chest.rect.setFillStyle(0xc98b4f).setAlpha(1);
       return;
     }
-    this.tweens.killTweensOf(chest.lid);
-    chest.lid.setVisible(true).setAlpha(1).setAngle(0).setPosition(chest.rect.x, chest.art!.y);
-  }
-
-  /** 美術還沒有關著的寶箱圖:在打開的圖上畫一個蓋子和一點閃光。 */
-  private drawChestLid(x: number, bottom: number): Phaser.GameObjects.Graphics {
-    const g = this.add.graphics({ x, y: bottom }).setDepth(1);
-    g.fillStyle(COLOR.outline).fillRoundedRect(-22, -38, 44, 22, 8);
-    g.fillStyle(0xc98b4f).fillRoundedRect(-20, -36, 40, 18, 7);
-    g.fillStyle(0xf8e08e).fillRect(-20, -27, 40, 4).fillRect(-3, -30, 6, 10);
-    g.fillStyle(0xfff6e5).fillTriangle(14, -44, 16, -38, 18, -44).fillTriangle(12, -41, 16, -40, 20, -41);
-    return g;
+    this.tweens.killTweensOf(chest.art);
+    chest.art.setScale(1).setTexture(this.textures.exists('chest-closed') ? 'chest-closed' : 'chest');
   }
 
   private openedChestIndexes(): number[] {
@@ -770,6 +754,7 @@ export class TestRangeScene extends Phaser.Scene {
 
   private renderEnemyArt(): void {
     for (const e of this.enemies) e.render();
+    this.projectiles.renderAll();
   }
 
   /** 鏡頭到關主區就開戰;之後每格由 stepOwl 控制貓頭鷹。 */
