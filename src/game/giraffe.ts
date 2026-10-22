@@ -44,7 +44,8 @@ export const SWEEP_HIGH_Y = GROUND_Y - 95;
 /** 掃低的:要跳過去(蹲下也躲不過)。 */
 export const SWEEP_LOW_Y = GROUND_Y - 22;
 export const SWEEP_SPEED = 480;
-const SECOND_SWEEP_MS = 500;
+/** 生氣時連掃兩下:一律先掃高(站著不動)、再掃低(跳過),中間隔 0.6 秒;反過來的話跳過低的還沒落地就撞到高的。 */
+const SECOND_SWEEP_MS = 600;
 const ANGRY_RATIO = 0.5;
 
 export function initialGiraffeBrain(): GiraffeBrain {
@@ -52,7 +53,7 @@ export function initialGiraffeBrain(): GiraffeBrain {
 }
 
 /**
- * 失眠長頸鹿:走一走 → 脖子橫掃(高的站著不動、低的跳過,輪流;血量一半以下高低連掃兩下);
+ * 失眠長頸鹿:走一走 → 脖子橫掃(高的站著不動、低的跳過,輪流;血量一半以下先高後低連掃兩下);
  * 玩家靠太近就用後腿蹬一下(不連續踢)。
  */
 export function stepGiraffe(b: GiraffeBrain, s: GiraffeSense): GiraffeStep {
@@ -73,9 +74,13 @@ export function stepGiraffe(b: GiraffeBrain, s: GiraffeSense): GiraffeStep {
     case 'windup': {
       if (timerMs < GIRAFFE_WINDUP_MS) return { ...none, vx: 0, brain: { ...b, timerMs } };
       if (!b.sweep) return { ...none, vx: b.facing * KICK_SPEED, brain: { ...b, mode: 'kick', timerMs: 0 } };
-      const first = b.highNext ? SWEEP_HIGH_Y : SWEEP_LOW_Y;
-      const sweeps: GiraffeStep['sweeps'] = [{ y: first, dir: b.facing, delayMs: 0 }];
-      if (s.hpRatio <= ANGRY_RATIO) sweeps.push({ y: b.highNext ? SWEEP_LOW_Y : SWEEP_HIGH_Y, dir: b.facing, delayMs: SECOND_SWEEP_MS });
+      const sweeps: GiraffeStep['sweeps'] =
+        s.hpRatio <= ANGRY_RATIO
+          ? [
+              { y: SWEEP_HIGH_Y, dir: b.facing, delayMs: 0 },
+              { y: SWEEP_LOW_Y, dir: b.facing, delayMs: SECOND_SWEEP_MS },
+            ]
+          : [{ y: b.highNext ? SWEEP_HIGH_Y : SWEEP_LOW_Y, dir: b.facing, delayMs: 0 }];
       return { ...none, vx: 0, sweeps, brain: { ...b, mode: 'rest', timerMs: 0, highNext: !b.highNext, kicked: false } };
     }
     case 'kick': {

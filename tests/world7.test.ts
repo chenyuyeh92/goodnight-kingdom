@@ -7,6 +7,7 @@ import { ENEMY_DEFS, MEERKAT_BURROW_MS, MEERKAT_RUN_MS, VULTURE_SWOOP_Y, initial
 import { DEFAULT_TUNING } from '../src/config/tuning';
 import { CROUCH_HITBOX, STAND_HITBOX } from '../src/game/playerMotor';
 import { GROUND_Y } from '../src/levels/levelDef';
+import { LEVELS } from '../src/levels';
 
 describe('獸群奔跑', () => {
   const zones = [{ x: 1000, w: 800 }];
@@ -117,7 +118,9 @@ describe('失眠長頸鹿', () => {
 
   test('血量一半以下高低連掃兩下;走滿 1.8 秒才出招', () => {
     const b: GiraffeBrain = { ...initialGiraffeBrain(), mode: 'windup', timerMs: GIRAFFE_WINDUP_MS };
+    // 一律先高後低(跳過低的時候不會撞到高的)。
     expect(stepGiraffe(b, sense({ hpRatio: 0.4 })).sweeps.map((s) => s.y)).toEqual([SWEEP_HIGH_Y, SWEEP_LOW_Y]);
+    expect(stepGiraffe({ ...b, highNext: false }, sense({ hpRatio: 0.4 })).sweeps.map((s) => s.y)).toEqual([SWEEP_HIGH_Y, SWEEP_LOW_Y]);
     expect(stepGiraffe({ ...initialGiraffeBrain(), timerMs: GIRAFFE_WALK_MS - 100 }, sense()).brain.mode).toBe('walk');
   });
 
@@ -176,7 +179,10 @@ describe('失眠獅子王', () => {
   test('獅吼:音波有高有低(高的站著不動、低的跳過)', () => {
     const r = stepLion({ ...initialLionBrain(), mode: 'windup', timerMs: LION_WINDUP_MS, pending: 'roar' }, sense());
     expect(r.roars).toHaveLength(3);
-    expect(r.roars.map((x) => x.y)).toEqual(expect.arrayContaining([ROAR_LOW_Y, ROAR_HIGH_Y]));
+    expect(r.roars.map((x) => x.y)).toEqual(expect.arrayContaining([ROAR_LOW_Y, ROAR_HIGH_Y]));    // 高的音波(畫出來 40 高)飛在榮耀岩的岩石上面(不會撞到岩石就不見),也在站著的人頭上。
+    const rocks = LEVELS['w7-3'].terrain.filter((t) => t.x >= LEVELS['w7-3'].boss!.lockScrollX);
+    for (const r2 of rocks) expect(ROAR_HIGH_Y + 20).toBeLessThan(r2.y);
+    expect(ROAR_HIGH_Y + 20).toBeLessThan(GROUND_Y - STAND_HITBOX.h);
   });
 
   test('第一階段不叫獸群;第二階段起輪到時叫角馬群,每兩招叫一隻疣豬', () => {

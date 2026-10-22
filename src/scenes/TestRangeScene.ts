@@ -121,6 +121,8 @@ const ICICLE_TRIGGER_X = 100;
 const LAVA_FLOW_MS = 4000;
 /** 角馬跑出畫面這麼遠才收掉。 */
 const HERD_DESPAWN = 100;
+/** 獸群預告時畫面震動多久(比預告短,關主的招式震動才不會被蓋掉)。 */
+const HERD_SHAKE_MS = 500;
 /** 獅子王平常站的位置(鎖住畫面右邊往內)、吼聲音波飛得慢要活久一點。 */
 const LION_HOME_INSET = 130;
 const ROAR_LIFE_MS = 7000;
@@ -977,9 +979,10 @@ export class TestRangeScene extends Phaser.Scene {
     for (const w of [...this.herdWarnings]) {
       w.ms -= Math.min(dtMs, MAX_DT_MS);
       if (w.ms > 0) continue;
-      for (const v of w.views) v.destroy();
-      this.herdWarnings = this.herdWarnings.filter((x) => x !== w);
+      this.destroyWarning(w);
     }
+    // 打倒魔物的停頓(hit-stop)時角馬也停住。
+    if (this.physics.world.isPaused) return;
     const dt = Math.min(dtMs, MAX_DT_MS) / 1000;
     const t = this.time.now;
     for (const b of [...this.beasts]) {
@@ -1027,10 +1030,29 @@ export class TestRangeScene extends Phaser.Scene {
       .setDepth(7);
     this.tweens.add({ targets: mark, scale: 1.25, duration: 150, yoyo: true, repeat: -1 });
     views.push(mark);
-    this.cameras.main.shake(HERD_WARN_MS, 0.0025);
+    // 短短震一下就好(震動期間其他震動會被忽略)。
+    this.cameras.main.shake(HERD_SHAKE_MS, 0.0025);
     audio.sfx('bossAppear');
     this.herdWarnings.push({ dir, ms: HERD_WARN_MS, views });
     if (release) this.time.delayedCall(HERD_WARN_MS, () => this.releaseHerd(dir));
+  }
+
+  private destroyWarning(w: { views: Phaser.GameObjects.GameObject[] }): void {
+    for (const v of w.views) {
+      this.tweens.killTweensOf(v);
+      v.destroy();
+    }
+    this.herdWarnings = this.herdWarnings.filter((x) => x !== w);
+  }
+
+  /** 關主被打倒:場上的角馬群與預告一起收掉。 */
+  private clearHerds(): void {
+    for (const w of [...this.herdWarnings]) this.destroyWarning(w);
+    for (const b of this.beasts) {
+      b.view.destroy();
+      b.dust?.destroy();
+    }
+    this.beasts = [];
   }
 
   /** 放出一群角馬:從畫面外(dir 的反方向那邊)排成兩隻一組跑過來。 */
@@ -2392,6 +2414,7 @@ export class TestRangeScene extends Phaser.Scene {
     // 撲下來時被打倒:地上的影子(耳廓狐的沙堆)一起收掉。
     if (boss.ai.kind === 'jaguar') boss.ai.shadow?.destroy();
     if (boss.ai.kind === 'fennec') boss.ai.mound?.destroy();
+    this.clearHerds();
     audio.music(null);
     audio.sfx('bossDown');
     const { x, y } = boss.enemy.body;

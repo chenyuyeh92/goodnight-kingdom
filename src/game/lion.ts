@@ -46,9 +46,9 @@ export interface LionStep {
 
 const IDLE_MS = { 1: 2000, 2: 1600, 3: 1300 } as const;
 export const LION_WINDUP_MS = 600;
-/** 低的音波要跳過,高的站著就從頭上飛過去。 */
+/** 低的音波要跳過,高的站著就從頭上飛過去(飛在榮耀岩的岩石上面,不會撞到岩石就不見)。 */
 export const ROAR_LOW_Y = GROUND_Y - 22;
-export const ROAR_HIGH_Y = GROUND_Y - 100;
+export const ROAR_HIGH_Y = GROUND_Y - 120;
 const ROARS = [
   { y: ROAR_LOW_Y, speed: 260 },
   { y: ROAR_HIGH_Y, speed: 220 },
