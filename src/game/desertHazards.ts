@@ -64,6 +64,8 @@ interface Block {
 
 interface Wave {
   view: Phaser.GameObjects.Image | Phaser.GameObjects.Ellipse;
+  /** 建立時的縮放(圖片依顯示大小縮放過);起伏時在這上面乘。 */
+  baseScaleY: number;
   dir: 1 | -1;
   delayMs: number;
   travelled: number;
@@ -144,7 +146,7 @@ export class DesertHazards {
       ? this.scene.add.image(x, y, art.key).setDisplaySize(WAVE_W + 8, WAVE_H + 6).setFlipX(dir > 0)
       : this.scene.add.ellipse(x, y, WAVE_W, WAVE_H, art.color).setStrokeStyle(3, OUTLINE);
     view.setDepth(4).setVisible(delayMs === 0);
-    this.waves.push({ view, dir, delayMs, travelled: 0 });
+    this.waves.push({ view, baseScaleY: view.scaleY, dir, delayMs, travelled: 0 });
   }
 
   update(dtMs: number): void {
@@ -274,7 +276,7 @@ export class DesertHazards {
     w.view.setX(w.view.x + w.dir * step);
     w.travelled += step;
     // 沙浪上下起伏,看起來像在地上翻滾。
-    w.view.setScale(1, 0.85 + 0.15 * Math.sin(w.travelled / 12));
+    w.view.setScale(w.view.scaleX, w.baseScaleY * (0.85 + 0.15 * Math.sin(w.travelled / 12)));
     for (const p of players) {
       if (!p.health.down && overlaps(p.body(), w.view.x, w.view.y, WAVE_W - 8, WAVE_H - 4)) this.opts.hurt(p);
     }

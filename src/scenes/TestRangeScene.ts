@@ -457,11 +457,14 @@ export class TestRangeScene extends Phaser.Scene {
     // 地面依河溝切成幾段;會飛的魔物只被地面擋住。
     const grounds = groundSegments(this.level.worldW, water?.gaps ?? []).map((g) => ({ x: g.x, y: GROUND_Y, w: g.w, h: WORLD_H - GROUND_Y }));
     const groundRects = new Set<unknown>();
+    /** 關卡的平台(不含地面、掉下來的沙磚與木頭)。 */
+    const platformRects = new Set<unknown>();
     for (const t of [...grounds, ...this.level.terrain]) {
       const r = this.add.rectangle(t.x + t.w / 2, t.y + t.h / 2, t.w, t.h, COLOR.terrain).setVisible(false);
       const isGround = grounds.includes(t);
       this.drawTerrain(t, isGround);
       if (isGround) groundRects.add(r);
+      else platformRects.add(r);
       this.terrain.add(r);
       this.terrainBodies.add(r.body as Phaser.Physics.Arcade.StaticBody);
     }
@@ -540,7 +543,13 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.enemyGroup = this.physics.add.group();
     // 會飛的魔物(含貓頭鷹)只會被地面擋住,穿過平台與通道,不會卡在地形旁邊。
-    this.physics.add.collider(this.enemyGroup, this.terrain, undefined, (e, t) => !this.enemyFor(e)?.def.flying || groundRects.has(t));
+    // 關主與小頭目身體比較高,也穿過平台(不會卡在平台底下);掉下來的沙磚、木頭照樣擋住。
+    this.physics.add.collider(this.enemyGroup, this.terrain, undefined, (e, t) => {
+      const en = this.enemyFor(e);
+      if (en?.def.flying) return groundRects.has(t);
+      if (en && en === this.boss?.enemy) return !platformRects.has(t);
+      return true;
+    });
     // 地上的魔物走到河溝邊就停住,不會掉進河裡(戰鬥區也不會因此少算)。
     const banks = this.physics.add.staticGroup();
     for (const g of water?.gaps ?? []) {
@@ -1136,6 +1145,7 @@ export class TestRangeScene extends Phaser.Scene {
     ai.brain = step.brain;
     boss.invulnerable = step.invulnerable;
     enemy.setArt(enemySprite('nightOwl', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
     this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
     enemy.physicsBody().setVelocity(step.vx, step.vy);
     const bottom = enemy.body.y + enemy.def.h / 2;
@@ -1316,7 +1326,12 @@ export class TestRangeScene extends Phaser.Scene {
     const art = this.textures.exists('b-electric-beam');
     zap.forEach((y, i) => {
       if (art) {
-        this.beamTiles[i] ??= this.add.tileSprite(0, 0, VIEW_W, BEAM_HALF_H * 2, 'b-electric-beam').setOrigin(0, 0.5).setDepth(4);
+        // 電流圖 16 高:縱向拉長成判定的高度,不上下重複。
+        this.beamTiles[i] ??= this.add
+          .tileSprite(0, 0, VIEW_W, BEAM_HALF_H * 2, 'b-electric-beam')
+          .setOrigin(0, 0.5)
+          .setTileScale(1, (BEAM_HALF_H * 2) / this.textures.get('b-electric-beam').getSourceImage().height)
+          .setDepth(4);
         // 電流圖往前流動。
         this.beamTiles[i].setPosition(lock, y).setVisible(true).tilePositionX = this.time.now / 4;
         return;

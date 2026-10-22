@@ -9,6 +9,8 @@ import { CROUCH_HITBOX, STAND_HITBOX, initialMotorState, stepMotor, type MotorSt
 import { BASE_LOADOUT, activeWeapon, canFire, coolWeapon, fireWeapon, type Loadout, type WeaponDef } from './weapons';
 import { NO_BUFFS, fireIntervalWithBuffs, tickBuffs, type Buffs } from './items';
 import { playerPose } from '../art/motion';
+import { guardFrame } from '../art/frames';
+import { DEFAULT_GUARD_KEY } from '../draw/guardTextures';
 
 const DOWN_HEIGHT = 20;
 /** 小綿羊守衛圖:站著 48×55,蹲下壓扁,睡著躺平。 */
@@ -181,6 +183,7 @@ export class PlayerEntity {
     const art = this.art!;
     art.setFlipX(this.motor.facing < 0);
     if (down) {
+      if (this.opts.artKey === DEFAULT_GUARD_KEY) art.setTexture(DEFAULT_GUARD_KEY);
       art.setOrigin(0.5, 0.5).setAngle(this.motor.facing < 0 ? -90 : 90);
       const s = this.artStand;
       art.setDisplaySize(s.w, s.h).setPosition(this.zone.x, feetY - s.w / 2).setAlpha(DOWN_ALPHA);
@@ -189,7 +192,15 @@ export class PlayerEntity {
     const s = this.artStand;
     const size = this.motor.crouching ? { w: s.w * CROUCH_SCALE.w, h: s.h * CROUCH_SCALE.h } : s;
     const pb = this.body();
-    const pose = playerPose(timeMs, pb.velocity.x, pb.blocked.down || pb.touching.down, pb.velocity.y, this.motor.crouching);
+    const grounded = pb.blocked.down || pb.touching.down;
+    let pose = playerPose(timeMs, pb.velocity.x, grounded, pb.velocity.y, this.motor.crouching);
+    // 預設的小綿羊有美術畫的走路、跳躍動畫格;玩家自己畫的守衛照舊用程式的伸縮。
+    if (this.opts.artKey === DEFAULT_GUARD_KEY) {
+      const frame = guardFrame(timeMs, pb.velocity.x, grounded);
+      const key = frame && this.scene.textures.exists(frame) ? frame : DEFAULT_GUARD_KEY;
+      if (art.texture.key !== key) art.setTexture(key);
+      if (frame && key === frame) pose = { ...pose, scaleX: 1, scaleY: 1, angle: 0 };
+    }
     art.setOrigin(0.5, 1).setAngle(pose.angle);
     art.setDisplaySize(size.w * pose.scaleX, size.h * pose.scaleY).setPosition(this.zone.x, feetY + pose.dy);
     art.setAlpha(blinking ? 0.3 : 1);
@@ -207,7 +218,8 @@ export class PlayerEntity {
       down: this.health.down,
       invuln: this.health.invulnMs > 0,
       weapon: activeWeapon(this.loadout).id,
-      art: this.art?.texture.key ?? null,
+      // 用的是哪一個守衛(不是目前的動畫格)。
+      art: this.art ? this.opts.artKey : null,
       ammo: this.loadout.ammo,
       heat: this.loadout.heat,
       overheated: this.loadout.overheated,

@@ -39,7 +39,8 @@ export const EEL_ZAP_MS = 600;
 const REST_MS = 500;
 const SWIM_SPEED = 160;
 const LANE_SPRING = 3;
-const LANES = [170, 380] as const;
+/** 游的高度(身體中心);下面那條身體底部 405,站在海床上的玩家(頭頂 432)不會被掃到。 */
+const LANES = [170, 350] as const;
 /** 電流的上下範圍(不貼著水面,也不鑽進海床)。 */
 export const BEAM_MIN_Y = 100;
 export const BEAM_MAX_Y = 455;

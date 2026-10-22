@@ -40,6 +40,18 @@ test.describe('1-1 草原', () => {
     expect((await gk(page)).boss!.maxHp).toBe(53);
   });
 
+  test('大松鼠會跳到不同位置(不會卡在平台下面原地跳)', async ({ page }) => {
+    await open(page);
+    await enterBoss(page);
+    const xs: number[] = [];
+    for (let i = 0; i < 24; i++) {
+      await page.waitForTimeout(500);
+      const b = (await gk(page)).boss;
+      if (b) xs.push(b.x);
+    }
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(250);
+  });
+
   test('小頭目不會走出鎖住的畫面', async ({ page }) => {
     await open(page);
     await enterBoss(page);

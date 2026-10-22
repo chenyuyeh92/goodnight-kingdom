@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import type { EnemyDebug } from '../main';
 import { ENEMY_DEFS, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
 import { ART_FACES_RIGHT, ENEMY_ART_SCALE, ENEMY_ART_TINT, enemySprite, type ArtKey } from '../art/sprites';
-import { enemyPose } from '../art/motion';
+import { IDLE, enemyPose } from '../art/motion';
+import { enemyFrame } from '../art/frames';
 
 const SHIELD_W = 3;
 const SHIELD_ALPHA = 0.5;
@@ -18,6 +19,8 @@ export class EnemyEntity {
   hp: number;
   /** 正在從地面冒出,還不算上場。 */
   emerging = false;
+  /** 貓頭鷹的階段(選拍翅的動畫格)。 */
+  bossPhase: 1 | 2 | 3 = 1;
   /** 被打閃白光後恢復成的顏色(水怪第三階段帶紅色);沒有時用 ENEMY_ART_TINT。 */
   baseTint: number | undefined = undefined;
   private readonly shield: Phaser.GameObjects.Rectangle | null;
@@ -115,12 +118,23 @@ export class EnemyEntity {
     }
     // 素材朝左;少數畫成朝右的(人面獅身、耳廓狐)反過來。
     this.art.setFlipX(this.artFacing > 0 !== ART_FACES_RIGHT.has(this.def.type));
-    if (this.def.type === 'hedgehog') {
-      this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
-    }
     const pb = this.physicsBody();
     const grounded = pb ? pb.blocked.down || pb.touching.down : true;
-    const pose = enemyPose(this.def.type, this.brain.phase, this.scene.time.now + this.animOffset, pb?.velocity.x ?? 0, pb?.velocity.y ?? 0, grounded);
+    const tMs = this.scene.time.now + this.animOffset;
+    const vx = pb?.velocity.x ?? 0;
+    const vy = pb?.velocity.y ?? 0;
+    let pose = enemyPose(this.def.type, this.brain.phase, tMs, vx, vy, grounded);
+    // 美術畫的動畫格:有的話換格子,程式只負責上下晃動(不再額外伸縮、傾斜)。
+    const frame = enemyFrame(this.def.type, { phase: this.brain.phase, timerMs: this.brain.timerMs, tMs, vx, vy, grounded, bossPhase: this.bossPhase });
+    if (frame && this.scene.textures.exists(frame)) {
+      this.setArt(frame);
+      pose = { ...IDLE, dy: pose.dy };
+    } else if (this.def.type === 'hedgehog') {
+      this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
+    } else if (this.def.type !== 'nightOwl') {
+      // 貓頭鷹的原圖由場景依階段設定;其他魔物沒有動畫格的時候換回原圖。
+      this.setArt(enemySprite(this.def.type, 'awake'));
+    }
     const base = ENEMY_ART_SCALE[this.def.type] ?? 1;
     const bottom = this.body.y + this.def.h / 2;
     if (pose.spin) {
