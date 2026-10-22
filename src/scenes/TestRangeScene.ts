@@ -1273,6 +1273,8 @@ export class TestRangeScene extends Phaser.Scene {
       cameraX: this.scrollX,
       sfx: { ...audio.counts },
       music: audio.currentTrack(),
+      voices: audio.voicesStarted,
+      musicSchedulers: audio.activeSchedulers,
       art: { loaded: artStatus.loaded, missing: [...artStatus.missing], disabled: artStatus.disabled },
       boss: this.boss
         ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: this.boss.brain.phase, mode: this.boss.brain.mode }

@@ -18,6 +18,8 @@ test('每個音效都短、音量溫和、音高在聽得舒服的範圍', () =>
     expect(sfxLength(tones), name).toBeLessThanOrEqual(2);
     for (const t of tones) {
       expect(t.gain, name).toBeLessThanOrEqual(0.5);
+      expect(t.gain, name).toBeGreaterThan(0);
+      if (t.toFreq !== undefined) expect(t.toFreq, name).toBeGreaterThan(0);
       expect(t.freq, name).toBeGreaterThan(40);
       expect(t.freq, name).toBeLessThan(5000);
     }

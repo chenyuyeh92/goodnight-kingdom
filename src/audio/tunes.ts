@@ -47,14 +47,14 @@ const JACQUES: Tune['melody'] = [
   ['C5', 1], ['G4', 1], ['C5', 2],
 ];
 
-/** 關主戰:《賈克修士》改成小調、加快(馬勒第一號交響曲也這樣用過)。 */
+/** 關主戰:《賈克修士》改成小調(馬勒第一號交響曲第三樂章也用過小調版),再加快速度。 */
 const JACQUES_MINOR = JACQUES.map(([note, beats]) => [note?.replace(/^E/, 'Eb').replace(/^A/, 'Ab') ?? null, beats] as const);
 
 export const TUNES: Record<TrackId, Tune> = {
   menu: { bpm: 84, beatsPerBar: 3, pickup: 1, melody: BRAHMS, bass: ['C3', 'C3', 'G2', 'G2', 'G2', 'G2', 'G2', 'C3'] },
   day: { bpm: 112, beatsPerBar: 4, melody: JACQUES, bass: ['C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3'] },
-  dusk: { bpm: 72, beatsPerBar: 3, pickup: 1, melody: BRAHMS, bass: ['C3', 'C3', 'F2', 'G2', 'G2', 'G2', 'G2', 'C3'] },
-  night: { bpm: 76, beatsPerBar: 4, melody: TWINKLE, bass: ['C3', 'F2', 'C3', 'G2', 'C3', 'G2', 'C3', 'G2'] },
+  dusk: { bpm: 72, beatsPerBar: 3, pickup: 1, melody: BRAHMS, bass: ['C3', 'C3', 'G2', 'G2', 'G2', 'G2', 'G2', 'C3'] },
+  night: { bpm: 76, beatsPerBar: 4, melody: TWINKLE, bass: ['C3', 'F2', 'C3', 'C3', 'C3', 'G2', 'C3', 'G2'] },
   boss: { bpm: 150, beatsPerBar: 4, melody: JACQUES_MINOR, bass: ['C3', 'C3', 'C3', 'C3', 'C3', 'G2', 'C3', 'C3'] },
 };
 

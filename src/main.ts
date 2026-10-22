@@ -65,6 +65,9 @@ export interface GkDebug {
   /** 每種音效觸發的次數、目前的配樂。 */
   sfx?: Partial<Record<string, number>>;
   music?: string | null;
+  /** 實際發出聲音的音效次數、正在排程的配樂數。 */
+  voices?: number;
+  musicSchedulers?: number;
   /** 守衛房間:已存的守衛、A/B 選用、正在幫誰選。 */
   guardList?: { id: string; name: string }[];
   guardSelected?: { A: string | null; B: string | null };
@@ -168,6 +171,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, customUpdate: true } },
     // 不平滑每格的時間:畫面掉格時遊戲照實際時間前進,不會變慢動作。
     fps: { smoothStep: false },
+    // 聲音由 src/audio/audio.ts 自己管理,不讓 Phaser 再開一個 AudioContext。
+    audio: { noAudio: true },
   });
   // 測試用:讓 e2e 可以檢查畫面上的物件。
   if (testHooks) (window as unknown as { __PHASER_GAME__: Phaser.Game }).__PHASER_GAME__ = game;

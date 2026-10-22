@@ -78,7 +78,7 @@ export class SettingsScene extends Phaser.Scene {
   private adjust(kind: 'music' | 'sfx', d: number): void {
     this.settings = { ...this.settings, [kind]: Math.min(VOLUME_STEPS, Math.max(0, this.settings[kind] + d)) };
     audio.setSettings(this.settings);
-    audio.sfx('select');
+    audio.preview();
     this.refresh();
   }
 
@@ -93,6 +93,12 @@ export class SettingsScene extends Phaser.Scene {
       this.confirmClearUntil = this.time.now + CONFIRM_MS;
       this.clearButton.setLabel('再按一次清除');
       this.message.setText('背包、通關紀錄、畫的守衛都會刪掉');
+      this.time.delayedCall(CONFIRM_MS, () => {
+        if (this.time.now < this.confirmClearUntil) return;
+        this.confirmClearUntil = 0;
+        this.clearButton.setLabel('清除所有存檔');
+        this.message.setText('');
+      });
       return;
     }
     this.data_.save?.clear();

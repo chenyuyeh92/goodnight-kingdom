@@ -9,7 +9,8 @@ import { TUNES, type TrackId, type Tune } from './tunes';
 const THROTTLE_MS: Partial<Record<SfxName, number>> = { shoot: 90, hit: 50, blocked: 80, sleep: 70, splash: 200, select: 40 };
 /** 整體音量上限,避免合成音疊起來爆音。 */
 const MASTER = 0.6;
-const MUSIC_BASE = 0.5;
+/** 配樂比音效小聲一點,但在手機喇叭上也要聽得到。 */
+const MUSIC_BASE = 1.4;
 const FADE_S = 0.6;
 const LOOKAHEAD_S = 0.3;
 const SCHEDULE_MS = 60;
@@ -35,8 +36,14 @@ class AudioManager {
   private playing: Playing | null = null;
   private recorded: Partial<Record<TrackId, string>> = {};
   private readonly throttle = makeThrottle(THROTTLE_MS);
+  /** 解碼過的錄音檔(換場景時不用重新下載、解碼)。 */
+  private readonly buffers = new Map<string, AudioBuffer>();
   /** 每種音效被觸發幾次(測試用,靜音時也算)。 */
   readonly counts: Partial<Record<SfxName, number>> = {};
+  /** 實際發出聲音的音效次數(測試用:靜音時應該是 0)。 */
+  voicesStarted = 0;
+  /** 正在排程的配樂數(測試用:換場景後應該只剩 1)。 */
+  activeSchedulers = 0;
 
   init(storage: StorageLike | null, recordedTracksUrl: string): void {
     this.storage = storage;
@@ -51,9 +58,11 @@ class AudioManager {
         }
       })
       .catch(() => undefined);
+    // iPhone/iPad 只認「手指放開」(touchend、pointerup、click)才算使用者手勢,按下時啟動聲音會一直是暫停狀態。
     const unlock = (): void => this.unlock();
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
+    for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) {
+      window.addEventListener(ev, unlock, { capture: true });
+    }
     document.addEventListener('visibilitychange', () => {
       if (!this.ctx) return;
       if (document.hidden) void this.ctx.suspend();
@@ -64,7 +73,8 @@ class AudioManager {
   /** 第一次互動時建立聲音;不支援的瀏覽器就安靜地玩。 */
   unlock(): void {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended' && !document.hidden) void this.ctx.resume();
+      // iOS 接電話、Siri 之後會變成 interrupted,也要重新啟動。
+      if (this.ctx.state !== 'running' && !document.hidden) void this.ctx.resume().catch(() => undefined);
       return;
     }
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -74,15 +84,34 @@ class AudioManager {
     } catch {
       return;
     }
+    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
     this.master = this.ctx.createGain();
     this.master.gain.value = MASTER;
-    this.master.connect(this.ctx.destination);
+    // 保險用的限幅器:很多聲音疊在一起時不會爆音。
+    const limiter = this.ctx.createDynamicsCompressor();
+    limiter.threshold.value = -6;
+    limiter.ratio.value = 12;
+    this.master.connect(limiter).connect(this.ctx.destination);
     this.musicBus = this.ctx.createGain();
     this.sfxBus = this.ctx.createGain();
+    this.musicBus.gain.value = volumeGain(this.settings.music, this.settings.muted) * MUSIC_BASE;
+    this.sfxBus.gain.value = volumeGain(this.settings.sfx, this.settings.muted);
     this.musicBus.connect(this.master);
     this.sfxBus.connect(this.master);
     this.applySettings();
     if (this.wantTrack) this.startTrack(this.wantTrack);
+  }
+
+  /** 設定畫面調音量時的試聽:用新的音量、不受頻率限制。 */
+  preview(): void {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running' || volumeGain(this.settings.sfx, this.settings.muted) === 0) return;
+    try {
+      this.playTones('select', ctx);
+      this.voicesStarted++;
+    } catch {
+      // 同 sfx()。
+    }
   }
 
   getSettings(): AudioSettings {
@@ -96,11 +125,21 @@ class AudioManager {
   }
 
   sfx(name: SfxName): void {
-    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    if (!this.throttle(name, now)) return;
     this.counts[name] = (this.counts[name] ?? 0) + 1;
     const ctx = this.ctx;
+    // 先看聽不聽得到再算頻率限制,靜音時不會佔掉之後的那一次。
     if (!ctx || !this.sfxBus || ctx.state !== 'running' || volumeGain(this.settings.sfx, this.settings.muted) === 0) return;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (!this.throttle(name, now)) return;
+    try {
+      this.playTones(name, ctx);
+      this.voicesStarted++;
+    } catch {
+      // 合成失敗(瀏覽器怪狀況)就安靜跳過,不影響遊戲。
+    }
+  }
+
+  private playTones(name: SfxName, ctx: AudioContext): void {
     const t0 = ctx.currentTime;
     for (const tone of SFX[name]) {
       const osc = ctx.createOscillator();
@@ -111,7 +150,7 @@ class AudioManager {
       g.gain.setValueAtTime(0.0001, t0 + tone.at);
       g.gain.exponentialRampToValueAtTime(tone.gain, t0 + tone.at + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + tone.at + tone.dur);
-      osc.connect(g).connect(this.sfxBus);
+      osc.connect(g).connect(this.sfxBus!);
       osc.start(t0 + tone.at);
       osc.stop(t0 + tone.at + tone.dur + 0.02);
     }
@@ -161,21 +200,36 @@ class AudioManager {
     this.playing = { id, gain, stop };
   }
 
-  /** 錄音檔:載入失敗就改用合成的音樂盒。 */
+  /** 錄音檔:解碼過的會留著重用;載入失敗就改用合成的音樂盒。 */
   private playRecorded(url: string, out: GainNode, fallback: Tune): () => void {
     const ctx = this.ctx!;
     let stopped = false;
     let source: AudioBufferSourceNode | null = null;
     let synthStop: (() => void) | null = null;
-    void fetch(url)
-      .then((r) => r.arrayBuffer())
-      .then((b) => ctx.decodeAudioData(b))
+    const cached = this.buffers.get(url);
+    const load = cached
+      ? Promise.resolve(cached)
+      : fetch(url)
+          .then((r) => {
+            if (!r.ok) throw new Error(`${r.status}`);
+            return r.arrayBuffer();
+          })
+          .then((b) => ctx.decodeAudioData(b))
+          .then((buf) => {
+            this.buffers.set(url, buf);
+            return buf;
+          });
+    void load
       .then((buf) => {
         if (stopped) return;
         source = ctx.createBufferSource();
         source.buffer = buf;
         source.loop = true;
         source.connect(out);
+        // 解碼花比較久時,從真正開始播的時候淡入。
+        out.gain.cancelScheduledValues(ctx.currentTime);
+        out.gain.setValueAtTime(0, ctx.currentTime);
+        out.gain.linearRampToValueAtTime(1, ctx.currentTime + FADE_S);
         source.start();
       })
       .catch(() => {
@@ -198,6 +252,8 @@ class AudioManager {
     let barBeat = tune.pickup ? tune.beatsPerBar - tune.pickup : 0;
     let bar = 0;
     const schedule = (): void => {
+      // 主執行緒卡住太久時,跳過來不及的音,不要一次全部擠在一起播。
+      if (next < ctx.currentTime) next = ctx.currentTime + 0.05;
       while (next < ctx.currentTime + LOOKAHEAD_S) {
         const [note, beats] = tune.melody[i];
         if (barBeat === 0 || barBeat >= tune.beatsPerBar - 1e-6) {
@@ -218,7 +274,11 @@ class AudioManager {
     };
     schedule();
     const timer = setInterval(schedule, SCHEDULE_MS);
-    return () => clearInterval(timer);
+    this.activeSchedulers++;
+    return () => {
+      clearInterval(timer);
+      this.activeSchedulers--;
+    };
   }
 
   private tone(out: AudioNode, freq: number, at: number, dur: number, wave: OscillatorType, peak: number, attack: number): void {

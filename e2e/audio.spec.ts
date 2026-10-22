@@ -30,9 +30,11 @@ test.describe('聲音', () => {
     await page.keyboard.down('KeyC');
     await page.waitForTimeout(1000);
     await page.keyboard.up('KeyC');
-    const sfx = (await gk(page)).sfx!;
-    expect(sfx.shoot ?? 0).toBeGreaterThan(5);
-    expect(sfx.shoot ?? 0).toBeLessThanOrEqual(12);
+    // 觸發次數照射擊次數算(約 14 次),實際發出的聲音被限制在約 11 次以下(沒有魔物,只有射擊聲)。
+    const s = await gk(page);
+    expect(s.sfx!.shoot ?? 0).toBeGreaterThan(s.voices!);
+    expect(s.voices!).toBeGreaterThan(5);
+    expect(s.voices!).toBeLessThanOrEqual(12);
   });
 
   test('每一關播自己的配樂,關主戰換成關主曲', async ({ page }) => {
@@ -40,6 +42,40 @@ test.describe('聲音', () => {
     expect((await gk(page)).music).toBe('day');
     await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
     await page.waitForFunction(() => window.__GK__!.music === 'boss', undefined, { timeout: 15000 });
+  });
+
+  test('真的有發出聲音;全部靜音後完全沒有', async ({ page }) => {
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('muted')) localStorage.setItem('gk.settings.v1', JSON.stringify({ music: 6, sfx: 8, muted: true }));
+      else localStorage.removeItem('gk.settings.v1');
+    });
+    await open(page);
+    await page.keyboard.down('KeyC');
+    await page.waitForTimeout(600);
+    await page.keyboard.up('KeyC');
+    expect((await gk(page)).voices!).toBeGreaterThan(0);
+    await page.evaluate(() => sessionStorage.setItem('muted', '1'));
+    await open(page);
+    await page.keyboard.down('KeyC');
+    await page.waitForTimeout(600);
+    await page.keyboard.up('KeyC');
+    const s = await gk(page);
+    expect(s.sfx!.shoot ?? 0).toBeGreaterThan(0);
+    expect(s.voices).toBe(0);
+  });
+
+  test('換關、重來後只有一首配樂在播', async ({ page }) => {
+    await open(page, './?mode=single&test=1&level=w1-1');
+    await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
+    await page.waitForFunction(() => window.__GK__!.music === 'boss', undefined, { timeout: 15000 });
+    await page.waitForTimeout(1000);
+    expect((await gk(page)).musicSchedulers).toBe(1);
+    await page.evaluate(() => {
+      for (let i = 0; i < 6; i++) window.__GK__!.hurt!(0);
+    });
+    await page.waitForFunction(() => (window.__GK__!.restarts ?? 0) >= 1 || window.__GK__!.players![0].down, undefined, { timeout: 15000 });
+    await page.waitForTimeout(1500);
+    expect((await gk(page)).musicSchedulers).toBeLessThanOrEqual(1);
   });
 
   test('設定:調音量、靜音,重新整理後還在', async ({ page }) => {
@@ -83,5 +119,7 @@ test.describe('聲音', () => {
     await page.waitForTimeout(200);
     saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gk.save.v1')!));
     expect(saved).toEqual({ version: 1, weapons: {}, cleared: {} });
+    const guards = await page.evaluate(() => JSON.parse(localStorage.getItem('gk.guards.v1') ?? 'null'));
+    expect(guards?.guards ?? []).toEqual([]);
   });
 });
