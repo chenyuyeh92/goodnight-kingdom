@@ -58,12 +58,13 @@
 | `public/assets/bullets/music-note.png` | 搖籃曲豎琴的子彈 | 11×14 | 音符 |
 | `public/assets/bullets/moon-beam.png` | 月亮催眠燈的光束 | 32×10 | 橫向重複接成長光束 |
 
-棉被迴力鏢的子彈就是武器圖本身（`weapons/blanket-boomerang.png`），旋轉著飛。
 | `public/assets/enemies/insomnia-hedgehog-roll.png` | 失眠刺蝟 滾球（滾動撞人時用） | 48×48 | 程式畫；可以讓程式旋轉 |
+
+棉被迴力鏢的子彈就是武器圖本身（`weapons/blanket-boomerang.png`），旋轉著飛。
 
 ## 動畫格（2026-10-22，程式那邊要求）
 
-用現有單張圖做變形（彈跳、壓扁拉長、傾斜、翅膀繞肩膀旋轉）做成，長相和原圖完全一致。**每一格的畫布大小和原圖相同、朝向相同、內容底部貼齊畫布底部**（腳底在同一條線）。產生方式：`docs/art/tools/make_anim.py`。
+用現有單張圖做變形做成：走路是「變矮、前後傾」交替，跳躍是身體收瘦，拍翅是把翅膀那一帶彎曲往上／往下（不切開、不會有破洞），長相和原圖完全一致。**每一格的畫布大小和原圖相同、朝向相同、腳底和原圖在同一條線**；角色不會一格大一格小。走路格不往上抬，上下晃動和跳躍高度請程式控制。產生方式：`docs/art/tools/make_anim.py`。
 
 | 檔案 | 內容 | 每格大小（寬×高 px） |
 |---|---|---|
@@ -80,9 +81,9 @@
 | `public/assets/enemies/night-owl-boss-phase3-flap-1..4.png` | 熬夜貓頭鷹 第三階段 拍翅 4 格 | 176×200 |
 | `public/assets/enemies/night-owl-boss-dive.png` | 熬夜貓頭鷹 俯衝 1 格（往左下） | 181×200 |
 
-- 走路的「平」格（第 2、4 格）在拍翅裡就是原圖本身。
-- 貓頭鷹的翅膀收在身體兩側、抱著咖啡杯，拍翅動作比較小，翅膀邊緣有一點切痕；程式可以再加上下浮動讓飛行更明顯。
-- 小綿羊守衛的動畫放在 `characters/`，魔物放在 `enemies/`。
+- 拍翅的「平」格（第 2、4 格）就是原圖本身。
+- 貓頭鷹的翅膀收在身體兩側、抱著咖啡杯，拍翅動作比較小；程式可以再加上下浮動讓飛行更明顯。俯衝格是上半身往左前傾。
+- 小綿羊守衛的動畫放在 `characters/`（和原圖 `default-guard.png` 同一個資料夾），魔物放在 `enemies/`。
 - 關著的寶箱（`items/treasure-chest-closed.png`）和刺蝟正面的刺盾（新版 `enemies/insomnia-hedgehog.png`）在第三批已經交付，請拉最新的 `art/style-guide` 分支。
 
 ## 還沒做 / 已知問題
