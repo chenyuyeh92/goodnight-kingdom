@@ -15,6 +15,9 @@ import { GLACIER } from './glacier';
 import { BLACK_SAND } from './blackSand';
 import { VOLCANO_FOREST } from './volcanoForest';
 import { LAVA_RIVER } from './lavaRiver';
+import { RIVER_FOREST } from './riverForest';
+import { WATERFALL } from './waterfall';
+import { CANOPY } from './canopy';
 
 export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   range: RANGE,
@@ -33,4 +36,7 @@ export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   'w5-1': BLACK_SAND,
   'w5-2': VOLCANO_FOREST,
   'w5-3': LAVA_RIVER,
+  'w6-1': RIVER_FOREST,
+  'w6-2': WATERFALL,
+  'w6-3': CANOPY,
 };

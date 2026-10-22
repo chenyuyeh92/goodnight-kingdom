@@ -118,7 +118,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -425,4 +425,61 @@ test('世界 5 的小頭目是溫泉河馬、火山蝸牛,關主是火龍;5-1 �
   expect(LEVELS['w5-3'].boss!.type).toBe('dragon');
   expect(LEVELS['w5-1'].hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['lava', 'eruption']));
   expect(LEVELS['w5-3'].scenes.map((s) => s.scene)).toEqual(['w5-s3', 'w5-s4']);
+});
+
+describe.each(['w6-1', 'w6-2', 'w6-3'] as const)('世界 6 雨林:%s', (id) => {
+  const L = LEVELS[id];
+  const gaps = L.water?.gaps ?? [];
+  const vines = L.vines ?? [];
+  const inGap = (x: number, margin = 20): boolean => gaps.some((g) => x >= g.x - margin && x <= g.x + g.w + margin);
+
+  test('屬於世界 6,有河溝與藤蔓,平台用木頭', () => {
+    expect(L.world).toBe(6);
+    expect(gaps.length).toBeGreaterThan(0);
+    expect(vines.length).toBeGreaterThan(0);
+    expect(L.platformArt).toBe('log-platform');
+    for (const s of L.scenes) expect(s.scene.startsWith('w6-')).toBe(true);
+  });
+
+  test('每條河溝都過得去:窄的(≤ 110)跳過去,寬的(≤ 300)上面掛一條藤蔓、離岸 40–100', () => {
+    for (const g of gaps) {
+      const over = vines.filter((v) => v.x > g.x && v.x < g.x + g.w);
+      if (g.w <= 110) continue;
+      expect(g.w, `河溝 ${g.x}`).toBeLessThanOrEqual(300);
+      expect(over, `河溝 ${g.x}`).toHaveLength(1);
+      expect(over[0].x - g.x).toBeGreaterThanOrEqual(40);
+      expect(over[0].x - g.x).toBeLessThanOrEqual(100);
+    }
+    for (const v of vines) expect(gaps.some((g) => v.x > g.x && v.x < g.x + g.w), `藤蔓 ${v.x}`).toBe(true);
+  });
+
+  test('藤蔓附近沒有平台擋住盪過去的路', () => {
+    for (const v of vines) {
+      for (const r of L.terrain) expect(r.x + r.w < v.x - 170 || r.x > v.x + 170 || r.y >= 420, `藤蔓 ${v.x} 平台 ${r.x}`).toBe(true);
+    }
+  });
+
+  test('檢查點(雙人時 B 在右邊 40)、地上的寶箱、地面冒出的魔物都不在河溝上', () => {
+    for (const cp of L.checkpoints) expect(inGap(cp) || inGap(cp + 40), `檢查點 ${cp}`).toBe(false);
+    for (const c of L.chests.filter((c) => c.bottom === GROUND_Y)) expect(inGap(c.x), `寶箱 ${c.x}`).toBe(false);
+    for (const t of L.trickles) if (t.spawn.x !== undefined) expect(inGap(t.spawn.x)).toBe(false);
+    for (const a of L.arenas) for (const w of a.waves) for (const s of w) if (s.x !== undefined) expect(inGap(s.x)).toBe(false);
+  });
+
+  test('戰鬥區與關主區沒有河溝', () => {
+    const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
+    for (const w of windows) for (const g of gaps) expect(g.x + g.w <= w || g.x >= w + VIEW_W, `河溝 ${g.x} 戰鬥區 ${w}`).toBe(true);
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of L.chests.filter((c) => c.bottom < 300)) expectReachable(c, L);
+  });
+});
+
+test('世界 6 的小頭目是樹懶、美洲豹,關主是大猩猩;6-1 有藤蔓的告示牌', () => {
+  expect(LEVELS['w6-1'].boss!.type).toBe('sloth');
+  expect(LEVELS['w6-2'].boss!.type).toBe('jaguar');
+  expect(LEVELS['w6-3'].boss!.type).toBe('gorilla');
+  expect(LEVELS['w6-1'].hints!.map((h) => h.kind)).toContain('vine');
+  expect(LEVELS['w6-3'].scenes.map((s) => s.scene)).toEqual(['w6-s3', 'w6-s4']);
 });

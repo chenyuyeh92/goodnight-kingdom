@@ -1,9 +1,9 @@
 import type { PlayMode } from '../input/playMode';
 
 /** 路邊的教學告示牌(1-1 教操作,世界 2 教流沙與壓力板)。 */
-export type HintKind = 'move' | 'jump' | 'aimUp' | 'crouch' | 'melee' | 'chest' | 'quicksand' | 'plate' | 'swim' | 'dive' | 'current' | 'ice' | 'icicle' | 'lava' | 'eruption';
+export type HintKind = 'move' | 'jump' | 'aimUp' | 'crouch' | 'melee' | 'chest' | 'quicksand' | 'plate' | 'swim' | 'dive' | 'current' | 'ice' | 'icicle' | 'lava' | 'eruption' | 'vine';
 
-export const HINT_KINDS: readonly HintKind[] = ['move', 'jump', 'aimUp', 'crouch', 'melee', 'chest', 'quicksand', 'plate', 'swim', 'dive', 'current', 'ice', 'icicle', 'lava', 'eruption'];
+export const HINT_KINDS: readonly HintKind[] = ['move', 'jump', 'aimUp', 'crouch', 'melee', 'chest', 'quicksand', 'plate', 'swim', 'dive', 'current', 'ice', 'icicle', 'lava', 'eruption', 'vine'];
 
 const WHAT: Record<HintKind, string> = {
   move: '往右走,邊走邊射擊',
@@ -21,6 +21,7 @@ const WHAT: Record<HintKind, string> = {
   icicle: '上面的冰柱會掉下來,看到影子快走開',
   lava: '熔岩碰到會燙傷,跳過去或踩岩石平台',
   eruption: '火山噴發時會掉石頭,看到影子快走開',
+  vine: '跳起來抓住藤蔓,按跳躍放手飛過河',
 };
 
 const KEYS: Record<HintKind, { a: string; b: string; touch: string } | null> = {
@@ -39,6 +40,7 @@ const KEYS: Record<HintKind, { a: string; b: string; touch: string } | null> = {
   icicle: null,
   lava: null,
   eruption: null,
+  vine: { a: 'V', b: '.', touch: '跳躍鈕' },
 };
 
 /** 告示牌文字:依單人/雙人與是否觸控顯示對應的按鍵。 */

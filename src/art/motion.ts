@@ -51,7 +51,7 @@ function airborne(vy: number): Pose {
 export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: number, vx: number, vy: number, grounded: boolean, facing: 1 | -1 = -1): Pose {
   if (type === 'nightBat') return flap(tMs);
   // 禿鷹翅膀大,拍得比蝙蝠慢。
-  if (type === 'vulture' || type === 'puffin' || type === 'volcanoBird') return flap(tMs, 300, 0.1);
+  if (type === 'vulture' || type === 'puffin' || type === 'volcanoBird' || type === 'parrot') return flap(tMs, 300, 0.1);
   // 企鵝肚子貼地滑:整隻躺平(往滑的方向)。
   if (type === 'penguin' && phase === 'dash') return { ...IDLE, angle: facing < 0 ? -80 : 80, spin: true };
   // 河豚膨脹:整隻變大。
@@ -64,7 +64,7 @@ export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: numb
     const tilt = Math.max(-18, Math.min(18, vx / 25));
     return { ...p, angle: vy > 150 ? tilt : 0 };
   }
-  if ((type === 'hedgehog' || type === 'armadillo') && phase === 'roll') {
+  if ((type === 'hedgehog' || type === 'armadillo' || type === 'pangolin') && phase === 'roll') {
     return { ...IDLE, angle: (tMs * ROLL_DEG_PER_MS * Math.sign(vx || -1)) % 360, spin: true };
   }
   if (!grounded) return airborne(vy);

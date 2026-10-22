@@ -11,6 +11,9 @@ const FLASH_MS = 80;
 const COLOR_FLASH = 0xffffff;
 const COLOR_SHIELD = 0xffffff;
 
+/** 變色龍躲起來時的透明度。 */
+const CAMOUFLAGE_ALPHA = 0.18;
+
 /** 一隻魔物:色塊、物理 body、行為狀態與血量。 */
 export class EnemyEntity {
   readonly def: EnemyDef;
@@ -148,7 +151,8 @@ export class EnemyEntity {
       this.art.setOrigin(0.5, 1).setPosition(this.body.x, bottom + pose.dy);
     }
     this.art.setScale(base * pose.scaleX, base * pose.scaleY).setAngle(pose.angle);
-    this.art.setAlpha(this.body.alpha);
+    // 變色龍躲起來時幾乎看不到(還是打得到、碰到會痛)。
+    this.art.setAlpha(this.body.alpha * (this.brain.phase === 'hide' ? CAMOUFLAGE_ALPHA : 1));
   }
 
   destroy(): void {

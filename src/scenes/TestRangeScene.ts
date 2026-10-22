@@ -37,6 +37,9 @@ import { freshEruption, onLava, stepEruption, type EruptionState } from '../game
 import { initialHippoBrain, stepHippo, type HippoBrain } from '../game/hippo';
 import { LAVA_GRAVITY, initialSnailBrain, stepSnail, type SnailBrain } from '../game/snail';
 import { FIREBALL_GRAVITY, initialDragonBrain, stepDragon, type DragonBrain } from '../game/dragon';
+import { MANGO_GRAVITY, initialSlothBrain, stepSloth, type SlothBrain } from '../game/sloth';
+import { initialJaguarBrain, stepJaguar, type JaguarBrain } from '../game/jaguar';
+import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
 import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
 import { initialNessieBrain, stepNessie, type NessieBrain } from '../game/nessie';
@@ -106,7 +109,7 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩' };
 /** 冰柱:玩家走到左右這麼近就掉下來。 */
 const ICICLE_TRIGGER_X = 100;
 /** 熔岩圖流動一格(96 px)要多久。 */
@@ -143,6 +146,15 @@ const RIVER_INVULN_MS = 2000;
 const SHALLOW_DEPTH = 24;
 /** 角色判定寬 28 的一半。 */
 const STAND_HALF_W = 14;
+/** 抓藤蔓時手比頭頂高一點;身體中心在手下面這麼多。 */
+const HANG_BELOW_HAND = 20;
+/** 從藤蔓放手後這麼久之內保持飛出去的水平速度(落地或撞牆就停)。 */
+const FLING_MS = 900;
+/** 藤蔓圖加粗、樹枝寬度、停著時輕輕晃的幅度(弧度)與速度。 */
+const VINE_ART_SCALE_X = 1.6;
+const VINE_BRANCH_W = 70;
+const VINE_SWAY = 0.06;
+const VINE_SWAY_MS = 500;
 const BANK_H = 80;
 
 const THORN_H = 16;
@@ -219,10 +231,12 @@ type BossAi =
   | { kind: 'yeti'; brain: YetiBrain }
   | { kind: 'hippo'; brain: HippoBrain }
   | { kind: 'snail'; brain: SnailBrain; armored: boolean }
-  | { kind: 'dragon'; brain: DragonBrain };
+  | { kind: 'dragon'; brain: DragonBrain }
+  | { kind: 'sloth'; brain: SlothBrain }
+  | { kind: 'jaguar'; brain: JaguarBrain; shadow: Phaser.GameObjects.Ellipse | null };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -257,6 +271,13 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'snail', brain: initialSnailBrain(), armored: false };
     case 'dragon':
       return { kind: 'dragon', brain: initialDragonBrain() };
+    case 'sloth':
+      return { kind: 'sloth', brain: initialSlothBrain() };
+    case 'jaguar':
+      return { kind: 'jaguar', brain: initialJaguarBrain(), shadow: null };
+    // 大猩猩用雪怪的招式(丟芒果、捶胸掉芒果、跳過來送出震波)。
+    case 'gorilla':
+      return { kind: 'yeti', brain: initialYetiBrain() };
   }
 }
 
@@ -397,6 +418,14 @@ export class TestRangeScene extends Phaser.Scene {
   /** 世界 5:踩到熔岩被燙到的次數、火山噴發次數。 */
   private lavaBurns = 0;
   private eruption: EruptionState = freshEruption();
+  /** 世界 6 的藤蔓:圖、擺動狀態、每位玩家抓著哪一條、放手後的冷卻與飛出去的速度。 */
+  private vineViews: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] = [];
+  private vineStates: VineState[] = [];
+  private holding: (number | null)[] = [];
+  private regrabMs: number[] = [];
+  private fling: { vx: number; ms: number }[] = [];
+  private prevJumpVine: boolean[] = [];
+  private vineGrabs = 0;
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -562,6 +591,21 @@ export class TestRangeScene extends Phaser.Scene {
     }));
     for (const s of this.level.ice ?? []) this.drawIce(s.x, s.w);
     for (const s of this.level.lava ?? []) this.drawLava(s.x, s.w);
+    this.vineStates = (this.level.vines ?? []).map(() => restingVine());
+    this.vineViews = (this.level.vines ?? []).map((v) => {
+      // 掛藤蔓的樹枝(藤蔓圖很細,在樹林背景裡加粗一點、加上樹枝才看得出來)。
+      const g = this.add.graphics().setDepth(-1);
+      g.fillStyle(COLOR.outline).fillRoundedRect(v.x - VINE_BRANCH_W / 2 - 2, v.top - 8, VINE_BRANCH_W + 4, 14, 7);
+      g.fillStyle(0x7a5232).fillRoundedRect(v.x - VINE_BRANCH_W / 2, v.top - 6, VINE_BRANCH_W, 10, 5);
+      return this.textures.exists('vine')
+        ? this.add.image(v.x, v.top, 'vine').setOrigin(0.5, 0).setScale(VINE_ART_SCALE_X, 1).setDepth(-1)
+        : this.add.rectangle(v.x, v.top, 8, 160, 0x4a8a3a).setOrigin(0.5, 0).setStrokeStyle(2, COLOR.outline).setDepth(-1);
+    });
+    this.holding = this.players.map(() => null);
+    this.regrabMs = this.players.map(() => 0);
+    this.fling = this.players.map(() => ({ vx: 0, ms: 0 }));
+    this.prevJumpVine = this.players.map(() => false);
+    this.vineGrabs = 0;
     this.beamGfx = this.add.graphics().setDepth(4);
     this.beamTiles = [];
 
@@ -712,6 +756,7 @@ export class TestRangeScene extends Phaser.Scene {
       const prevVx = p.body().velocity.x;
       const r = p.update(intents[i], dtMs, playerTuning, (reach) => this.findMeleeTarget(reach) !== null);
       this.applyIce(p, prevVx, dtMs);
+      this.applyVine(p, i, intents[i], dtMs);
       if (p.jumped) audio.sfx('jump');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
@@ -726,6 +771,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.currentsView?.update(dtMs, this.scrollX, VIEW_W);
     this.updateIcicles();
     this.updateVolcano(dtMs);
+    this.updateVines(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -826,6 +872,66 @@ export class TestRangeScene extends Phaser.Scene {
       this.tweens.add({ targets: ic.view, angle: { from: -6, to: 6 }, duration: 70, yoyo: true, repeat: 3, onComplete: () => ic.view.destroy() });
       this.desert.dropBlock(ic.x, 'icicle');
     }
+  }
+
+  /**
+   * 世界 6 的藤蔓:在空中碰到藤蔓下段就抓住(順著飛過來的方向盪),按住左右越盪越高,
+   * 按跳躍放手往盪的方向飛出去;睡著就鬆手。
+   */
+  private applyVine(p: PlayerEntity, i: number, intent: Intent, dtMs: number): void {
+    const vines = this.level.vines;
+    if (!vines?.length) return;
+    const pb = p.body();
+    const jumpPressed = intent.jump && !this.prevJumpVine[i];
+    this.prevJumpVine[i] = intent.jump;
+    this.regrabMs[i] = Math.max(0, this.regrabMs[i] - dtMs);
+    const held = this.holding[i];
+    if (held !== null) {
+      if (p.health.down) {
+        this.holding[i] = null;
+        return;
+      }
+      const push = intent.left && !intent.right ? -1 : intent.right && !intent.left ? 1 : 0;
+      const st = stepVine(this.vineStates[held], true, push, dtMs);
+      this.vineStates[held] = st;
+      if (jumpPressed) {
+        const v = releaseVelocity(st, p.motor.facing);
+        this.holding[i] = null;
+        this.regrabMs[i] = REGRAB_MS;
+        pb.setVelocity(v.vx, v.vy);
+        this.fling[i] = { vx: v.vx, ms: FLING_MS };
+        audio.sfx('jump');
+        return;
+      }
+      const hand = vineHand(vines[held], st);
+      pb.reset(hand.x, hand.y + HANG_BELOW_HAND);
+      return;
+    }
+    const grounded = pb.blocked.down || pb.touching.down;
+    const f = this.fling[i];
+    if (f.ms > 0) {
+      f.ms = grounded || pb.blocked.left || pb.blocked.right ? 0 : f.ms - dtMs;
+      if (f.ms > 0) pb.setVelocityX(f.vx);
+    }
+    if (grounded || p.health.down || this.regrabMs[i] > 0) return;
+    for (let k = 0; k < vines.length; k++) {
+      if (this.holding.includes(k) || !canGrab(vines[k], this.vineStates[k], p.x, p.feetY - pb.height, p.feetY)) continue;
+      this.holding[i] = k;
+      this.vineStates[k] = { angle: this.vineStates[k].angle, omega: grabOmega(pb.velocity.x, p.motor.facing) };
+      this.fling[i] = { vx: 0, ms: 0 };
+      this.vineGrabs += 1;
+      return;
+    }
+  }
+
+  /** 沒人抓的藤蔓慢慢停回垂直,停著時輕輕晃(看得出來可以抓);圖跟著角度轉。 */
+  private updateVines(dtMs: number): void {
+    const sway = Math.sin(this.time.now / VINE_SWAY_MS) * VINE_SWAY;
+    this.vineStates.forEach((st, k) => {
+      const held = this.holding.includes(k);
+      if (!held) this.vineStates[k] = stepVine(st, false, 0, dtMs);
+      this.vineViews[k].setRotation(-this.vineStates[k].angle - (held ? 0 : sway));
+    });
   }
 
   /** 世界 5:腳踩在熔岩上就燙傷(往上彈);噴發區裡每隔一陣子掉石頭。 */
@@ -1256,6 +1362,8 @@ export class TestRangeScene extends Phaser.Scene {
       else if (ai.kind === 'hippo') this.updateHippo(boss, ai, dtMs);
       else if (ai.kind === 'snail') this.updateSnail(boss, ai, dtMs);
       else if (ai.kind === 'dragon') this.updateDragon(boss, ai, dtMs);
+      else if (ai.kind === 'sloth') this.updateSloth(boss, ai, dtMs);
+      else if (ai.kind === 'jaguar') this.updateJaguar(boss, ai, dtMs);
       else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1554,7 +1662,10 @@ export class TestRangeScene extends Phaser.Scene {
     }
   }
 
-  /** 失眠雪怪:丟雪球、跺腳掉冰柱、跳過來落地震出雪浪;第二階段起叫企鵝。 */
+  /**
+   * 失眠雪怪:丟雪球、跺腳掉冰柱、跳過來落地震出雪浪;第二階段起叫企鵝。
+   * 吵鬧大猩猩同一套:丟芒果、捶胸讓芒果掉下來、跳過來落地送出震波;第二階段起叫鸚鵡。
+   */
   private updateYeti(boss: Boss, ai: Extract<BossAi, { kind: 'yeti' }>, dtMs: number): void {
     const { enemy } = boss;
     const nearest = this.nearestAwake(enemy.x);
@@ -1575,26 +1686,101 @@ export class TestRangeScene extends Phaser.Scene {
       arenaLeft: lock,
       arenaRight: lock + VIEW_W,
       minionsAlive: boss.minions.size,
+      halfW: enemy.def.w / 2,
       dtMs,
     });
+    const gorilla = enemy.def.type === 'gorilla';
     ai.brain = step.brain;
     boss.invulnerable = step.invulnerable;
-    enemy.setArt(enemySprite('yeti', 'awake', ai.brain.phase));
+    enemy.setArt(enemySprite(enemy.def.type, 'awake', ai.brain.phase));
     enemy.bossPhase = ai.brain.phase;
     this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
     enemy.brain = { ...enemy.brain, facing: pb.velocity.x > 50 ? 1 : -1, phase: step.brain.mode === 'leap' ? 'hop' : 'idle' };
     if (step.vx !== null) pb.setVelocityX(step.vx);
     if (step.vy !== null) pb.setVelocityY(step.vy);
     if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
-    for (const b of step.snowballs) this.shots.fire(handX, handY, b.vx, b.vy, 'snow', SNOWBALL_GRAVITY);
-    for (const x of step.icicles) this.desert.dropBlock(x, 'icicle');
-    for (const dir of step.waves) this.desert.sendWave(enemy.x + dir * (enemy.def.w / 2), dir, 0, 'snow');
+    for (const b of step.snowballs) this.shots.fire(handX, handY, b.vx, b.vy, gorilla ? 'mango' : 'snow', SNOWBALL_GRAVITY);
+    for (const x of step.icicles) this.desert.dropBlock(x, gorilla ? 'mango' : 'icicle');
+    for (const dir of step.waves) this.desert.sendWave(enemy.x + dir * (enemy.def.w / 2), dir, 0, gorilla ? 'shock' : 'snow');
     if (step.icicles.length + step.waves.length > 0) {
       audio.sfx('bossPhase');
       this.cameras.main.shake(220, 0.007);
     }
-    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'penguin', from: 'left', delayMs: 0 }, false));
+    if (step.summon) boss.minions.add(this.spawnFrom({ type: gorilla ? 'parrot' : 'penguin', from: 'left', delayMs: 0 }, false));
     if (step.enteredPhase) this.announcePhase(boss);
+  }
+
+  /** 失眠樹懶:慢慢爬,搖樹讓芒果掉下來、丟芒果;靠太近用爪子往前掃。 */
+  private updateSloth(boss: Boss, ai: Extract<BossAi, { kind: 'sloth' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const handX = enemy.x + ai.brain.facing * (enemy.def.w / 2);
+    const handY = enemy.body.y - enemy.def.h / 4;
+    const step = stepSloth(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      handX,
+      handY,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const b of step.throws) this.shots.fire(handX, handY, b.vx, b.vy, 'mango', MANGO_GRAVITY);
+    for (const x of step.drops) this.desert.dropBlock(x, 'mango');
+    if (step.drops.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(200, 0.005);
+    }
+  }
+
+  /** 熬夜美洲豹:衝過來,或跳上樹躲起來、玩家腳下出現影子後撲下來,落地頭暈。 */
+  private updateJaguar(boss: Boss, ai: Extract<BossAi, { kind: 'jaguar' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const step = stepJaguar(ai.brain, {
+      x: enemy.x,
+      y: enemy.body.y,
+      grounded: pb.blocked.down || pb.touching.down,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      halfW: enemy.def.w / 2,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    const mode = step.brain.mode;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: mode === 'dash' || mode === 'prowl' ? 'walk' : mode === 'leap' || mode === 'drop' ? 'hop' : 'idle' };
+    if (step.teleport) pb.reset(step.teleport.x, step.teleport.y);
+    enemy.emerging = step.hidden;
+    enemy.body.setAlpha(step.hidden ? 0 : 1);
+    if (step.vx !== null) pb.setVelocityX(step.vx);
+    if (step.vy !== null) pb.setVelocityY(step.vy);
+    if (was !== 'windup' && mode === 'windup') this.tell(enemy);
+    if (step.shadowX !== null && !ai.shadow) {
+      ai.shadow = this.add.ellipse(step.shadowX, GROUND_Y - 2, enemy.def.w, 16, 0x2a2040, 0.5).setDepth(3);
+      this.tweens.add({ targets: ai.shadow, scaleX: 1.15, duration: 120, yoyo: true, repeat: -1 });
+    }
+    if (step.shadowX === null && ai.shadow) {
+      ai.shadow.destroy();
+      ai.shadow = null;
+    }
+    if (was === 'drop' && mode === 'dizzy') {
+      this.puffAt(enemy.x);
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(200, 0.006);
+    }
   }
 
   /** 失眠溫泉河馬:泡在溫泉裡不走動,噴蒸氣(畫面冒白霧)、跳起來砸地送出震波。 */
@@ -1982,6 +2168,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.enemiesDefeated += 1;
     this.bossDefeated = true;
     this.boss = null;
+    // 撲下來時被打倒:地上的影子(耳廓狐的沙堆)一起收掉。
+    if (boss.ai.kind === 'jaguar') boss.ai.shadow?.destroy();
+    if (boss.ai.kind === 'fennec') boss.ai.mound?.destroy();
     audio.music(null);
     audio.sfx('bossDown');
     const { x, y } = boss.enemy.body;
@@ -2179,6 +2368,7 @@ export class TestRangeScene extends Phaser.Scene {
       bossLockX: this.level.boss?.lockScrollX ?? null,
       riverFalls: this.riverFalls,
       volcano: { lavaBurns: this.lavaBurns, eruptions: this.eruption.count },
+      vines: { grabs: this.vineGrabs, holding: [...this.holding] },
       desert: this.desert.debug(),
       dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,
       enemyShots: this.shots.count(),

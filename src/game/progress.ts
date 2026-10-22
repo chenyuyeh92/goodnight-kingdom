@@ -6,10 +6,11 @@ export const WORLD2: readonly LevelId[] = ['w2-1', 'w2-2', 'w2-3'];
 export const WORLD3: readonly LevelId[] = ['w3-1', 'w3-2', 'w3-3'];
 export const WORLD4: readonly LevelId[] = ['w4-1', 'w4-2', 'w4-3'];
 export const WORLD5: readonly LevelId[] = ['w5-1', 'w5-2', 'w5-3'];
+export const WORLD6: readonly LevelId[] = ['w6-1', 'w6-2', 'w6-3'];
 
 /** 各世界的小關,全部依序解鎖(世界 2 第一關要先通過 1-3)。 */
-export const WORLDS: readonly (readonly LevelId[])[] = [WORLD1, WORLD2, WORLD3, WORLD4, WORLD5];
-export const WORLD_NAMES: readonly string[] = ['失眠森林', '沙漠金字塔王國', '亞特蘭提斯海底王國', '冰雪極地', '火山島'];
+export const WORLDS: readonly (readonly LevelId[])[] = [WORLD1, WORLD2, WORLD3, WORLD4, WORLD5, WORLD6];
+export const WORLD_NAMES: readonly string[] = ['失眠森林', '沙漠金字塔王國', '亞特蘭提斯海底王國', '冰雪極地', '火山島', '熱帶雨林'];
 
 const ORDER: readonly LevelId[] = WORLDS.flat();
 

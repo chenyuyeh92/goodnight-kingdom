@@ -7,8 +7,9 @@ import type { SpriteKey } from './sprites';
  * 世界 3:珊瑚礁淺海白天、沉船拱門黃昏、深海遺跡晚上、亞特蘭提斯神殿深夜。
  * 世界 4:雪原白天、結冰的湖黃昏、極光冰川晚上、雪怪冰洞深夜。
  * 世界 5:黑沙灘白天、火山森林黃昏、熔岩河晚上、火山口深夜。
+ * 世界 6:河邊雨林白天、瀑布黃昏、樹冠晚上、叢林遺跡深夜。
  */
-export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4' | 'w4-s1' | 'w4-s2' | 'w4-s3' | 'w4-s4' | 'w5-s1' | 'w5-s2' | 'w5-s3' | 'w5-s4';
+export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4' | 'w4-s1' | 'w4-s2' | 'w4-s3' | 'w4-s4' | 'w5-s1' | 'w5-s2' | 'w5-s3' | 'w5-s4' | 'w6-s1' | 'w6-s2' | 'w6-s3' | 'w6-s4';
 
 export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, SpriteKey]> = {
   'w1-s1': ['w1-s1-far', 'w1-s1-mid', 'w1-s1-near'],
@@ -31,6 +32,10 @@ export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, Sprit
   'w5-s2': ['w5-s2-far', 'w5-s2-mid', 'w5-s2-near'],
   'w5-s3': ['w5-s3-far', 'w5-s3-mid', 'w5-s3-near'],
   'w5-s4': ['w5-s4-far', 'w5-s4-mid', 'w5-s4-near'],
+  'w6-s1': ['w6-s1-far', 'w6-s1-mid', 'w6-s1-near'],
+  'w6-s2': ['w6-s2-far', 'w6-s2-mid', 'w6-s2-near'],
+  'w6-s3': ['w6-s3-far', 'w6-s3-mid', 'w6-s3-near'],
+  'w6-s4': ['w6-s4-far', 'w6-s4-mid', 'w6-s4-near'],
 };
 
 /** 場景的時段,決定配樂。 */
@@ -55,6 +60,10 @@ export const SCENE_TIME: Record<SceneId, 'day' | 'dusk' | 'night'> = {
   'w5-s2': 'dusk',
   'w5-s3': 'night',
   'w5-s4': 'night',
+  'w6-s1': 'day',
+  'w6-s2': 'dusk',
+  'w6-s3': 'night',
+  'w6-s4': 'night',
 };
 
 /** 地面與平台的配色,配合場景的時段(白天草地、黃昏泥土、夜晚深紫)。 */
@@ -89,6 +98,11 @@ export const SCENE_PALETTE: Record<SceneId, TerrainPalette> = {
   'w5-s2': { ground: 0x4a3040, rim: 0xff9a6a, platform: 0x7a4a4a },
   'w5-s3': { ground: 0x2a1a2a, rim: 0xff7a40, platform: 0x5a3a4a },
   'w5-s4': { ground: 0x241626, rim: 0xff6a3a, platform: 0x4a2a3a },
+  // 雨林:白天深綠、黃昏苔綠、晚上與遺跡深藍綠。
+  'w6-s1': { ground: 0x4a6a3a, rim: 0x9fd86a, platform: 0x8a6a40 },
+  'w6-s2': { ground: 0x5a5a3a, rim: 0xe0c070, platform: 0x7a5a3a },
+  'w6-s3': { ground: 0x223a3a, rim: 0x7fd0a0, platform: 0x4a5a40 },
+  'w6-s4': { ground: 0x1e2a30, rim: 0x8fc0a0, platform: 0x3a4a40 },
 };
 
 /** 三層的捲動速度(相對鏡頭)。 */

@@ -30,6 +30,8 @@ export interface YetiSense {
   arenaLeft: number;
   arenaRight: number;
   minionsAlive: number;
+  /** 身體寬度的一半(大猩猩也用這套招式);沒有時用雪怪的。 */
+  halfW?: number;
   dtMs: number;
 }
 
@@ -80,7 +82,10 @@ export function yetiIcicles(n: number, targetX: number, left: number, right: num
   return out;
 }
 
-/** 失眠雪怪:站在冰洞右邊,輪流丟雪球、跺腳掉冰柱、跳到玩家那邊落地震出雪浪;血量越少越暴躁。 */
+/**
+ * 失眠雪怪:站在冰洞右邊,輪流丟雪球、跺腳掉冰柱、跳到玩家那邊落地震出雪浪;血量越少越暴躁。
+ * 吵鬧大猩猩用同一套:丟芒果、捶胸讓樹上的芒果掉下來、跳過來落地送出震波。
+ */
 export function stepYeti(b: YetiBrain, s: YetiSense): YetiStep {
   const dt = Math.min(s.dtMs, MAX_DT_MS);
   const none = { snowballs: [], icicles: [], waves: [], summon: false, enteredPhase: null, invulnerable: false };
@@ -124,7 +129,7 @@ export function stepYeti(b: YetiBrain, s: YetiSense): YetiStep {
         return { ...none, vx: 0, vy: null, icicles, brain: { ...b, mode: 'idle', timerMs: 0 } };
       }
       // 落點夾在畫面裡,身體不會跑出去。
-      const half = ENEMY_DEFS.yeti.w / 2;
+      const half = s.halfW ?? ENEMY_DEFS.yeti.w / 2;
       const land = Math.min(Math.max(tx, s.arenaLeft + half), s.arenaRight - half);
       return { ...none, vx: (land - s.x) / LEAP_S, vy: LEAP_VY, brain: { ...b, mode: 'leap', timerMs: 0 } };
     }

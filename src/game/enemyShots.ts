@@ -6,7 +6,7 @@ const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
 /** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡(章魚墨汁)、駱駝口水、沙球/沙塊、泡泡、松鼠的橡實。 */
-export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava';
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava' | 'mango';
 
 /** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
 const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
@@ -20,10 +20,11 @@ const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
   ice: { w: 12, h: 12, color: 0xc8f0ff },
   steam: { w: 30, h: 24, color: 0xf4f4f8 },
   lava: { w: 16, h: 16, color: 0xff7a30 },
+  mango: { w: 18, h: 18, color: 0xffb030 },
 };
 
 /** 有美術圖的子彈(載入了就用美術的圖,沒有就用上面程式畫的)。 */
-const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball' };
+const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball', mango: 'b-mango' };
 
 const textureKey = (kind: ShotKind): string => `gk-shot-${kind}`;
 
