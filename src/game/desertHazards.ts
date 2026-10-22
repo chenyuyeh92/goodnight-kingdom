@@ -29,7 +29,7 @@ export const WAVE_H = 20;
 export const WAVE_SPEED = 260;
 const WAVE_RANGE = 1100;
 /** 會掉下來的東西:沙磚、河狸的木頭落地後當踏板;冰柱、火山落石、芒果落地就碎掉。 */
-export type DropKind = 'sand' | 'log' | 'icicle' | 'rock' | 'mango';
+export type DropKind = 'sand' | 'log' | 'icicle' | 'rock' | 'mango' | 'boulder' | 'lightning';
 const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number; solid: boolean; puff: number }> = {
   sand: { key: 'falling-block', w: 40, h: 38, color: SAND, solid: true, puff: SAND },
   log: { key: 'b-log', w: 40, h: 18, color: 0x8a5a3a, solid: true, puff: SAND },
@@ -38,6 +38,9 @@ const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number
   rock: { key: 'falling-rock', w: 36, h: 36, color: 0x5a4a50, solid: false, puff: 0x8a7a80 },
   // 樹上掉下來的芒果(樹懶搖樹、大猩猩捶胸),落地就爛掉。
   mango: { key: 'b-mango', w: 26, h: 26, color: 0xffb030, solid: false, puff: 0xffd070 },
+  // 山羊撞山壁滾下來的石頭、雷鳥召喚的落雷。
+  boulder: { key: 'b-w8-rock', w: 32, h: 30, color: 0x8a8a9a, solid: false, puff: 0xb0b0c0 },
+  lightning: { key: 'b-lightning', w: 28, h: 56, color: 0xffe070, solid: false, puff: 0xfff0a0 },
 };
 /** 沙浪(沙塵)、河狸的水波、雪浪、河馬的震波、火龍沿地面燒過來的火。 */
 export type WaveKind = 'sand' | 'water' | 'snow' | 'shock' | 'fire' | 'stomp';

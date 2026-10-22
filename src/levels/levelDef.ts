@@ -9,7 +9,7 @@ import type { Vine } from '../game/vine';
 
 export type BossType = Extract<
   EnemyType,
-  'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie' | 'polarBear' | 'narwhal' | 'yeti' | 'hippo' | 'snail' | 'dragon' | 'sloth' | 'jaguar' | 'gorilla' | 'giraffe' | 'elephant' | 'lion'
+  'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie' | 'polarBear' | 'narwhal' | 'yeti' | 'hippo' | 'snail' | 'dragon' | 'sloth' | 'jaguar' | 'gorilla' | 'giraffe' | 'elephant' | 'lion' | 'goat' | 'panda' | 'thunderbird'
 >;
 
 export type LevelId =
@@ -34,9 +34,12 @@ export type LevelId =
   | 'w6-3'
   | 'w7-1'
   | 'w7-2'
-  | 'w7-3';
+  | 'w7-3'
+  | 'w8-1'
+  | 'w8-2'
+  | 'w8-3';
 
-const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3'];
+const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3'];
 
 /** 左上角座標與寬高。 */
 export interface Rect {
@@ -87,10 +90,14 @@ export interface LevelDef {
   eruptions?: readonly Span[];
   /** 可以抓住盪過去的藤蔓(世界 6):頂端掛在 (x, top),通常掛在跳不過的寬河溝上。 */
   vines?: readonly Vine[];
+  /** 強風區(世界 8):風一陣一陣往左吹,把玩家往回推。 */
+  winds?: readonly Span[];
+  /** 河溝畫成什麼:水(預設)或雲海(世界 8,掉下去一樣扣愛心、從岸邊重新出來)。 */
+  gapStyle?: 'water' | 'cloud';
   /** 獸群奔跑區(世界 7):玩家在區裡時,每隔一陣子一群角馬衝過來。 */
   stampedes?: readonly Span[];
   /** 平台用美術的圖畫(世界 4 的雪堆平台、世界 5 的岩石平台、世界 6 的木頭平台、世界 7 的岩石平台)。 */
-  platformArt?: 'snow-platform' | 'rock-platform' | 'log-platform' | 'savanna-platform';
+  platformArt?: 'snow-platform' | 'rock-platform' | 'log-platform' | 'savanna-platform' | 'cloud-platform';
   /** 路邊的教學告示牌。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }

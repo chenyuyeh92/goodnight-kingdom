@@ -44,6 +44,10 @@ import { JET_SPEED, JET_Y, initialElephantBrain, stepElephant, type ElephantBrai
 import { initialLionBrain, stepLion, type LionBrain } from '../game/lion';
 import { HERD_OFFSETS, HERD_SPEED, HERD_WARN_MS, beastHits, freshStampede, stepStampede, type StampedeState } from '../game/stampede';
 import { animFrame } from '../art/frames';
+import { BOSS_GUST_PUSH, WIND_PUSH, inWind, windStrength, windVx } from '../game/wind';
+import { ROCK_GRAVITY, initialGoatBrain, stepGoat, type GoatBrain } from '../game/goat';
+import { BAMBOO_AX, BAMBOO_VX, BAMBOO_Y, initialPandaBrain, stepPanda, type PandaBrain } from '../game/panda';
+import { initialThunderBrain, stepThunder, type ThunderBrain } from '../game/thunderbird';
 import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
 import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
@@ -114,13 +118,23 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王', thunderbird: '雷鳥' };
 /** 冰柱:玩家走到左右這麼近就掉下來。 */
 const ICICLE_TRIGGER_X = 100;
 /** 熔岩圖流動一格(96 px)要多久。 */
 const LAVA_FLOW_MS = 4000;
 /** 角馬跑出畫面這麼遠才收掉。 */
 const HERD_DESPAWN = 100;
+/** 雲海(世界 8 的河溝)的顏色。 */
+const CLOUD_GAP = { fill: 0xd8d0ec, light: 0xffffff } as const;
+/** 熊貓的迴旋竹子飛出去再飛回來,活久一點;雷鳥颳強風時畫面輕輕晃。 */
+const BAMBOO_LIFE_MS = 3200;
+const THUNDER_GUST_SHAKE_MS = 400;
+/** 風線:多久飄一條、飄多遠、多久。 */
+const WIND_STREAK_EVERY_MS = 60;
+const WIND_STREAK_TRAVEL = 520;
+const WIND_STREAK_MS = 700;
+const WIND_STREAK_SCALE = 1.6;
 /** 獸群預告時畫面震動多久(比預告短,關主的招式震動才不會被蓋掉)。 */
 const HERD_SHAKE_MS = 500;
 /** 獅子王平常站的位置(鎖住畫面右邊往內)、吼聲音波飛得慢要活久一點。 */
@@ -248,10 +262,13 @@ type BossAi =
   | { kind: 'jaguar'; brain: JaguarBrain; shadow: Phaser.GameObjects.Ellipse | null }
   | { kind: 'giraffe'; brain: GiraffeBrain }
   | { kind: 'elephant'; brain: ElephantBrain }
-  | { kind: 'lion'; brain: LionBrain };
+  | { kind: 'lion'; brain: LionBrain }
+  | { kind: 'goat'; brain: GoatBrain }
+  | { kind: 'panda'; brain: PandaBrain }
+  | { kind: 'thunderbird'; brain: ThunderBrain };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla', 'giraffe', 'elephant', 'lion']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla', 'giraffe', 'elephant', 'lion', 'goat', 'panda', 'thunderbird']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -299,12 +316,18 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'elephant', brain: initialElephantBrain() };
     case 'lion':
       return { kind: 'lion', brain: initialLionBrain() };
+    case 'goat':
+      return { kind: 'goat', brain: initialGoatBrain() };
+    case 'panda':
+      return { kind: 'panda', brain: initialPandaBrain() };
+    case 'thunderbird':
+      return { kind: 'thunderbird', brain: initialThunderBrain() };
   }
 }
 
 /** 有三階段的關主回傳目前階段,其他回傳 1。 */
 function aiPhase(ai: BossAi): 1 | 2 | 3 {
-  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' || ai.kind === 'lion' ? ai.brain.phase : 1;
+  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' || ai.kind === 'lion' || ai.kind === 'thunderbird' ? ai.brain.phase : 1;
 }
 
 function aiMode(ai: BossAi): string {
@@ -455,6 +478,11 @@ export class TestRangeScene extends Phaser.Scene {
   private beasts: { x: number; dir: 1 | -1; view: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle; dust: Phaser.GameObjects.Image | null }[] = [];
   private herdsReleased = 0;
   private herdHits = 0;
+  /** 世界 8 的強風:風的時鐘、雷鳥正在颳強風、風的線條、被風推過的次數(除錯用)。 */
+  private windMs = 0;
+  private bossGust = false;
+  private windSpawnMs = 0;
+  private windPushes = 0;
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -641,6 +669,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.beasts = [];
     this.herdsReleased = 0;
     this.herdHits = 0;
+    this.windMs = 0;
+    this.bossGust = false;
+    this.windSpawnMs = 0;
+    this.windPushes = 0;
     this.beamGfx = this.add.graphics().setDepth(4);
     this.beamTiles = [];
 
@@ -795,6 +827,7 @@ export class TestRangeScene extends Phaser.Scene {
       const r = p.update(intents[i], dtMs, playerTuning, (reach) => this.findMeleeTarget(reach) !== null);
       this.applyIce(p, prevVx, dtMs);
       this.applyVine(p, i, intents[i], dtMs);
+      this.applyWind(p);
       if (p.jumped) audio.sfx('jump');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
@@ -811,6 +844,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.updateVolcano(dtMs);
     this.updateVines(dtMs);
     this.updateStampede(dtMs);
+    this.updateWind(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -963,6 +997,44 @@ export class TestRangeScene extends Phaser.Scene {
       this.vineGrabs += 1;
       return;
     }
+  }
+
+  /** 風區現在的風有多強(0–1)。 */
+  private windNow(): number {
+    return this.level.winds?.length ? windStrength(this.windMs) : 0;
+  }
+
+  /** 世界 8:在風區裡(或雷鳥颳強風時)被風往左推。睡著的不推。 */
+  private applyWind(p: PlayerEntity): void {
+    if (p.health.down) return;
+    const zone = this.level.winds && inWind(p.x, this.level.winds) ? WIND_PUSH * this.windNow() : 0;
+    const push = this.bossGust ? Math.max(zone, BOSS_GUST_PUSH) : zone;
+    if (push <= 0) return;
+    const pb = p.body();
+    pb.setVelocityX(windVx(pb.velocity.x, push, 1));
+    this.windPushes += 1;
+  }
+
+  /** 風的時鐘往前走;有風的時候畫面上飄過往左吹的風線。 */
+  private updateWind(dtMs: number): void {
+    if (this.physics.world.isPaused) return;
+    const dt = Math.min(dtMs, MAX_DT_MS);
+    this.windMs += dt;
+    const zones = this.level.winds ?? [];
+    const blowing = this.bossGust || (this.windNow() > 0 && this.players.some((p) => inWind(p.x, zones)));
+    if (!blowing) return;
+    this.windSpawnMs -= dt;
+    if (this.windSpawnMs > 0) return;
+    this.windSpawnMs = WIND_STREAK_EVERY_MS;
+    // 整個畫面都飄,線條放大一點才看得出來在颳風。
+    const x = this.scrollX + 60 + Math.random() * VIEW_W;
+    const y = 120 + Math.random() * (GROUND_Y - 140);
+    const alpha = this.bossGust ? 0.95 : 0.9 * this.windNow();
+    const streak = this.textures.exists('wind-streak')
+      ? this.add.image(x, y, 'wind-streak').setAlpha(alpha).setScale(WIND_STREAK_SCALE)
+      : this.add.rectangle(x, y, 72, 5, 0xffffff, alpha);
+    streak.setDepth(6);
+    this.tweens.add({ targets: streak, x: x - WIND_STREAK_TRAVEL, alpha: 0, duration: WIND_STREAK_MS, onComplete: () => streak.destroy() });
   }
 
   /** 世界 7:奔跑區計時放出角馬群(先預告);跑過的角馬撞到醒著的玩家扣一顆愛心、往上彈。 */
@@ -1159,7 +1231,7 @@ export class TestRangeScene extends Phaser.Scene {
 
   private splash(x: number): void {
     for (let i = 0; i < 6; i++) {
-      const drop = this.add.circle(x + (i - 2.5) * 6, GROUND_Y + 6, 4, COLOR.water).setDepth(5);
+      const drop = this.add.circle(x + (i - 2.5) * 6, GROUND_Y + 6, 4, this.level.gapStyle === 'cloud' ? CLOUD_GAP.light : COLOR.water).setDepth(5);
       this.tweens.add({ targets: drop, y: GROUND_Y - 30 - (i % 3) * 12, alpha: 0, duration: 500, ease: 'Quad.easeOut', onComplete: () => drop.destroy() });
     }
   }
@@ -1167,9 +1239,12 @@ export class TestRangeScene extends Phaser.Scene {
   /** 河溝畫成水面、淺水區畫成半透明的水、荷葉畫成綠色橢圓。 */
   private drawWater(water: NonNullable<LevelDef['water']>): void {
     const g = this.add.graphics().setDepth(-2);
+    const cloud = this.level.gapStyle === 'cloud';
     for (const gap of water.gaps) {
-      g.fillStyle(COLOR.water).fillRect(gap.x, GROUND_Y + 12, gap.w, WORLD_H - GROUND_Y - 12);
-      g.fillStyle(COLOR.waterLight).fillRect(gap.x, GROUND_Y + 12, gap.w, 4);
+      g.fillStyle(cloud ? CLOUD_GAP.fill : COLOR.water).fillRect(gap.x, GROUND_Y + 12, gap.w, WORLD_H - GROUND_Y - 12);
+      g.fillStyle(cloud ? CLOUD_GAP.light : COLOR.waterLight).fillRect(gap.x, GROUND_Y + 12, gap.w, 4);
+      // 雲海:上面一排圓圓的雲。
+      if (cloud) for (let x = gap.x + 12; x < gap.x + gap.w; x += 24) g.fillStyle(CLOUD_GAP.light, 0.9).fillCircle(x, GROUND_Y + 16, 12);
     }
     const front = this.add.graphics().setDepth(3);
     for (const s of water.shallow) {
@@ -1518,6 +1593,9 @@ export class TestRangeScene extends Phaser.Scene {
       else if (ai.kind === 'giraffe') this.updateGiraffe(boss, ai, dtMs);
       else if (ai.kind === 'elephant') this.updateElephant(boss, ai, dtMs);
       else if (ai.kind === 'lion') this.updateLion(boss, ai, dtMs);
+      else if (ai.kind === 'goat') this.updateGoat(boss, ai, dtMs);
+      else if (ai.kind === 'panda') this.updatePanda(boss, ai, dtMs);
+      else if (ai.kind === 'thunderbird') this.updateThunder(boss, ai, dtMs);
       else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1937,6 +2015,107 @@ export class TestRangeScene extends Phaser.Scene {
     // 角馬群從玩家背後(左邊)衝過來。
     if (step.stampede) this.warnHerd(1, true);
     if (step.summon) boss.minions.add(this.spawnFrom({ type: 'warthog', from: 'left', delayMs: 0 }, false));
+    if (step.enteredPhase) this.announcePhase(boss);
+  }
+
+  /** 熬夜山羊:低頭衝撞到山壁(頭暈,山上滾下石頭)、踢石頭過來。 */
+  private updateGoat(boss: Boss, ai: Extract<BossAi, { kind: 'goat' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const footX = enemy.x + ai.brain.facing * (enemy.def.w / 2);
+    const footY = enemy.body.y + enemy.def.h / 2 - 20;
+    const step = stepGoat(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      footX,
+      footY,
+      halfW: enemy.def.w / 2,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    const mode = step.brain.mode;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: mode === 'charge' ? 'dash' : step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && mode === 'windup') this.tell(enemy);
+    for (const k of step.kicks) this.shots.fire(footX, footY, k.vx, k.vy, 'rock', ROCK_GRAVITY);
+    if (was === 'charge' && mode === 'dizzy') {
+      this.puffAt(enemy.x + ai.brain.facing * (enemy.def.w / 2));
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(300, 0.01);
+      for (const x of step.rocks) this.desert.dropBlock(x, 'boulder');
+    }
+  }
+
+  /** 失眠熊貓:縮成一團滾過來(站到雲朵平台上躲)、丟迴旋竹子(蹲下躲)。 */
+  private updatePanda(boss: Boss, ai: Extract<BossAi, { kind: 'panda' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const step = stepPanda(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      halfW: enemy.def.w / 2,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    const mode = step.brain.mode;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: mode === 'roll' ? 'roll' : step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && mode === 'windup') this.tell(enemy);
+    for (const bb of step.bamboos) {
+      this.later(boss, bb.delayMs, () =>
+        this.shots.fire(enemy.x + bb.dir * (enemy.def.w / 2), BAMBOO_Y, bb.dir * BAMBOO_VX, 0, 'bamboo', 0, BAMBOO_LIFE_MS, -bb.dir * BAMBOO_AX),
+      );
+    }
+  }
+
+  /** 熬夜雷鳥:飛在上面,召喚落雷、颳強風把玩家往後推、射羽毛;第二階段起叫老鷹。 */
+  private updateThunder(boss: Boss, ai: Extract<BossAi, { kind: 'thunderbird' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const step = stepThunder(ai.brain, {
+      x: enemy.x,
+      y: enemy.body.y,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      halfW: enemy.def.w / 2,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      minionsAlive: boss.minions.size,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('thunderbird', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
+    const facing: 1 | -1 = nearest && nearest.x > enemy.x ? 1 : -1;
+    enemy.brain = { ...enemy.brain, facing, phase: 'hover' };
+    pb.setVelocity(step.vx, step.vy);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    if (!this.bossGust && step.gusting) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(THUNDER_GUST_SHAKE_MS, 0.004);
+    }
+    this.bossGust = step.gusting;
+    for (const x of step.bolts) this.desert.dropBlock(x, 'lightning');
+    if (step.bolts.length > 0) audio.sfx('bossPhase');
+    for (const f of step.feathers) this.shots.fire(enemy.x, enemy.body.y, f.vx, f.vy, 'feather');
+    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'eagle', from: 'left', delayMs: 0 }, false));
     if (step.enteredPhase) this.announcePhase(boss);
   }
 
@@ -2415,6 +2594,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (boss.ai.kind === 'jaguar') boss.ai.shadow?.destroy();
     if (boss.ai.kind === 'fennec') boss.ai.mound?.destroy();
     this.clearHerds();
+    this.bossGust = false;
     audio.music(null);
     audio.sfx('bossDown');
     const { x, y } = boss.enemy.body;
@@ -2614,6 +2794,7 @@ export class TestRangeScene extends Phaser.Scene {
       volcano: { lavaBurns: this.lavaBurns, eruptions: this.eruption.count },
       vines: { grabs: this.vineGrabs, holding: [...this.holding] },
       stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
+      wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
       desert: this.desert.debug(),
       dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,
       enemyShots: this.shots.count(),

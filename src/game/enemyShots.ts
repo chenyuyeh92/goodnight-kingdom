@@ -6,7 +6,7 @@ const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
 /** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡(章魚墨汁)、駱駝口水、沙球/沙塊、泡泡、松鼠的橡實。 */
-export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava' | 'mango' | 'sweep' | 'jet' | 'roar';
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava' | 'mango' | 'sweep' | 'jet' | 'roar' | 'rock' | 'bamboo';
 
 /** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
 const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
@@ -25,10 +25,13 @@ const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
   sweep: { w: 64, h: 16, color: 0xf0c060 },
   jet: { w: 28, h: 12, color: 0x8fd0f0 },
   roar: { w: 22, h: 36, color: 0xfff0c0 },
+  // 山羊踢的石頭、熊貓的迴旋竹子。
+  rock: { w: 20, h: 18, color: 0x8a8a9a },
+  bamboo: { w: 38, h: 10, color: 0x7ac05a },
 };
 
 /** 有美術圖的子彈(載入了就用美術的圖,沒有就用上面程式畫的)。 */
-const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball', mango: 'b-mango', jet: 'b-water-jet' };
+const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball', mango: 'b-mango', jet: 'b-water-jet', rock: 'b-w8-rock', bamboo: 'b-bamboo' };
 
 const textureKey = (kind: ShotKind): string => `gk-shot-${kind}`;
 
@@ -71,8 +74,11 @@ export class EnemyShotSystem {
     });
   }
 
-  /** gravity > 0 時走拋物線(沙蛇咖啡、駱駝口水、沙塊);飄得慢的(河馬的蒸氣)可以活久一點。 */
-  fire(x: number, y: number, vx: number, vy: number, kind: ShotKind = 'feather', gravity = 0, lifeMs = SHOT_LIFE_MS): void {
+  /**
+   * gravity > 0 時走拋物線(沙蛇咖啡、駱駝口水、沙塊);飄得慢的(河馬的蒸氣)可以活久一點;
+   * ax 是水平加速度(熊貓的迴旋竹子:往前飛、慢慢減速、再飛回來)。
+   */
+  fire(x: number, y: number, vx: number, vy: number, kind: ShotKind = 'feather', gravity = 0, lifeMs = SHOT_LIFE_MS, ax = 0): void {
     const art = SHOT_ART[kind];
     const key = art && this.scene.textures.exists(art) ? art : textureKey(kind);
     // 圓的子彈(泡泡、口水、橡實)不用轉向。
@@ -81,6 +87,7 @@ export class EnemyShotSystem {
     const body = rect.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(vx, vy);
     if (gravity > 0) body.setAllowGravity(true).setGravityY(gravity);
+    if (ax !== 0) body.setAccelerationX(ax);
     this.shots.push({ rect, bornAt: this.scene.time.now, lifeMs });
   }
 

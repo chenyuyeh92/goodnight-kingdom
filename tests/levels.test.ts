@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { GROUND_Y, parseLevelId } from '../src/levels/levelDef';
 import { LEVELS } from '../src/levels';
+import { ENEMY_DEFS } from '../src/game/enemies';
 
 test('parseLevelId', () => {
   expect(parseLevelId('range')).toBe('range');
@@ -118,7 +119,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -524,4 +525,74 @@ test('世界 7 的小頭目是長頸鹿、大象,關主是獅子王;7-1 有獸�
   expect(LEVELS['w7-3'].scenes.map((s) => s.scene)).toEqual(['w7-s3', 'w7-s4']);
   const lock = LEVELS['w7-3'].boss!.lockScrollX;
   expect(LEVELS['w7-3'].terrain.filter((r) => r.x >= lock && r.x + r.w <= lock + VIEW_W).length).toBeGreaterThanOrEqual(2);
+});
+
+describe.each(['w8-1', 'w8-2', 'w8-3'] as const)('世界 8 高山:%s', (id) => {
+  const L = LEVELS[id];
+  const winds = L.winds ?? [];
+  const gaps = L.water?.gaps ?? [];
+  const inGap = (x: number, margin = 20): boolean => gaps.some((g) => x >= g.x - margin && x <= g.x + g.w + margin);
+
+  test('屬於世界 8,有強風,平台用雲朵;有雲海的話畫成雲', () => {
+    expect(L.world).toBe(8);
+    expect(winds.length).toBeGreaterThan(0);
+    expect(L.platformArt).toBe('cloud-platform');
+    if (gaps.length > 0) expect(L.gapStyle).toBe('cloud');
+    for (const s of L.scenes) expect(s.scene.startsWith('w8-')).toBe(true);
+  });
+
+  test('強風區離雲海遠一點(逆風跳不遠),不在戰鬥區與關主區', () => {
+    const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
+    for (const z of winds) {
+      for (const g of gaps) expect(z.x + z.w <= g.x - 150 || z.x >= g.x + g.w + 150, `強風 ${z.x} 雲海 ${g.x}`).toBe(true);
+      for (const w of windows) expect(z.x + z.w <= w || z.x >= w + VIEW_W, `強風 ${z.x} 戰鬥區 ${w}`).toBe(true);
+    }
+  });
+
+  test('每片雲海都跳得過:沒有平台時寬度 ≤ 110,有雲朵平台時每一跳 ≤ 110,上方沒有擋頭的平台', () => {
+    for (const g of gaps) {
+      const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= g.x && r.x + r.w <= g.x + g.w).sort((a, b) => a.x - b.x);
+      let from = g.x;
+      for (const p of plats) {
+        expect(p.x - from, `雲海 ${g.x}`).toBeLessThanOrEqual(110);
+        expect(GROUND_Y - p.y).toBeLessThanOrEqual(140);
+        from = p.x + p.w;
+      }
+      expect(g.x + g.w - from, `雲海 ${g.x}`).toBeLessThanOrEqual(110);
+      for (const r of L.terrain.filter((r) => r.h <= 20)) {
+        const stepping = r.x >= g.x && r.x + r.w <= g.x + g.w;
+        const over = r.x < g.x + g.w + 80 && r.x + r.w > g.x - 80;
+        expect(stepping || !over || r.y <= 300, `雲海 ${g.x} 平台 ${r.x}`).toBe(true);
+      }
+    }
+  });
+
+  test('檢查點、地上的寶箱、地面冒出的魔物都不在雲海上;戰鬥區與關主區沒有雲海', () => {
+    for (const cp of L.checkpoints) expect(inGap(cp) || inGap(cp + 40), `檢查點 ${cp}`).toBe(false);
+    for (const c of L.chests.filter((c) => c.bottom === GROUND_Y)) expect(inGap(c.x, 30), `寶箱 ${c.x}`).toBe(false);
+    for (const t of L.trickles) if (t.spawn.x !== undefined) expect(inGap(t.spawn.x)).toBe(false);
+    const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
+    for (const w of windows) for (const g of gaps) expect(g.x + g.w <= w || g.x >= w + VIEW_W).toBe(true);
+  });
+
+  test('關主區有兩塊雲朵平台,站上去時關主從底下經過(平台底部比關主頭頂高)', () => {
+    const lock = L.boss!.lockScrollX;
+    const plats = L.terrain.filter((r) => r.x >= lock && r.x + r.w <= lock + VIEW_W);
+    expect(plats.length).toBeGreaterThanOrEqual(2);
+    const boss = ENEMY_DEFS[L.boss!.type];
+    if (!boss.flying) for (const p of plats) expect(p.y + p.h).toBeLessThanOrEqual(GROUND_Y - boss.h);
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of L.chests.filter((c) => c.bottom < 300)) expectReachable(c, L);
+  });
+});
+
+test('世界 8 的小頭目是山羊、熊貓,關主是雷鳥;8-1 教強風、8-2 教雲海', () => {
+  expect(LEVELS['w8-1'].boss!.type).toBe('goat');
+  expect(LEVELS['w8-2'].boss!.type).toBe('panda');
+  expect(LEVELS['w8-3'].boss!.type).toBe('thunderbird');
+  expect(LEVELS['w8-1'].hints!.map((h) => h.kind)).toContain('wind');
+  expect(LEVELS['w8-2'].hints!.map((h) => h.kind)).toContain('cloudGap');
+  expect(LEVELS['w8-3'].scenes.map((s) => s.scene)).toEqual(['w8-s3', 'w8-s4']);
 });

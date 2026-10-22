@@ -9,8 +9,9 @@ import type { SpriteKey } from './sprites';
  * 世界 5:黑沙灘白天、火山森林黃昏、熔岩河晚上、火山口深夜。
  * 世界 6:河邊雨林白天、瀑布黃昏、樹冠晚上、叢林遺跡深夜。
  * 世界 7:金合歡草原白天、水塘黃昏、星空草原晚上、榮耀岩深夜。
+ * 世界 8:高山草甸白天、雲海黃昏、吊橋山崖晚上、雷雲山頂深夜。
  */
-export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4' | 'w4-s1' | 'w4-s2' | 'w4-s3' | 'w4-s4' | 'w5-s1' | 'w5-s2' | 'w5-s3' | 'w5-s4' | 'w6-s1' | 'w6-s2' | 'w6-s3' | 'w6-s4' | 'w7-s1' | 'w7-s2' | 'w7-s3' | 'w7-s4';
+export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4' | 'w4-s1' | 'w4-s2' | 'w4-s3' | 'w4-s4' | 'w5-s1' | 'w5-s2' | 'w5-s3' | 'w5-s4' | 'w6-s1' | 'w6-s2' | 'w6-s3' | 'w6-s4' | 'w7-s1' | 'w7-s2' | 'w7-s3' | 'w7-s4' | 'w8-s1' | 'w8-s2' | 'w8-s3' | 'w8-s4';
 
 export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, SpriteKey]> = {
   'w1-s1': ['w1-s1-far', 'w1-s1-mid', 'w1-s1-near'],
@@ -41,6 +42,10 @@ export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, Sprit
   'w7-s2': ['w7-s2-far', 'w7-s2-mid', 'w7-s2-near'],
   'w7-s3': ['w7-s3-far', 'w7-s3-mid', 'w7-s3-near'],
   'w7-s4': ['w7-s4-far', 'w7-s4-mid', 'w7-s4-near'],
+  'w8-s1': ['w8-s1-far', 'w8-s1-mid', 'w8-s1-near'],
+  'w8-s2': ['w8-s2-far', 'w8-s2-mid', 'w8-s2-near'],
+  'w8-s3': ['w8-s3-far', 'w8-s3-mid', 'w8-s3-near'],
+  'w8-s4': ['w8-s4-far', 'w8-s4-mid', 'w8-s4-near'],
 };
 
 /** 場景的時段,決定配樂。 */
@@ -73,6 +78,10 @@ export const SCENE_TIME: Record<SceneId, 'day' | 'dusk' | 'night'> = {
   'w7-s2': 'dusk',
   'w7-s3': 'night',
   'w7-s4': 'night',
+  'w8-s1': 'day',
+  'w8-s2': 'dusk',
+  'w8-s3': 'night',
+  'w8-s4': 'night',
 };
 
 /** 地面與平台的配色,配合場景的時段(白天草地、黃昏泥土、夜晚深紫)。 */
@@ -117,6 +126,11 @@ export const SCENE_PALETTE: Record<SceneId, TerrainPalette> = {
   'w7-s2': { ground: 0x9a5a3a, rim: 0xf0a060, platform: 0x7a4a3a },
   'w7-s3': { ground: 0x3a2a4a, rim: 0xc0a0e0, platform: 0x5a4a6a },
   'w7-s4': { ground: 0x2a2236, rim: 0xd0a070, platform: 0x4a3a4a },
+  // 高山:白天草綠、黃昏雲海粉紫、晚上山崖與雷雲深藍灰。
+  'w8-s1': { ground: 0x6a8a5a, rim: 0xd0f0a0, platform: 0xf4f4fa },
+  'w8-s2': { ground: 0x8a7a9a, rim: 0xffd8e8, platform: 0xf0e8f4 },
+  'w8-s3': { ground: 0x3a3e5a, rim: 0xb0c0f0, platform: 0xc8d0e8 },
+  'w8-s4': { ground: 0x2a2a44, rim: 0xffe070, platform: 0xb0b8d0 },
 };
 
 /** 三層的捲動速度(相對鏡頭)。 */

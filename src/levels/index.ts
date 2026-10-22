@@ -21,6 +21,9 @@ import { CANOPY } from './canopy';
 import { ACACIA } from './acacia';
 import { WATERHOLE } from './waterhole';
 import { PRIDE_ROCK } from './pride';
+import { MEADOW } from './meadow';
+import { CLOUD_SEA } from './cloudSea';
+import { CLIFF_BRIDGE } from './cliffBridge';
 
 export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   range: RANGE,
@@ -45,4 +48,7 @@ export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   'w7-1': ACACIA,
   'w7-2': WATERHOLE,
   'w7-3': PRIDE_ROCK,
+  'w8-1': MEADOW,
+  'w8-2': CLOUD_SEA,
+  'w8-3': CLIFF_BRIDGE,
 };
