@@ -53,7 +53,7 @@ import type { TrackId } from '../audio/tunes';
 import { hintText } from '../ui/hints';
 import type { GuardPlayer, GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
-import { SHALLOW_SPEED, fellIntoRiver, groundSegments, inShallow, respawnX } from '../game/water';
+import { SHALLOW_SPEED, fellIntoRiver, gapAt, groundSegments, inShallow, respawnX } from '../game/water';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
   initialEncounters,
@@ -149,7 +149,7 @@ const STAND_HALF_W = 14;
 /** 抓藤蔓時手比頭頂高一點;身體中心在手下面這麼多。 */
 const HANG_BELOW_HAND = 20;
 /** 從藤蔓放手後這麼久之內保持飛出去的水平速度(落地或撞牆就停)。 */
-const FLING_MS = 900;
+const FLING_MS = 1100;
 /** 藤蔓圖加粗、樹枝寬度、停著時輕輕晃的幅度(弧度)與速度。 */
 const VINE_ART_SCALE_X = 1.6;
 const VINE_BRANCH_W = 70;
@@ -423,6 +423,8 @@ export class TestRangeScene extends Phaser.Scene {
   private vineStates: VineState[] = [];
   private holding: (number | null)[] = [];
   private regrabMs: number[] = [];
+  /** 剛放手的那條藤蔓:落地以前抓不回來。 */
+  private lastVine: (number | null)[] = [];
   private fling: { vx: number; ms: number }[] = [];
   private prevJumpVine: boolean[] = [];
   private vineGrabs = 0;
@@ -603,6 +605,7 @@ export class TestRangeScene extends Phaser.Scene {
     });
     this.holding = this.players.map(() => null);
     this.regrabMs = this.players.map(() => 0);
+    this.lastVine = this.players.map(() => null);
     this.fling = this.players.map(() => ({ vx: 0, ms: 0 }));
     this.prevJumpVine = this.players.map(() => false);
     this.vineGrabs = 0;
@@ -898,6 +901,7 @@ export class TestRangeScene extends Phaser.Scene {
         const v = releaseVelocity(st, p.motor.facing);
         this.holding[i] = null;
         this.regrabMs[i] = REGRAB_MS;
+        this.lastVine[i] = held;
         pb.setVelocity(v.vx, v.vy);
         this.fling[i] = { vx: v.vx, ms: FLING_MS };
         audio.sfx('jump');
@@ -913,9 +917,10 @@ export class TestRangeScene extends Phaser.Scene {
       f.ms = grounded || pb.blocked.left || pb.blocked.right ? 0 : f.ms - dtMs;
       if (f.ms > 0) pb.setVelocityX(f.vx);
     }
+    if (grounded) this.lastVine[i] = null;
     if (grounded || p.health.down || this.regrabMs[i] > 0) return;
     for (let k = 0; k < vines.length; k++) {
-      if (this.holding.includes(k) || !canGrab(vines[k], this.vineStates[k], p.x, p.feetY - pb.height, p.feetY)) continue;
+      if (this.holding.includes(k) || k === this.lastVine[i] || !canGrab(vines[k], this.vineStates[k], p.x, p.feetY - pb.height, p.feetY)) continue;
       this.holding[i] = k;
       this.vineStates[k] = { angle: this.vineStates[k].angle, omega: grabOmega(pb.velocity.x, p.motor.facing) };
       this.fling[i] = { vx: 0, ms: 0 };
@@ -1093,7 +1098,9 @@ export class TestRangeScene extends Phaser.Scene {
     if (action.kind === 'revive') {
       const p = this.players[action.index];
       const partner = this.players.find((q) => !q.health.down)!;
-      p.teleport(partner.x, REVIVE_DROP_Y);
+      // 隊友抓著藤蔓在河上時,從岸邊落下(不掉進河裡)。
+      const gaps = this.level.water?.gaps ?? [];
+      p.teleport(gapAt(partner.x, gaps) ? respawnX(partner.x, gaps) : partner.x, REVIVE_DROP_Y);
       p.health = freshHealth(REVIVE_INVULN_MS);
     } else if (action.kind === 'restart') {
       this.restarting = true;
@@ -1167,7 +1174,10 @@ export class TestRangeScene extends Phaser.Scene {
   private spawnFrom(spec: SpawnSpec, arena: boolean): EnemyEntity {
     const def = ENEMY_DEFS[spec.type];
     if (spec.from === 'left' || spec.from === 'right') {
-      const x = spec.from === 'left' ? this.scrollX - SIDE_SPAWN_MARGIN : this.scrollX + VIEW_W + SIDE_SPAWN_MARGIN;
+      let x = spec.from === 'left' ? this.scrollX - SIDE_SPAWN_MARGIN : this.scrollX + VIEW_W + SIDE_SPAWN_MARGIN;
+      // 地上的魔物生在河溝上會直接掉下去:移到河溝外側(還是在畫面外)。
+      const gap = def.flying ? null : gapAt(x, this.level.water?.gaps ?? []);
+      if (gap) x = spec.from === 'left' ? gap.x - SIDE_SPAWN_MARGIN : gap.x + gap.w + SIDE_SPAWN_MARGIN;
       return this.spawnEnemy(spec.type, x, def.flying ? spec.y : undefined, arena);
     }
     const x = spec.x ?? this.scrollX + VIEW_W / 2;

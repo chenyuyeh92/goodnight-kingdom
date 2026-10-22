@@ -63,7 +63,10 @@ describe('藤蔓', () => {
     expect(releaseVelocity({ angle: 0, omega: -3 }, 1).vx).toBeLessThan(0);
   });
 
-  /** 從岸邊跑起跳 → 抓藤蔓 → 往右盪的時候放手 → 落地的 x。 */
+  /**
+   * 從岸邊跑起跳 → 抓藤蔓 → 先盪一個來回 → 往右盪、角度到 releaseAt 時放手 → 落地的 x。
+   * 放手後只靠飛出去的速度(1.1 秒),之後不按方向鍵。
+   */
   function crossFrom(gapX: number, v: Vine, releaseAt: number): number | null {
     const t = DEFAULT_TUNING;
     const dt = 1 / 60;
@@ -78,7 +81,11 @@ describe('藤蔓', () => {
       if (feet >= GROUND_Y || i > 200) return null;
     }
     let st: VineState = { angle: 0, omega: grabOmega(t.airSpeed, 1) };
-    for (let i = 0; i < 400 && !(st.omega > 0 && st.angle >= releaseAt); i++) st = stepVine(st, true, 0, dt * 1000);
+    // 先盪到往左那一頭,再往右盪回來的時候找放手的角度。
+    let i = 0;
+    for (; i < 400 && st.omega >= 0; i++) st = stepVine(st, true, 0, dt * 1000);
+    for (; i < 400 && !(st.omega > 0 && st.angle >= releaseAt); i++) st = stepVine(st, true, 0, dt * 1000);
+    if (i >= 400) return null;
     const r = releaseVelocity(st, 1);
     const hand = vineHand(v, st);
     let px = hand.x;
@@ -87,7 +94,7 @@ describe('藤蔓', () => {
     for (let ms = 0; feet < GROUND_Y; ms += dt * 1000) {
       vy += t.gravity * dt;
       feet += vy * dt;
-      px += (ms < 900 ? r.vx : t.airSpeed) * dt;
+      px += (ms < 1100 ? r.vx : 0) * dt;
     }
     return px;
   }
@@ -95,7 +102,8 @@ describe('藤蔓', () => {
   test('寬 300 的河溝:從岸邊起跳抓得到離岸 70 的藤蔓,往右盪時什麼時候放手都過得去', () => {
     const gapX = 1000;
     const v: Vine = { x: gapX + 70, top: 150 };
-    for (const releaseAt of [-0.2, 0, 0.2, 0.4, 0.6, 0.8]) {
+    // 從往左那一頭剛開始往右盪(最慢、手在藤蔓左後方)到盪到右邊最高。
+    for (let releaseAt = -1.0; releaseAt <= 0.8; releaseAt += 0.05) {
       const land = crossFrom(gapX, v, releaseAt);
       expect(land, `放手角度 ${releaseAt}`).not.toBeNull();
       expect(land!, `放手角度 ${releaseAt}`).toBeGreaterThan(gapX + 300 + 20);
@@ -173,7 +181,12 @@ describe('失眠樹懶', () => {
     expect(b.pending).toBe('lunge');
     const lunge = stepSloth({ ...b, timerMs: SLOTH_WINDUP_MS }, sense({ targetX: 700 }));
     expect(lunge.brain.mode).toBe('lunge');
-    expect(lunge.vx).toBeLessThan(0);
+    expect(lunge.vx).toBeLessThan(0);    // 掃完之後玩家還在旁邊,不會一直掃:走一段後輪到搖樹或丟芒果。
+    let b2: SlothBrain = { ...lunge.brain, mode: 'walk', timerMs: 0 };
+    b2 = stepSloth(b2, sense({ targetX: 700 })).brain;
+    expect(b2.mode).toBe('walk');
+    b2 = stepSloth({ ...b2, timerMs: SLOTH_WALK_MS }, sense({ targetX: 700 })).brain;
+    expect(b2.pending).not.toBe('lunge');
   });
 });
 

@@ -57,7 +57,7 @@ test.describe('世界 6 熱帶雨林', () => {
     expect((await gk(page)).players![0].x).toBeLessThan(1700);
   });
 
-  test('咖啡變色龍走一走會躲起來(變透明)', async ({ page }) => {
+  test('咖啡變色龍走一走會停下來躲起來', async ({ page }) => {
     await open(page, 'w6-1');
     await page.evaluate(() => window.__GK__!.warp!(600));
     await calm(page);
@@ -92,7 +92,7 @@ test.describe('世界 6 熱帶雨林', () => {
     await page.waitForFunction(() => window.__GK__!.desert!.blocks > 0, undefined, { timeout: 8000 });
   });
 
-  test('熬夜美洲豹跳上樹躲起來(打不到),再撲下來', async ({ page }) => {
+  test('熬夜美洲豹跳上樹躲起來,再撲下來、落地頭暈', async ({ page }) => {
     await open(page, 'w6-2');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.hidden === true, undefined, { timeout: 12000 });

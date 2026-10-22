@@ -23,11 +23,14 @@ export const MAX_ANGLE = 1.2;
 export const GRAB_OMEGA = 2.6;
 /** 沒人抓的藤蔓慢慢停回垂直。 */
 const FREE_DAMP = 3;
-/** 放手時的速度:水平至少 260、最多 420,往上 520。 */
-export const RELEASE_MIN_VX = 260;
-const RELEASE_MAX_VX = 420;
+/**
+ * 放手時的速度:水平至少 360、最多 440,往上 520。
+ * 至少 360:往右盪、手還在藤蔓左後方(盪回來的最低速)時放手,也飛得過離岸 70、寬 300 的河溝。
+ */
+export const RELEASE_MIN_VX = 360;
+const RELEASE_MAX_VX = 440;
 export const RELEASE_VY = -520;
-/** 放手後這麼久之內不會再抓回同一條(避免一放手又抓住)。 */
+/** 放手後這麼久之內不會再抓別的藤蔓;同一條要落地以後才抓得回來(避免一放手又被抓住)。 */
 export const REGRAB_MS = 400;
 
 export interface VineState {
@@ -79,9 +82,16 @@ export function stepVine(st: VineState, held: boolean, push: -1 | 0 | 1, dtMs: n
   return { angle, omega };
 }
 
-/** 放手:往盪的方向飛出去(盪得慢時看面向),水平夾在 260–420、往上 520。 */
+/** 手還在藤蔓後面時,多給的水平速度 = 落後的距離 ÷ 這個時間(大約飛到地面的時間),補回落後的路。 */
+const CATCH_UP_S = 0.85;
+
+/**
+ * 放手:往盪的方向飛出去(盪得慢時看面向),水平夾在 360–440、往上 520。
+ * 手還在藤蔓後面(剛從另一頭盪回來就放手)時再加速,一樣飛得到對岸。
+ */
 export function releaseVelocity(st: VineState, facing: 1 | -1): { vx: number; vy: number } {
   const speed = Math.abs(st.omega * HAND_R);
   const dir = Math.abs(st.omega) > 0.3 ? Math.sign(st.omega) : facing;
-  return { vx: dir * Math.min(Math.max(speed, RELEASE_MIN_VX), RELEASE_MAX_VX), vy: RELEASE_VY };
+  const behind = Math.max(0, -dir * Math.sin(st.angle)) * HAND_R;
+  return { vx: dir * (Math.min(Math.max(speed, RELEASE_MIN_VX), RELEASE_MAX_VX) + behind / CATCH_UP_S), vy: RELEASE_VY };
 }

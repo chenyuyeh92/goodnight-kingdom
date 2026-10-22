@@ -66,7 +66,8 @@ export function stepSloth(b: SlothBrain, s: SlothSense): SlothStep {
 
   switch (b.mode) {
     case 'walk': {
-      const near = s.targetX !== null && Math.abs(s.targetX - s.x) < LUNGE_RANGE;
+      // 剛掃過就不再連續掃(會輪到搖樹或丟芒果)。
+      const near = s.targetX !== null && Math.abs(s.targetX - s.x) < LUNGE_RANGE && b.pending !== 'lunge';
       if (s.targetX !== null && (near || timerMs >= SLOTH_WALK_MS)) {
         const pending: SlothAttack = near ? 'lunge' : b.shakeNext ? 'shake' : 'throw';
         return { ...none, vx: 0, brain: { ...b, mode: 'windup', timerMs: 0, facing: toward, pending } };

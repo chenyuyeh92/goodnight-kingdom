@@ -159,8 +159,9 @@ export class ProjectileSystem {
     const result = this.onHit(target, { damage: p.def.damage, vx: v.x, vy: v.y });
     if (result === 'ignored') return;
     if (result === 'blocked' && boomerang) {
-      // 迴力鏢被正面擋下時不消失,繼續飛,回程打背後。
-      p.blockedOut.add(target);
+      // 迴力鏢被正面擋下時不消失,繼續飛,回程打背後;回程又被擋下就不再碰這隻(不會每一格都磨盾牌)。
+      if (returning) p.hits.add(target);
+      else p.blockedOut.add(target);
       return;
     }
     p.hits.add(target);
