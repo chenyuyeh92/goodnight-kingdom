@@ -22,7 +22,14 @@ export type EnemyType =
   | 'puffer'
   | 'hermitCrab'
   | 'eel'
-  | 'nessie';
+  | 'nessie'
+  | 'penguin'
+  | 'snowman'
+  | 'puffin'
+  | 'walrus'
+  | 'polarBear'
+  | 'narwhal'
+  | 'yeti';
 export type EnemyTier = 'minion' | 'mid' | 'high' | 'boss';
 
 export interface EnemyDef {
@@ -64,6 +71,14 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   hermitCrab: { type: 'hermitCrab', name: '失眠寄居蟹', tier: 'boss', hp: 45, w: 80, h: 110, color: 0xe07050, flying: false, shield: false },
   eel: { type: 'eel', name: '熬夜電鰻', tier: 'boss', hp: 50, w: 70, h: 110, color: 0x4a7f9f, flying: true, shield: false },
   nessie: { type: 'nessie', name: '尼斯湖水怪', tier: 'boss', hp: 80, w: 150, h: 140, color: 0x5a9a7a, flying: true, shield: false },
+  // 世界 4 冰雪極地。
+  penguin: { type: 'penguin', name: '熬夜企鵝', tier: 'minion', hp: 2, w: 38, h: 48, color: 0x2a2a4a, flying: false, shield: false },
+  snowman: { type: 'snowman', name: '咖啡雪人精靈', tier: 'minion', hp: 3, w: 40, h: 52, color: 0xf0f4ff, flying: false, shield: false },
+  puffin: { type: 'puffin', name: '吵鬧海鸚', tier: 'minion', hp: 1, w: 44, h: 40, color: 0x2a2a3a, flying: true, shield: false },
+  walrus: { type: 'walrus', name: '失眠海象', tier: 'mid', hp: 9, w: 56, h: 64, color: 0x8a6a5a, flying: false, shield: true },
+  polarBear: { type: 'polarBear', name: '失眠北極熊', tier: 'boss', hp: 45, w: 100, h: 110, color: 0xf6f6ff, flying: false, shield: false },
+  narwhal: { type: 'narwhal', name: '熬夜獨角鯨', tier: 'boss', hp: 50, w: 100, h: 100, color: 0xd8e0f0, flying: false, shield: false },
+  yeti: { type: 'yeti', name: '失眠雪怪', tier: 'boss', hp: 90, w: 150, h: 155, color: 0xf0f6ff, flying: false, shield: false },
 };
 
 export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll' | 'dash' | 'idle' | 'swim' | 'puff';
@@ -110,13 +125,20 @@ const BAT_SWOOP_RANGE = 60;
 /** 刺蝟會滾;陸龜不滾、轉身更慢。 */
 const HEDGEHOG_TUNE = {
   hedgehog: { walkMs: 3000, rollMs: 1000, rollSpeed: 260, walkSpeed: 40, turnMs: 700 },
+  // 海象:正面冰盾,每隔一陣子往前衝一小段(不滾)。
+  walrus: { walkMs: 2500, rollMs: 600, rollSpeed: 170, walkSpeed: 35, turnMs: 1000 },
   tortoise: { walkMs: Infinity, rollMs: 0, rollSpeed: 0, walkSpeed: 30, turnMs: 1200 },
 } as const;
-/** 聖甲蟲平常走得比鬧鐘蟲快,每 3 秒推著鈴鐺球衝一下。 */
-const SCARAB_SPEED = 90;
-const SCARAB_DASH_SPEED = 220;
-const SCARAB_WALK_MS = 3000;
-const SCARAB_DASH_MS = 600;
+/** 走一走衝一下:聖甲蟲推著鈴鐺球衝;企鵝搖搖擺擺走,肚子貼地滑一段。 */
+const DASHER_TUNE = {
+  bellScarab: { speed: 90, dashSpeed: 220, walkMs: 3000, dashMs: 600 },
+  penguin: { speed: 45, dashSpeed: 260, walkMs: 2600, dashMs: 1100 },
+} as const;
+/** 雪人:慢慢走過來,停在 250 外,每 2.6 秒朝 520 以內的玩家丟雪球。 */
+const SNOWMAN_SPEED = 35;
+const SNOWMAN_KEEP = 250;
+const SNOWMAN_THROW_MS = 2600;
+const SNOWMAN_RANGE = 520;
 /** 木乃伊貓:跳得比咖啡豆低、比較常跳。 */
 const CAT_HOP_MS = 600;
 const CAT_HOP_VY = -380;
@@ -126,14 +148,12 @@ const SNAKE_SPIT_MS = 2500;
 const SNAKE_RANGE = 500;
 /** 沙蛇咖啡的重力;也給 arcShot 用。 */
 export const SPIT_GRAVITY = 900;
-/** 禿鷹:比蝙蝠飛得高、俯衝範圍大、會斜斜衝過去;最低點身體底部 452 以上,蹲下閃得過。 */
-const VULTURE_HOVER_Y = 250;
+/** 禿鷹、海鸚:比蝙蝠飛得高、俯衝範圍大、會斜斜衝過去;最低點身體底部 452 以上,蹲下閃得過。 */
 export const VULTURE_SWOOP_Y = 430;
-const VULTURE_SPEED = 120;
-const VULTURE_SWOOP_RANGE = 140;
-const VULTURE_SWOOP_VX = 160;
-const VULTURE_HOVER_MS = 2200;
-const VULTURE_SWOOP_MS = 800;
+const DIVER_TUNE = {
+  vulture: { hoverY: 250, speed: 120, swoopRange: 140, swoopVx: 160, hoverMs: 2200, swoopMs: 800 },
+  puffin: { hoverY: 230, speed: 150, swoopRange: 170, swoopVx: 220, hoverMs: 1700, swoopMs: 750 },
+} as const;
 /** 水母:上下漂(振幅 50、週期 2.4 秒),慢慢往玩家漂。 */
 const JELLY_BOB = 50;
 const JELLY_PERIOD_MS = 2400;
@@ -176,6 +196,13 @@ const START_PHASE: Record<EnemyType, EnemyPhase> = {
   hermitCrab: 'idle',
   eel: 'idle',
   nessie: 'idle',
+  penguin: 'walk',
+  snowman: 'walk',
+  puffin: 'hover',
+  walrus: 'walk',
+  polarBear: 'idle',
+  narwhal: 'idle',
+  yeti: 'idle',
 };
 
 export function initialBrain(type: EnemyType): EnemyBrain {
@@ -226,6 +253,9 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'hermitCrab':
     case 'eel':
     case 'nessie':
+    case 'polarBear':
+    case 'narwhal':
+    case 'yeti':
       // 關主與小頭目由各自的檔案(owl.ts、squirrel.ts、beaver.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts)控制。
       return { vx: 0, vy: 0, brain: { ...brain, timerMs } };
     case 'jellyfish': {
@@ -269,16 +299,29 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       const vy = d > 8 ? (dy / d) * PUFFER_SPEED : 0;
       return { vx, vy, brain: { phase: 'swim', timerMs, facing, turnMs: 0 } };
     }
-    case 'bellScarab': {
+    case 'bellScarab':
+    case 'penguin': {
+      const tune = DASHER_TUNE[type];
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'dash') {
-        if (timerMs >= SCARAB_DASH_MS) return { vx: facing * SCARAB_SPEED, vy: null, brain: { phase: 'walk', timerMs: 0, facing, turnMs: 0 } };
-        return { vx: brain.facing * SCARAB_DASH_SPEED, vy: null, brain: { ...brain, timerMs } };
+        if (timerMs >= tune.dashMs) return { vx: facing * tune.speed, vy: null, brain: { phase: 'walk', timerMs: 0, facing, turnMs: 0 } };
+        return { vx: brain.facing * tune.dashSpeed, vy: null, brain: { ...brain, timerMs } };
       }
-      if (hasTarget && timerMs >= SCARAB_WALK_MS) {
-        return { vx: facing * SCARAB_DASH_SPEED, vy: null, brain: { phase: 'dash', timerMs: 0, facing, turnMs: 0 } };
+      if (hasTarget && timerMs >= tune.walkMs) {
+        return { vx: facing * tune.dashSpeed, vy: null, brain: { phase: 'dash', timerMs: 0, facing, turnMs: 0 } };
       }
-      return { vx: hasTarget ? facing * SCARAB_SPEED : 0, vy: null, brain: { phase: 'walk', timerMs, facing, turnMs: 0 } };
+      return { vx: hasTarget ? facing * tune.speed : 0, vy: null, brain: { phase: 'walk', timerMs, facing, turnMs: 0 } };
+    }
+    case 'snowman': {
+      const facing = faceTarget(brain, sense);
+      const dx = sense.targetX === null ? Infinity : sense.targetX - sense.x;
+      const vx = hasTarget && Math.abs(dx) > SNOWMAN_KEEP ? facing * SNOWMAN_SPEED : 0;
+      if (hasTarget && timerMs >= SNOWMAN_THROW_MS && Math.abs(dx) <= SNOWMAN_RANGE) {
+        const handY = sense.y - ENEMY_DEFS.snowman.h / 2;
+        const spit = { ...arcShot(sense.x, handY, sense.targetX!, sense.targetY ?? handY, SPIT_GRAVITY), gravity: SPIT_GRAVITY };
+        return { vx, vy: null, brain: { phase: 'walk', timerMs: 0, facing, turnMs: 0 }, spit };
+      }
+      return { vx, vy: null, brain: { phase: 'walk', timerMs, facing, turnMs: 0 } };
     }
     case 'mummyCat': {
       const facing = faceTarget(brain, sense);
@@ -298,21 +341,24 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       }
       return { vx: 0, vy: null, brain: { phase: 'idle', timerMs, facing, turnMs: 0 } };
     }
-    case 'vulture': {
+    case 'vulture':
+    case 'puffin': {
+      const tune = DIVER_TUNE[type];
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'swoop') {
-        if (timerMs >= VULTURE_SWOOP_MS) return { vx: 0, vy: (VULTURE_HOVER_Y - sense.y) * 4, brain: { phase: 'hover', timerMs: 0, facing, turnMs: 0 } };
-        return { vx: brain.facing * VULTURE_SWOOP_VX, vy: (VULTURE_SWOOP_Y - sense.y) * 5, brain: { ...brain, timerMs } };
+        if (timerMs >= tune.swoopMs) return { vx: 0, vy: (tune.hoverY - sense.y) * 4, brain: { phase: 'hover', timerMs: 0, facing, turnMs: 0 } };
+        return { vx: brain.facing * tune.swoopVx, vy: (VULTURE_SWOOP_Y - sense.y) * 5, brain: { ...brain, timerMs } };
       }
       const dx = sense.targetX === null ? 0 : sense.targetX - sense.x;
-      if (hasTarget && timerMs >= VULTURE_HOVER_MS && Math.abs(dx) < VULTURE_SWOOP_RANGE) {
-        return { vx: facing * VULTURE_SWOOP_VX, vy: (VULTURE_SWOOP_Y - sense.y) * 5, brain: { phase: 'swoop', timerMs: 0, facing, turnMs: 0 } };
+      if (hasTarget && timerMs >= tune.hoverMs && Math.abs(dx) < tune.swoopRange) {
+        return { vx: facing * tune.swoopVx, vy: (VULTURE_SWOOP_Y - sense.y) * 5, brain: { phase: 'swoop', timerMs: 0, facing, turnMs: 0 } };
       }
-      const vx = Math.abs(dx) > 8 ? facing * VULTURE_SPEED : 0;
-      return { vx, vy: (VULTURE_HOVER_Y - sense.y) * 4, brain: { phase: 'hover', timerMs, facing, turnMs: 0 } };
+      const vx = Math.abs(dx) > 8 ? facing * tune.speed : 0;
+      return { vx, vy: (tune.hoverY - sense.y) * 4, brain: { phase: 'hover', timerMs, facing, turnMs: 0 } };
     }
     case 'hedgehog':
-    case 'tortoise': {
+    case 'tortoise':
+    case 'walrus': {
       const tune = HEDGEHOG_TUNE[type];
       if (brain.phase === 'roll') {
         if (timerMs >= tune.rollMs) {

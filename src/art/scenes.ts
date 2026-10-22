@@ -5,8 +5,9 @@ import type { SpriteKey } from './sprites';
  * 世界 1:草原白天、河邊黃昏、深林晚上、貓頭鷹大樹深夜。
  * 世界 2:綠洲白天、沙丘商隊路黃昏、金字塔外晚上、人面獅身神殿深夜。
  * 世界 3:珊瑚礁淺海白天、沉船拱門黃昏、深海遺跡晚上、亞特蘭提斯神殿深夜。
+ * 世界 4:雪原白天、結冰的湖黃昏、極光冰川晚上、雪怪冰洞深夜。
  */
-export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4';
+export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4' | 'w4-s1' | 'w4-s2' | 'w4-s3' | 'w4-s4';
 
 export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, SpriteKey]> = {
   'w1-s1': ['w1-s1-far', 'w1-s1-mid', 'w1-s1-near'],
@@ -21,6 +22,10 @@ export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, Sprit
   'w3-s2': ['w3-s2-far', 'w3-s2-mid', 'w3-s2-near'],
   'w3-s3': ['w3-s3-far', 'w3-s3-mid', 'w3-s3-near'],
   'w3-s4': ['w3-s4-far', 'w3-s4-mid', 'w3-s4-near'],
+  'w4-s1': ['w4-s1-far', 'w4-s1-mid', 'w4-s1-near'],
+  'w4-s2': ['w4-s2-far', 'w4-s2-mid', 'w4-s2-near'],
+  'w4-s3': ['w4-s3-far', 'w4-s3-mid', 'w4-s3-near'],
+  'w4-s4': ['w4-s4-far', 'w4-s4-mid', 'w4-s4-near'],
 };
 
 /** 場景的時段,決定配樂。 */
@@ -37,6 +42,10 @@ export const SCENE_TIME: Record<SceneId, 'day' | 'dusk' | 'night'> = {
   'w3-s2': 'dusk',
   'w3-s3': 'night',
   'w3-s4': 'night',
+  'w4-s1': 'day',
+  'w4-s2': 'dusk',
+  'w4-s3': 'night',
+  'w4-s4': 'night',
 };
 
 /** 地面與平台的配色,配合場景的時段(白天草地、黃昏泥土、夜晚深紫)。 */
@@ -61,6 +70,11 @@ export const SCENE_PALETTE: Record<SceneId, TerrainPalette> = {
   'w3-s2': { ground: 0x5a5f8a, rim: 0xf0b890, platform: 0x8a6a5a },
   'w3-s3': { ground: 0x2f3a6a, rim: 0x7fd0e0, platform: 0x4a5a8f },
   'w3-s4': { ground: 0x26285a, rim: 0x9fe0f0, platform: 0x4a4a8a },
+  // 雪地:白天亮白藍、黃昏粉紫、夜晚與冰洞深藍。
+  'w4-s1': { ground: 0xc8d8f0, rim: 0xffffff, platform: 0xe0ecff },
+  'w4-s2': { ground: 0xa890c0, rim: 0xffe0f0, platform: 0xd0c0e8 },
+  'w4-s3': { ground: 0x3a4a8a, rim: 0xc0f0ff, platform: 0x8aa0d8 },
+  'w4-s4': { ground: 0x2a2f60, rim: 0xa8e0ff, platform: 0x6a7ab8 },
 };
 
 /** 三層的捲動速度(相對鏡頭)。 */

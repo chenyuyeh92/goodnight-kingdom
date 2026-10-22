@@ -4,10 +4,11 @@ import type { LevelId } from '../levels/levelDef';
 export const WORLD1: readonly LevelId[] = ['w1-1', 'w1-2', 'forest'];
 export const WORLD2: readonly LevelId[] = ['w2-1', 'w2-2', 'w2-3'];
 export const WORLD3: readonly LevelId[] = ['w3-1', 'w3-2', 'w3-3'];
+export const WORLD4: readonly LevelId[] = ['w4-1', 'w4-2', 'w4-3'];
 
 /** 各世界的小關,全部依序解鎖(世界 2 第一關要先通過 1-3)。 */
-export const WORLDS: readonly (readonly LevelId[])[] = [WORLD1, WORLD2, WORLD3];
-export const WORLD_NAMES: readonly string[] = ['失眠森林', '沙漠金字塔王國', '亞特蘭提斯海底王國'];
+export const WORLDS: readonly (readonly LevelId[])[] = [WORLD1, WORLD2, WORLD3, WORLD4];
+export const WORLD_NAMES: readonly string[] = ['失眠森林', '沙漠金字塔王國', '亞特蘭提斯海底王國', '冰雪極地'];
 
 const ORDER: readonly LevelId[] = WORLDS.flat();
 

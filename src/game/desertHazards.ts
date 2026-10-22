@@ -36,10 +36,11 @@ const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number
   icicle: { key: 'icicle', w: 24, h: 56, color: 0xd8f0ff, solid: false },
 };
 /** 沙浪(沙塵)與河狸的水波。 */
-export type WaveKind = 'sand' | 'water';
+export type WaveKind = 'sand' | 'water' | 'snow';
 const WAVE_ART: Record<WaveKind, { key: string; color: number }> = {
   sand: { key: 'b-sand-dust', color: SAND },
   water: { key: 'b-water-wave', color: 0x8fd0f0 },
+  snow: { key: '', color: 0xf0f8ff },
 };
 const CRUMBLE_MS = 300;
 const PLATE_PRESS_PX = 3;

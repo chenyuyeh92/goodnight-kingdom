@@ -6,7 +6,7 @@ const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
 /** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡(章魚墨汁)、駱駝口水、沙球/沙塊、泡泡、松鼠的橡實。 */
-export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn';
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice';
 
 /** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
 const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
@@ -16,6 +16,8 @@ const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
   sand: { w: 13, h: 13, color: 0xf0c060 },
   bubble: { w: 16, h: 16, color: 0xa8e8ff },
   acorn: { w: 14, h: 16, color: 0xa0683a },
+  snow: { w: 16, h: 16, color: 0xffffff },
+  ice: { w: 12, h: 12, color: 0xc8f0ff },
 };
 
 /** 有美術圖的子彈(載入了就用美術的圖,沒有就用上面程式畫的)。 */

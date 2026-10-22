@@ -18,6 +18,8 @@ export interface FennecSense {
   targetX: number | null;
   arenaLeft: number;
   arenaRight: number;
+  /** 身體寬度的一半(獨角鯨也用這套行為);沒有時用耳廓狐的。 */
+  halfW?: number;
   dtMs: number;
 }
 
@@ -50,7 +52,10 @@ export function initialFennecBrain(): FennecBrain {
   return { mode: 'run', timerMs: 0, moundX: 0, facing: -1 };
 }
 
-/** 熬夜耳廓狐:跑 → 鑽進沙裡 → 玩家腳下冒沙堆 → 跳出來 → 頭暈露在外面(可以打)→ 再跑。 */
+/**
+ * 熬夜耳廓狐:跑 → 鑽進沙裡 → 玩家腳下冒沙堆 → 跳出來 → 頭暈露在外面(可以打)→ 再跑。
+ * 熬夜獨角鯨用同一套:在冰上滑 → 潛到冰面下 → 玩家腳下出現冰裂痕 → 用角戳出來 → 暈一下。
+ */
 export function stepFennec(b: FennecBrain, s: FennecSense): FennecStep {
   const dt = Math.min(s.dtMs, MAX_DT_MS);
   const timerMs = b.timerMs + dt;
@@ -67,7 +72,7 @@ export function stepFennec(b: FennecBrain, s: FennecSense): FennecStep {
     }
     case 'burrow': {
       if (timerMs < FENNEC_BURROW_MS) return { ...none, vx: 0, vy: null, hidden: true, brain: { ...b, timerMs } };
-      const half = ENEMY_DEFS.fennec.w / 2;
+      const half = s.halfW ?? ENEMY_DEFS.fennec.w / 2;
       const moundX = Math.min(Math.max(s.targetX ?? s.x, s.arenaLeft + half), s.arenaRight - half);
       return { ...none, vx: 0, vy: null, hidden: true, teleportX: moundX, brain: { ...b, mode: 'under', timerMs: 0, moundX } };
     }

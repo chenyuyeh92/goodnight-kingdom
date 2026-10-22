@@ -6,11 +6,14 @@ import type { Span } from '../game/water';
 import type { PlateDef } from '../game/traps';
 import type { Current } from '../game/currents';
 
-export type BossType = Extract<EnemyType, 'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie'>;
+export type BossType = Extract<
+  EnemyType,
+  'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie' | 'polarBear' | 'narwhal' | 'yeti'
+>;
 
-export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2' | 'w2-1' | 'w2-2' | 'w2-3' | 'w3-1' | 'w3-2' | 'w3-3';
+export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2' | 'w2-1' | 'w2-2' | 'w2-3' | 'w3-1' | 'w3-2' | 'w3-3' | 'w4-1' | 'w4-2' | 'w4-3';
 
-const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3'];
+const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3'];
 
 /** 左上角座標與寬高。 */
 export interface Rect {
@@ -51,6 +54,12 @@ export interface LevelDef {
   underwater?: boolean;
   /** 水流(左右推)與氣泡柱(往上送)。 */
   currents?: readonly Current[];
+  /** 很滑的冰地面(世界 4)。 */
+  ice?: readonly Span[];
+  /** 掛在上面、玩家走近就掉下來的冰柱(x 位置)。 */
+  icicles?: readonly number[];
+  /** 平台用美術的圖畫(世界 4 的雪堆平台)。 */
+  platformArt?: 'snow-platform';
   /** 路邊的教學告示牌。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }

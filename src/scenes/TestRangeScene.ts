@@ -30,6 +30,9 @@ import { initialFennecBrain, stepFennec, type FennecBrain } from '../game/fennec
 import { initialSphinxBrain, stepSphinx, type SphinxBrain } from '../game/sphinx';
 import { ACORN_GRAVITY, initialSquirrelBrain, stepSquirrel, type SquirrelBrain } from '../game/squirrel';
 import { initialBeaverBrain, stepBeaver, type BeaverBrain } from '../game/beaver';
+import { initialBearBrain, stepBear, type BearBrain } from '../game/polarBear';
+import { SNOWBALL_GRAVITY, initialYetiBrain, stepYeti, type YetiBrain } from '../game/yeti';
+import { iceVx, onIce } from '../game/ice';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
 import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
 import { initialNessieBrain, stepNessie, type NessieBrain } from '../game/nessie';
@@ -99,7 +102,11 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪' };
+/** 冰柱:玩家走到左右這麼近就掉下來。 */
+const ICICLE_TRIGGER_X = 100;
+/** 雪怪平常站的位置(鎖住畫面右邊往內)。 */
+const YETI_HOME_INSET = 120;
 /** 水怪第三階段的圖和第一階段差不多,身體帶一點紅色區分。 */
 const NESSIE_RAGE_TINT = 0xffb0b0;
 /** 寄居蟹縮進殼裡時圖變暗一點。 */
@@ -197,10 +204,12 @@ type BossAi =
   | { kind: 'sphinx'; brain: SphinxBrain }
   | { kind: 'crab'; brain: CrabBrain; armored: boolean }
   | { kind: 'eel'; brain: EelBrain }
-  | { kind: 'nessie'; brain: NessieBrain };
+  | { kind: 'nessie'; brain: NessieBrain }
+  | { kind: 'bear'; brain: BearBrain }
+  | { kind: 'yeti'; brain: YetiBrain };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -222,12 +231,19 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'eel', brain: initialEelBrain() };
     case 'nessie':
       return { kind: 'nessie', brain: initialNessieBrain() };
+    case 'polarBear':
+      return { kind: 'bear', brain: initialBearBrain() };
+    // 獨角鯨用耳廓狐的行為(在冰面下)。
+    case 'narwhal':
+      return { kind: 'fennec', brain: initialFennecBrain(), mound: null };
+    case 'yeti':
+      return { kind: 'yeti', brain: initialYetiBrain() };
   }
 }
 
 /** 有三階段的關主回傳目前階段,其他回傳 1。 */
 function aiPhase(ai: BossAi): 1 | 2 | 3 {
-  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' ? ai.brain.phase : 1;
+  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' ? ai.brain.phase : 1;
 }
 
 function aiMode(ai: BossAi): string {
@@ -369,6 +385,10 @@ export class TestRangeScene extends Phaser.Scene {
   /** 電鰻的電流(每格重畫);有美術圖時用橫向接長的電流圖。 */
   private beamGfx!: Phaser.GameObjects.Graphics;
   private beamTiles: Phaser.GameObjects.TileSprite[] = [];
+  /** 冰上滑:每位玩家上一格的水平速度。 */
+  private prevVx: number[] = [];
+  /** 還沒掉下來的冰柱(掛在上面的圖)。 */
+  private hangingIcicles: { x: number; view: Phaser.GameObjects.Image | Phaser.GameObjects.Triangle }[] = [];
   private flags: { x: number; g: Phaser.GameObjects.Graphics; on: boolean | null }[] = [];
 
   constructor() {
@@ -508,6 +528,14 @@ export class TestRangeScene extends Phaser.Scene {
     });
     this.currentsView = this.level.currents?.length ? new CurrentsView(this, this.level.currents) : null;
     this.prevJump = this.players.map(() => false);
+    this.prevVx = this.players.map(() => 0);
+    this.hangingIcicles = (this.level.icicles ?? []).map((x) => ({
+      x,
+      view: this.textures.exists('icicle')
+        ? this.add.image(x, 0, 'icicle').setOrigin(0.5, 0).setDepth(-1)
+        : this.add.triangle(x, 0, -12, 0, 12, 0, 0, 56, 0xd8f0ff).setOrigin(0.5, 0).setDepth(-1),
+    }));
+    for (const s of this.level.ice ?? []) this.drawIce(s.x, s.w);
     this.beamGfx = this.add.graphics().setDepth(4);
     this.beamTiles = [];
 
@@ -655,7 +683,9 @@ export class TestRangeScene extends Phaser.Scene {
     const playerTuning = this.level.underwater ? waterTuning(t) : t;
     this.players.forEach((p, i) => {
       p.health = tickHealth(p.health, dtMs);
+      const prevVx = p.body().velocity.x;
       const r = p.update(intents[i], dtMs, playerTuning, (reach) => this.findMeleeTarget(reach) !== null);
+      this.applyIce(p, prevVx, dtMs);
       if (p.jumped) audio.sfx('jump');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
@@ -668,6 +698,7 @@ export class TestRangeScene extends Phaser.Scene {
       if (this.level.underwater) this.applySwim(p, i, intents[i]);
     });
     this.currentsView?.update(dtMs, this.scrollX, VIEW_W);
+    this.updateIcicles();
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -703,6 +734,13 @@ export class TestRangeScene extends Phaser.Scene {
     if (isGround) {
       g.fillStyle(this.palette.ground).fillRect(t.x, t.y, t.w, t.h);
       g.fillStyle(this.palette.rim).fillRect(t.x, t.y, t.w, 3);
+      return;
+    }
+    const art = this.level.platformArt;
+    if (art && this.textures.exists(art)) {
+      // 雪堆平台圖 28 高,上緣對齊平台頂。
+      this.add.tileSprite(t.x, t.y - 2, t.w, 28, art).setOrigin(0, 0).setDepth(-2);
+      g.destroy();
       return;
     }
     const r = Math.min(8, t.h / 2);
@@ -741,6 +779,37 @@ export class TestRangeScene extends Phaser.Scene {
     this.hurtPlayer(p, false);
     // 上岸後多一點無敵時間,岸邊剛好有魔物也不會馬上再被打。
     p.health = { ...p.health, invulnMs: Math.max(p.health.invulnMs, RIVER_INVULN_MS) };
+  }
+
+  /** 冰上:左右速度慢慢追上想要的速度(起步慢、放開會滑一段)。只有站在冰地面上才滑。 */
+  private applyIce(p: PlayerEntity, prevVx: number, dtMs: number): void {
+    const ice = this.level.ice;
+    if (!ice || p.health.down) return;
+    const pb = p.body();
+    const grounded = (pb.blocked.down || pb.touching.down) && p.feetY >= GROUND_Y - 2;
+    if (!grounded || !onIce(p.x, ice)) return;
+    pb.setVelocityX(iceVx(prevVx, pb.velocity.x, dtMs));
+  }
+
+  /** 醒著的玩家走到冰柱附近,冰柱就搖晃、掉下來(每根只掉一次)。 */
+  private updateIcicles(): void {
+    for (const ic of [...this.hangingIcicles]) {
+      if (!this.players.some((p) => !p.health.down && Math.abs(p.x - ic.x) <= ICICLE_TRIGGER_X)) continue;
+      this.hangingIcicles = this.hangingIcicles.filter((x) => x !== ic);
+      this.tweens.add({ targets: ic.view, angle: { from: -6, to: 6 }, duration: 70, yoyo: true, repeat: 3, onComplete: () => ic.view.destroy() });
+      this.desert.dropBlock(ic.x, 'icicle');
+    }
+  }
+
+  /** 冰地面:美術的冰面圖橫向接起來,沒有圖時畫淡藍色。 */
+  private drawIce(x: number, w: number): void {
+    if (this.textures.exists('ice-floor')) {
+      this.add.tileSprite(x, GROUND_Y - 4, w, 24, 'ice-floor').setOrigin(0, 0).setDepth(-1);
+      return;
+    }
+    const g = this.add.graphics().setDepth(-1);
+    g.fillStyle(0xd8f0ff, 0.9).fillRect(x, GROUND_Y - 4, w, 12);
+    g.fillStyle(0xffffff).fillRect(x, GROUND_Y - 4, w, 3);
   }
 
   /** 在水裡游:按跳躍往上划/往上游、按住下往下潛、放開慢慢沉;水流推著走;不能游出水面。 */
@@ -1110,11 +1179,13 @@ export class TestRangeScene extends Phaser.Scene {
     else if (ai.kind === 'sphinx') this.updateSphinx(boss, ai, dtMs);
     else if (ai.kind === 'eel') this.updateEel(boss, ai, dtMs);
     else if (ai.kind === 'nessie') this.updateNessie(boss, ai, dtMs, time);
+    else if (ai.kind === 'yeti') this.updateYeti(boss, ai, dtMs);
     else {
       if (ai.kind === 'camel') this.updateCamel(boss, ai, dtMs);
       else if (ai.kind === 'fennec') this.updateFennec(boss, ai, dtMs);
       else if (ai.kind === 'crab') this.updateCrab(boss, ai, dtMs);
       else if (ai.kind === 'squirrel') this.updateSquirrel(boss, ai, dtMs);
+      else if (ai.kind === 'bear') this.updateBear(boss, ai, dtMs);
       else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1229,10 +1300,12 @@ export class TestRangeScene extends Phaser.Scene {
       targetX: nearest ? nearest.x : null,
       arenaLeft: lock + SCREEN_MARGIN,
       arenaRight: lock + VIEW_W - SCREEN_MARGIN,
+      halfW: enemy.def.w / 2,
       dtMs,
     });
     ai.brain = step.brain;
     enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    const icy = enemy.def.type === 'narwhal';
     if (step.teleportX !== null) pb.reset(step.teleportX, enemy.body.y);
     if (was !== 'burrow' && step.brain.mode === 'burrow') this.puffAt(enemy.x);
     enemy.emerging = step.hidden;
@@ -1240,7 +1313,9 @@ export class TestRangeScene extends Phaser.Scene {
     pb.setVelocityX(step.vx);
     if (step.vy !== null) pb.setVelocityY(step.vy);
     if (step.brain.mode === 'under' && !ai.mound) {
-      ai.mound = this.add.ellipse(step.brain.moundX, GROUND_Y - MOUND_H / 4, MOUND_W, MOUND_H, COLOR.dirt).setDepth(3);
+      // 耳廓狐冒出沙堆;獨角鯨是冰面的裂痕。
+      ai.mound = this.add.ellipse(step.brain.moundX, GROUND_Y - MOUND_H / 4, MOUND_W, MOUND_H, icy ? 0xd8f0ff : COLOR.dirt).setDepth(3);
+      if (icy) ai.mound.setStrokeStyle(2, 0x6fa8d8);
       this.tweens.add({ targets: ai.mound, scaleX: 1.15, duration: 90, yoyo: true, repeat: -1 });
     }
     if (step.brain.mode !== 'under' && ai.mound) {
@@ -1248,7 +1323,7 @@ export class TestRangeScene extends Phaser.Scene {
       ai.mound = null;
       this.puffAt(enemy.x);
     }
-    for (const c of step.clumps) this.shots.fire(enemy.x, enemy.body.y - 10, c.vx, c.vy, 'sand', SPIT_GRAVITY);
+    for (const c of step.clumps) this.shots.fire(enemy.x, enemy.body.y - 10, c.vx, c.vy, icy ? 'ice' : 'sand', SPIT_GRAVITY);
   }
 
   /** 失眠寄居蟹:走一走,輪流縮進殼裡滑過來(打不動)與吐慢慢飄的泡泡。 */
@@ -1379,6 +1454,73 @@ export class TestRangeScene extends Phaser.Scene {
     if (step.summon) {
       for (const y of SCHOOL_YS) boss.minions.add(this.spawnFrom({ type: 'clownfish', from: 'left', y, delayMs: 0 }, false));
     }
+    if (step.enteredPhase) this.announcePhase(boss);
+  }
+
+  /** 失眠北極熊:肚子貼地滑過來、拍地讓上面掉冰柱。 */
+  private updateBear(boss: Boss, ai: Extract<BossAi, { kind: 'bear' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const step = stepBear(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.brain.mode === 'slide' ? 'dash' : step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== step.brain.mode && (step.brain.mode === 'windup' || step.brain.mode === 'slide')) this.tell(enemy);
+    for (const x of step.icicles) this.desert.dropBlock(x, 'icicle');
+    if (step.icicles.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(200, 0.006);
+    }
+  }
+
+  /** 失眠雪怪:丟雪球、跺腳掉冰柱、跳過來落地震出雪浪;第二階段起叫企鵝。 */
+  private updateYeti(boss: Boss, ai: Extract<BossAi, { kind: 'yeti' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const handX = enemy.x - enemy.def.w / 2 + 10;
+    const handY = enemy.body.y - enemy.def.h / 4;
+    const step = stepYeti(ai.brain, {
+      x: enemy.x,
+      grounded: pb.blocked.down || pb.touching.down,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      homeX: lock + VIEW_W - YETI_HOME_INSET,
+      handX,
+      handY,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      minionsAlive: boss.minions.size,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('yeti', 'awake', ai.brain.phase));
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
+    enemy.brain = { ...enemy.brain, facing: pb.velocity.x > 50 ? 1 : -1, phase: step.brain.mode === 'leap' ? 'hop' : 'idle' };
+    if (step.vx !== null) pb.setVelocityX(step.vx);
+    if (step.vy !== null) pb.setVelocityY(step.vy);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const b of step.snowballs) this.shots.fire(handX, handY, b.vx, b.vy, 'snow', SNOWBALL_GRAVITY);
+    for (const x of step.icicles) this.desert.dropBlock(x, 'icicle');
+    for (const dir of step.waves) this.desert.sendWave(enemy.x + dir * (enemy.def.w / 2), dir, 0, 'snow');
+    if (step.icicles.length + step.waves.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(220, 0.007);
+    }
+    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'penguin', from: 'left', delayMs: 0 }, false));
     if (step.enteredPhase) this.announcePhase(boss);
   }
 

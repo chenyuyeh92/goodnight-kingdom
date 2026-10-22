@@ -118,7 +118,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -319,4 +319,44 @@ test('3-3 的高處寶箱底下有氣泡柱可以搭', () => {
   const R = LEVELS['w3-3'];
   const high = R.chests.find((c) => c.bottom < 200)!;
   expect(R.currents!.some((c) => c.vy < 0 && Math.abs(c.x + c.w / 2 - high.x) < 200)).toBe(true);
+});
+
+describe.each(['w4-1', 'w4-2', 'w4-3'] as const)('世界 4 冰雪:%s', (id) => {
+  const L = LEVELS[id];
+  const ice = L.ice ?? [];
+
+  test('屬於世界 4,有冰面與冰柱,平台用雪堆', () => {
+    expect(L.world).toBe(4);
+    expect(ice.length).toBeGreaterThan(0);
+    expect((L.icicles ?? []).length).toBeGreaterThan(0);
+    expect(L.platformArt).toBe('snow-platform');
+    for (const s of L.scenes) expect(s.scene.startsWith('w4-')).toBe(true);
+  });
+
+  test('關主區沒有冰面、冰柱與冰刺', () => {
+    const lock = L.boss!.lockScrollX;
+    for (const s of ice) expect(s.x + s.w).toBeLessThan(lock);
+    for (const x of L.icicles ?? []) expect(x).toBeLessThan(lock - 100);
+    for (const t of L.thorns) expect(t.x + t.w).toBeLessThan(lock);
+  });
+
+  test('冰柱不在檢查點正上方(重來時不會一出來就被砸)', () => {
+    for (const x of L.icicles ?? []) for (const cp of L.checkpoints) expect(Math.abs(x - cp) > 120 && Math.abs(x - (cp + 40)) > 120, `冰柱 ${x} 檢查點 ${cp}`).toBe(true);
+  });
+
+  test('冰刺不在冰面上(滑過去停不下來太不公平)', () => {
+    for (const t of L.thorns) for (const s of ice) expect(t.x + t.w < s.x - 40 || t.x > s.x + s.w + 40, `冰刺 ${t.x}`).toBe(true);
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of L.chests.filter((c) => c.bottom < 300)) expectReachable(c, L);
+  });
+});
+
+test('世界 4 的小頭目是北極熊、獨角鯨,關主是雪怪', () => {
+  expect(LEVELS['w4-1'].boss!.type).toBe('polarBear');
+  expect(LEVELS['w4-2'].boss!.type).toBe('narwhal');
+  expect(LEVELS['w4-3'].boss!.type).toBe('yeti');
+  expect(LEVELS['w4-1'].hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['ice', 'icicle']));
+  expect(LEVELS['w4-3'].scenes.map((s) => s.scene)).toEqual(['w4-s3', 'w4-s4']);
 });
