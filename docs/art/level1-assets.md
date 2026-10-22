@@ -61,6 +61,30 @@
 棉被迴力鏢的子彈就是武器圖本身（`weapons/blanket-boomerang.png`），旋轉著飛。
 | `public/assets/enemies/insomnia-hedgehog-roll.png` | 失眠刺蝟 滾球（滾動撞人時用） | 48×48 | 程式畫；可以讓程式旋轉 |
 
+## 動畫格（2026-10-22，程式那邊要求）
+
+用現有單張圖做變形（彈跳、壓扁拉長、傾斜、翅膀繞肩膀旋轉）做成，長相和原圖完全一致。**每一格的畫布大小和原圖相同、朝向相同、內容底部貼齊畫布底部**（腳底在同一條線）。產生方式：`docs/art/tools/make_anim.py`。
+
+| 檔案 | 內容 | 每格大小（寬×高 px） |
+|---|---|---|
+| `public/assets/characters/default-guard-walk-1..4.png` | 小綿羊守衛 走路 4 格 | 48×55 |
+| `public/assets/characters/default-guard-jump.png` | 小綿羊守衛 跳躍 1 格 | 48×55 |
+| `public/assets/enemies/clockbug-walk-1..4.png` | 鬧鐘蟲 走路 4 格 | 48×56 |
+| `public/assets/enemies/coffee-bean-sprite-jump.png` | 咖啡豆精靈 跳起 1 格 | 39×52 |
+| `public/assets/enemies/coffee-bean-sprite-land.png` | 咖啡豆精靈 落地 1 格 | 39×52 |
+| `public/assets/enemies/night-bat-flap-1..4.png` | 熬夜蝙蝠 拍翅 4 格（上、平、下、平） | 56×56 |
+| `public/assets/enemies/insomnia-hedgehog-walk-1..4.png` | 失眠刺蝟 走路 4 格 | 57×72 |
+| `public/assets/enemies/insomnia-hedgehog-ball.png` | 失眠刺蝟 縮成球 1 格 | 57×72 |
+| `public/assets/enemies/night-owl-boss-flap-1..4.png` | 熬夜貓頭鷹 第一階段 拍翅 4 格 | 181×200 |
+| `public/assets/enemies/night-owl-boss-phase2-flap-1..4.png` | 熬夜貓頭鷹 第二階段 拍翅 4 格 | 183×200 |
+| `public/assets/enemies/night-owl-boss-phase3-flap-1..4.png` | 熬夜貓頭鷹 第三階段 拍翅 4 格 | 176×200 |
+| `public/assets/enemies/night-owl-boss-dive.png` | 熬夜貓頭鷹 俯衝 1 格（往左下） | 181×200 |
+
+- 走路的「平」格（第 2、4 格）在拍翅裡就是原圖本身。
+- 貓頭鷹的翅膀收在身體兩側、抱著咖啡杯，拍翅動作比較小，翅膀邊緣有一點切痕；程式可以再加上下浮動讓飛行更明顯。
+- 小綿羊守衛的動畫放在 `characters/`，魔物放在 `enemies/`。
+- 關著的寶箱（`items/treasure-chest-closed.png`）和刺蝟正面的刺盾（新版 `enemies/insomnia-hedgehog.png`）在第三批已經交付，請拉最新的 `art/style-guide` 分支。
+
 ## 還沒做 / 已知問題
 
 - 素材是 1 倍大小，高解析度螢幕上可能有點糊；需要 2 倍版本的話跟美術說：來源大圖只在美術的電腦上，由美術改 `docs/art/tools/process_level1.py` 的尺寸重跑。
