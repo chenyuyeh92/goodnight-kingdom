@@ -23,6 +23,8 @@ test.describe('開場選單', () => {
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
     await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__?.screen === 'level-select');
+    await page.keyboard.press('Digit1');
     await page.waitForFunction(() => window.__GK__?.screen === 'range');
     const s = await gk(page);
     expect(s.mode).toBe('duo');
@@ -34,6 +36,8 @@ test.describe('開場選單', () => {
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     const box = (await page.locator('canvas').boundingBox())!;
     await page.mouse.click(box.x + (480 / 960) * box.width, box.y + (250 / 540) * box.height);
+    await page.waitForFunction(() => window.__GK__?.screen === 'level-select');
+    await page.mouse.click(box.x + (200 / 960) * box.width, box.y + (290 / 540) * box.height);
     await page.waitForFunction(() => window.__GK__?.screen === 'range');
     const s = await gk(page);
     expect(s.mode).toBe('single');

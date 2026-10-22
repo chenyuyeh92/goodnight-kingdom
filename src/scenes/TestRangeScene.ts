@@ -23,6 +23,7 @@ import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/run
 import type { LevelCompleteData } from './LevelCompleteScene';
 import { artStatus, assetPath, enemySprite, itemSprite, weaponIcon } from '../art/sprites';
 import { sceneKeys } from '../art/scenes';
+import { WORLD1, levelNumber, nextLevel } from '../game/progress';
 import { ParallaxBackground } from '../game/background';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
@@ -961,11 +962,15 @@ export class TestRangeScene extends Phaser.Scene {
       chestsFound: this.openedChestIndexes().length,
       restarts: this.restarts,
     };
+    const endedAt = Date.now();
+    if (WORLD1.includes(this.level.id)) this.save.markCleared(this.level.id, endedAt - stats.startedAt);
     const data: LevelCompleteData = {
       ...sessionData(this.initData),
       mode: this.mode,
-      levelName: this.level.name,
-      summary: summaryLines(stats, Date.now()),
+      level: this.level.id,
+      levelName: `${levelNumber(this.level.id)} ${this.level.name}`,
+      next: nextLevel(this.level.id),
+      summary: summaryLines(stats, endedAt),
     };
     this.scene.start('LevelComplete', data);
   }
@@ -1102,6 +1107,7 @@ export class TestRangeScene extends Phaser.Scene {
         ? { hp: this.boss.enemy.hp, maxHp: this.boss.maxHp, phase: this.boss.brain.phase, mode: this.boss.brain.mode }
         : null,
       bossDefeated: this.bossDefeated,
+      bossLockX: this.level.boss?.lockScrollX ?? null,
       enemyShots: this.shots.count(),
       hurtBoss: this.testHooks
         ? (n: number) => {

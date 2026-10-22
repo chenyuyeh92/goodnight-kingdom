@@ -217,25 +217,32 @@ async function openMenu(page: Page, save: string | null): Promise<void> {
   await page.locator('canvas').click({ position: { x: 5, y: 5 } });
 }
 
+/** 主頁選單人(1)或雙人(2),再在選關畫面選 1-1。 */
+async function pickMode(page: Page, key: 'Digit1' | 'Digit2'): Promise<void> {
+  await page.keyboard.press(key);
+  await page.waitForFunction(() => window.__GK__!.screen === 'level-select');
+  await page.keyboard.press('Digit1');
+}
+
 const SHEEP_SAVE = JSON.stringify({ version: 1, weapons: { sheepGun: 2 } });
 
 test.describe('出發前選武器', () => {
-  test('背包沒有武器時直接進森林', async ({ page }) => {
+  test('背包沒有武器時直接進 1-1', async ({ page }) => {
     await openMenu(page, null);
-    await page.keyboard.press('Digit1');
+    await pickMode(page, 'Digit1');
     await page.waitForFunction(() => window.__GK__!.screen === 'range');
-    expect((await gk(page)).level).toBe('forest');
+    expect((await gk(page)).level).toBe('w1-1');
   });
 
-  test('存檔壞掉時也直接進森林', async ({ page }) => {
+  test('存檔壞掉時也直接進 1-1', async ({ page }) => {
     await openMenu(page, '{bad');
-    await page.keyboard.press('Digit1');
+    await pickMode(page, 'Digit1');
     await page.waitForFunction(() => window.__GK__!.screen === 'range');
   });
 
   test('單人選武器後帶著上場', async ({ page }) => {
     await openMenu(page, SHEEP_SAVE);
-    await page.keyboard.press('Digit1');
+    await pickMode(page, 'Digit1');
     await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
     const s = await gk(page);
     expect(s.loadoutFor).toBe('A');
@@ -250,7 +257,7 @@ test.describe('出發前選武器', () => {
 
   test('雙人兩人可以選同一把', async ({ page }) => {
     await openMenu(page, SHEEP_SAVE);
-    await page.keyboard.press('Digit2');
+    await pickMode(page, 'Digit2');
     await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
     await page.keyboard.press('Digit2');
     await page.waitForFunction(() => window.__GK__!.loadoutFor === 'B');
@@ -265,7 +272,7 @@ test.describe('出發前選武器', () => {
 
   test('選只帶哈欠泡泡', async ({ page }) => {
     await openMenu(page, SHEEP_SAVE);
-    await page.keyboard.press('Digit1');
+    await pickMode(page, 'Digit1');
     await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
     await page.keyboard.press('Digit1');
     await page.waitForFunction(() => window.__GK__!.screen === 'range');
@@ -274,7 +281,7 @@ test.describe('出發前選武器', () => {
 
   test('用上下鍵移動再確認', async ({ page }) => {
     await openMenu(page, SHEEP_SAVE);
-    await page.keyboard.press('Digit1');
+    await pickMode(page, 'Digit1');
     await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
     await page.keyboard.press('KeyS');
     await page.keyboard.press('Enter');

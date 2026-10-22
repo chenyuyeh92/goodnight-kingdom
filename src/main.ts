@@ -12,6 +12,7 @@ import { BackpackScene } from './scenes/BackpackScene';
 import { BootScene } from './scenes/BootScene';
 import { LevelCompleteScene } from './scenes/LevelCompleteScene';
 import { LoadoutScene } from './scenes/LoadoutScene';
+import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
 import { mountKeyTest } from './ui/keyTest';
@@ -51,7 +52,9 @@ export interface EnemyDebug {
 
 export interface GkDebug {
   ready: boolean;
-  screen?: 'boot' | 'mode-select' | 'range' | 'backpack' | 'complete' | 'loadout';
+  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'loadout';
+  /** 選關畫面:每一關是否解鎖、最佳時間。 */
+  levels?: { id: LevelId; unlocked: boolean; best: number | null }[];
   /** 美術素材載入狀態。 */
   art?: { loaded: number; missing: string[]; disabled: boolean };
   /** 通關結算的文字列。 */
@@ -89,6 +92,8 @@ export interface GkDebug {
   /** 場上魔物子彈(羽毛)數。 */
   enemyShots?: number;
   hurtBoss?: (amount: number) => void;
+  /** 這一關關主戰的鏡頭鎖定位置(沒有關主為 null)。 */
+  bossLockX?: number | null;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
   lastChest?: 'new' | 'starUp' | 'maxed' | null;
@@ -158,6 +163,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('Backpack', BackpackScene, false);
   game.scene.add('LevelComplete', LevelCompleteScene, false);
   game.scene.add('Loadout', LoadoutScene, false);
+  game.scene.add('LevelSelect', LevelSelectScene, false);
   game.scene.add('Boot', BootScene, false);
   const noArt = params.get('noart') === '1';
   if (mode) game.scene.start('Boot', { next: 'TestRange', data: { ...data, mode }, noArt });

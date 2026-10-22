@@ -8,7 +8,7 @@ function memory(): StorageLike & { data: Map<string, string> } {
 }
 
 test('sanitizeSave(undefined) → 空背包', () => {
-  expect(sanitizeSave(undefined)).toEqual({ version: 1, weapons: {} });
+  expect(sanitizeSave(undefined)).toEqual({ version: 1, weapons: {}, cleared: {} });
 });
 
 test('未知武器、星等 0 或 9、字串星等都被丟掉,合法的保留', () => {

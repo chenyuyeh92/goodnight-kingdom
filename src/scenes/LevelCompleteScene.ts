@@ -2,9 +2,13 @@ import Phaser from 'phaser';
 import { sessionData, type TestRangeData } from './TestRangeScene';
 import { startLevel } from './LoadoutScene';
 import { onMenuKey } from './menuKeys';
+import { menuButton } from './menuButton';
+import type { LevelId } from '../levels/levelDef';
 
 export interface LevelCompleteData extends TestRangeData {
   levelName: string;
+  /** 下一關;最後一關或練習場為 null。 */
+  next: LevelId | null;
   summary: string[];
 }
 
@@ -29,17 +33,15 @@ export class LevelCompleteScene extends Phaser.Scene {
       this.add.text(480, 170 + i * 44, line, { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
     });
 
+    const next = this.data_.next;
     const buttons = [
-      { x: 330, label: '再玩一次(按 1)', code: 'Digit1', go: () => this.replay() },
-      { x: 630, label: '回到選單(按 2)', code: 'Digit2', go: () => this.menu() },
+      { label: '再玩一次(1)', code: 'Digit1', go: () => this.replay() },
+      { label: '回到選單(2)', code: 'Digit2', go: () => this.menu() },
+      ...(next ? [{ label: '下一關(3)', code: 'Digit3', go: () => this.playNext(next) }] : []),
     ];
-    for (const b of buttons) {
-      const bg = this.add.rectangle(b.x, BUTTON_Y, 240, 60, 0x3b3366).setInteractive({ useHandCursor: true });
-      this.add.text(b.x, BUTTON_Y, b.label, { fontSize: '22px', color: '#f3e9d2' }).setOrigin(0.5);
-      bg.on('pointerover', () => bg.setFillStyle(0x5a4f99));
-      bg.on('pointerout', () => bg.setFillStyle(0x3b3366));
-      bg.on('pointerdown', b.go);
-    }
+    const gap = 260;
+    const left = 480 - ((buttons.length - 1) * gap) / 2;
+    buttons.forEach((b, i) => menuButton(this, left + i * gap, BUTTON_Y, b.label, b.go));
     onMenuKey(this, (e) => buttons.find((b) => b.code === e.code)?.go());
 
     window.__GK__ = { ready: true, screen: 'complete', summary: [...summary] };
@@ -47,6 +49,10 @@ export class LevelCompleteScene extends Phaser.Scene {
 
   private replay(): void {
     startLevel(this, sessionData(this.data_));
+  }
+
+  private playNext(next: LevelId): void {
+    startLevel(this, { ...sessionData(this.data_), level: next });
   }
 
   private menu(): void {

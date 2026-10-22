@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
-import { startLevel } from './LoadoutScene';
 import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
 
@@ -63,6 +62,6 @@ export class ModeSelectScene extends Phaser.Scene {
 
   private choose(choice: Choice): void {
     if (choice === 'backpack') this.scene.start('Backpack', this.data_);
-    else startLevel(this, { ...this.data_, mode: choice });
+    else this.scene.start('LevelSelect', { ...this.data_, mode: choice });
   }
 }
