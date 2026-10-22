@@ -41,7 +41,8 @@ test.describe('關主戰', () => {
     const owl = (await gk(page)).enemies!.find((e) => e.type === 'nightOwl')!;
     expect(owl.artX).not.toBeNull();
     expect(Math.abs(owl.artX! - owl.x)).toBeLessThanOrEqual(2);
-    expect(Math.abs(owl.artBottom! - (owl.y + 50))).toBeLessThanOrEqual(2);
+    // 拍翅時圖會上下飄 3px,判定不動。
+    expect(Math.abs(owl.artBottom! - (owl.y + 50))).toBeLessThanOrEqual(4);
   });
 
   test('進入關主戰時路上跟來的魔物都睡著', async ({ page }) => {
