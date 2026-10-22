@@ -127,3 +127,124 @@ def seaweed(color, W=1440, seed=0, kelp=14, coral=8, bottom=512):
         for dx, dy in ((0, 0), (-r * .8, r * .4), (r * .8, r * .4)):
             d.ellipse((x0 + dx - r, bottom - 2 * r + dy, x0 + dx + r, bottom + dy), fill=c)
     return im
+
+def patch(im, box, dx, feather=8):
+    """用同一張圖水平位移 dx 的內容，以邊緣羽化的橢圓蓋掉 box 範圍（例如模型自己加的小動物）。"""
+    from PIL import ImageFilter
+    x0, y0, x1, y1 = box; w, h = x1 - x0, y1 - y0
+    src = im.crop((x0 + dx, y0, x1 + dx, y1))
+    mask = Image.new("L", (w, h), 0); ImageDraw.Draw(mask).ellipse((feather, feather, w - feather, h - feather), fill=255)
+    im = im.copy(); im.paste(src, (x0, y0), mask.filter(ImageFilter.GaussianBlur(feather))); return im
+
+# ---- 程式畫的中景（世界 4 起）：左右兩端留空，可直接無縫接續 ----
+def pines_mid(color, W=1440, seed=0, n=9, base=472, snow=None):
+    """雪松剪影：三層三角形疊成的松樹；snow 給顏色時在每層頂端加一點積雪。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    for k in range(n):
+        x = 80 + (W - 160) * (k + rnd.random() * 0.6) / n; hgt = rnd.randint(90, 170); wid = hgt * 0.45
+        d.rectangle((x - 5, base - 18, x + 5, base), fill=c)
+        for t in range(3):
+            top = base - hgt + t * hgt * 0.25; bot = base - 14 - (2 - t) * hgt * 0.12; ww = wid * (0.55 + 0.25 * t)
+            d.polygon([(x, top), (x - ww, bot), (x + ww, bot)], fill=c)
+            if snow:
+                d.polygon([(x, top), (x - ww * 0.35, top + (bot - top) * 0.3), (x + ww * 0.35, top + (bot - top) * 0.3)], fill=snow + (255,))
+    return im
+
+def reeds_mid(color, W=1440, base=470):
+    """湖邊蘆葦和香蒲。"""
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    import random
+    rnd = random.Random(7); x = 30
+    while x < W - 30:  # 一叢一叢、間距和傾斜都不固定
+        for _ in range(rnd.randint(3, 6)):
+            xx = x + rnd.randint(-8, 8); hgt = rnd.randint(30, 72); lean = rnd.randint(-10, 10)
+            d.line([(xx, base), (xx + lean, base - hgt)], fill=c, width=3)
+            if rnd.random() < 0.35:
+                d.ellipse((xx + lean - 4, base - hgt - 16, xx + lean + 4, base - hgt + 2), fill=c)
+        x += rnd.randint(40, 110)
+    return im
+
+def ice_spikes_mid(color, W=1440, seed=0, n=12, base=474, light=None, short=False):
+    """冰晶群：高矮不一的三角；light 給顏色時畫一道亮面。short=True 時冰晶矮一半，搭配淡色，看起來是遠處的冰原不是地刺。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    for k in range(n):
+        x = 70 + (W - 140) * (k + rnd.random() * 0.7) / n
+        for _ in range(rnd.randint(2, 4)):
+            hgt = rnd.randint(50, 160); w = hgt * rnd.uniform(0.15, 0.25); dx = rnd.randint(-30, 30); lean = rnd.uniform(-0.25, 0.25) * hgt
+            b = base
+            if short: hgt = int(hgt * 0.45)
+            d.polygon([(x + dx - w, b), (x + dx + lean, b - hgt), (x + dx + w, b)], fill=c)
+            if light:
+                d.polygon([(x + dx - w * 0.2, b - 4), (x + dx + lean, b - hgt), (x + dx + w * 0.15, b - 4)], fill=light + (255,))
+    return im
+
+def icicles_mid(color, W=1440, seed=0, base=474):
+    """冰洞：上方垂下的冰柱（地上不畫石筍，避免看起來像地刺）。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    d.rectangle((0, 0, W, 26), fill=c)
+    for x in range(20, W - 20, 26):
+        L = rnd.randint(30, 140); w = rnd.randint(8, 16)
+        d.polygon([(x - w, 20), (x + w, 20), (x + rnd.randint(-3, 3), 20 + L)], fill=c)
+    return im
+
+# ---- 世界 5 起的程式中景 ----
+def _spread(W, n, rnd, margin=120):
+    return [margin + (W - 2 * margin) * (k + rnd.random() * 0.6) / n for k in range(n)]
+
+def palms_mid(color, W=1440, seed=0, n=7, base=472):
+    """椰子樹：彎彎的樹幹＋放射狀葉片。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    for x in _spread(W, n, rnd):
+        hgt = rnd.randint(120, 190); bend = rnd.choice((-1, 1)) * rnd.randint(15, 35)
+        pts = [(x + bend * (t / 10) ** 2, base - hgt * t / 10) for t in range(11)]
+        d.line(pts, fill=c, width=9, joint="curve"); tx, ty = pts[-1]
+        for a in range(0, 360, 40):
+            r = math.radians(a + rnd.randint(-10, 10)); L = rnd.randint(40, 60)
+            leaf = [(tx + L * t / 6 * math.cos(r), ty + L * t / 6 * math.sin(r) + 14 * (t / 6) ** 2) for t in range(7)]
+            d.line(leaf, fill=c, width=7, joint="curve")
+    return im
+
+def rocks_mid(color, W=1440, seed=0, n=10, base=474, smoke=None):
+    """一堆一堆的圓石；smoke 給顏色時在部分石頭上畫冒煙的圓。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    for x in _spread(W, n, rnd):
+        for _ in range(rnd.randint(2, 4)):
+            r = rnd.randint(16, 34); dx = rnd.randint(-40, 40)
+            d.ellipse((x + dx - r * 1.3, base - r * 1.6, x + dx + r * 1.3, base + 6), fill=c)
+        if smoke and rnd.random() < 0.4:
+            for k in range(3):
+                rr = 10 + k * 6; d.ellipse((x - rr, base - 90 - k * 26 - rr, x + rr, base - 90 - k * 26 + rr), fill=smoke + (150,))
+    return im
+
+def jungle_mid(color, W=1440, seed=0, n=10, base=474, leaf=None):
+    """雨林中景：低矮的蕨類和灌木叢（遠景已經有大樹，中景只點綴、不擋遊戲區）。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    lc = (leaf or color) + (255,)
+    for x in _spread(W, n, rnd):
+        for k in range(rnd.randint(5, 8)):  # 蕨類葉片：從底部往外彎
+            a0 = math.radians(rnd.uniform(200, 340)); L = rnd.randint(30, 60)
+            pts = [(x + L * t / 6 * math.cos(a0), base - L * t / 6 * abs(math.sin(a0)) + 10 * (t / 6) ** 2) for t in range(7)]
+            d.line(pts, fill=c, width=5, joint="curve")
+        r = rnd.randint(14, 22); d.ellipse((x - r * 1.4, base - r * 1.4, x + r * 1.4, base + 4), fill=lc)
+    return im
+
+def acacia_mid(color, W=1440, seed=0, n=5, base=472):
+    """金合歡：細樹幹分叉、平頂的樹冠。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    for x in _spread(W, n, rnd, margin=140):
+        hgt = rnd.randint(110, 170); cw = rnd.randint(90, 140)
+        d.line([(x, base), (x, base - hgt * 0.55)], fill=c, width=8)
+        for sx in (-1, 1):
+            d.line([(x, base - hgt * 0.5), (x + sx * cw * 0.45, base - hgt)], fill=c, width=6)
+        d.ellipse((x - cw, base - hgt - 22, x + cw, base - hgt + 12), fill=c)
+    for x in range(0, W, 8):  # 高草（間距整除寬度，首尾一致）
+        g = 10 + 8 * (0.5 + 0.5 * math.sin(2 * math.pi * x * 9 / W))
+        d.line([(x, base + 4), (x + 3, base - g)], fill=c, width=2)
+    return im

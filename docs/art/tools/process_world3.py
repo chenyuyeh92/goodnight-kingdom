@@ -26,8 +26,12 @@ SPRITES = [  # (檔名, 來源, (寬上限, 高上限))
     ("w3-nessie-boss-phase3", (G8, "w3s/w3-nessie-phase3_00001_.png"), (240, 220)),
     ("w3-nessie-boss-sleep", (G8, "w3s/w3-nessie-boss-sleep_00002_.png"), (240, 220)),
 ]
+from PIL import Image
 for name, (base, src), box in SPRITES:
-    save(fit(cutout(os.path.join(base, src)), box), A("enemies", name + ".png"))
+    im = cutout(os.path.join(base, src))
+    if name.startswith("w3-nessie-boss"):  # 原圖頭朝右，翻成朝左
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    save(fit(im, box), A("enemies", name + ".png"))
 
 B = lambda name: A("backgrounds", name)
 SCENES = {
