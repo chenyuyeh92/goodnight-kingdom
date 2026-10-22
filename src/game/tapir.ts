@@ -26,8 +26,8 @@ export interface TapirSense {
 export interface TapirStep {
   vx: number;
   brain: TapirBrain;
-  /** 惡夢雲:高度(中心 y)與速度,往玩家那邊慢慢飄。 */
-  mist: { y: number; speed: number }[];
+  /** 惡夢雲:高度(中心 y)與隔多久才吐(一團一團來,跳一次的時間內不會連來兩團),往玩家那邊慢慢飄。 */
+  mist: { y: number; delayMs: number }[];
   /** 正在用鼻子吸(把玩家往夢貘這邊拉)。 */
   inhaling: boolean;
   /** 叫出來的手下。 */
@@ -44,14 +44,12 @@ export const INHALE_PULL = 140;
 /** 三個階段越來越大(圖放大)。 */
 export const TAPIR_SCALE = { 1: 1, 2: 1.12, 3: 1.25 } as const;
 export const MIST_LOW_Y = GROUND_Y - 22;
-export const MIST_HIGH_Y = GROUND_Y - 105;
-const MIST = [
-  { y: MIST_LOW_Y, speed: 170 },
-  { y: MIST_HIGH_Y, speed: 135 },
-  { y: MIST_LOW_Y, speed: 110 },
-  { y: MIST_HIGH_Y, speed: 155 },
-  { y: MIST_LOW_Y, speed: 90 },
-] as const;
+/** 高的惡夢雲比關主區的平台底部(360)低一點,不會擦到平台。 */
+export const MIST_HIGH_Y = GROUND_Y - 98;
+const MIST_HEIGHTS = [MIST_LOW_Y, MIST_HIGH_Y, MIST_LOW_Y, MIST_HIGH_Y, MIST_LOW_Y] as const;
+/** 每團一樣快,一團隔 1 秒(比跳一次在空中的時間長)。 */
+export const MIST_SPEED = 130;
+export const MIST_GAP_MS = 1000;
 const MIST_COUNT = { 1: 3, 2: 4, 3: 5 } as const;
 const ANGRY_MS = 1000;
 const SHAKE = 40;
@@ -94,7 +92,12 @@ export function stepTapir(b: TapirBrain, s: TapirSense): TapirStep {
         return { ...none, vx, brain: { ...b, timerMs } };
       }
       const done = { ...b, mode: 'idle' as const, timerMs: 0 };
-      if (b.pending === 'mist') return { ...none, vx: 0, mist: MIST.slice(0, MIST_COUNT[b.phase]).map((m) => ({ ...m })), brain: done };
+      if (b.pending === 'mist') {
+        const n = MIST_COUNT[b.phase];
+        // 等雲都吐完才開始算下一招。
+        const mist = MIST_HEIGHTS.slice(0, n).map((y, i) => ({ y, delayMs: i * MIST_GAP_MS }));
+        return { ...none, vx: 0, mist, brain: { ...done, timerMs: -(n - 1) * MIST_GAP_MS } };
+      }
       if (b.pending === 'inhale') return { ...none, vx: 0, inhaling: true, brain: { ...b, mode: 'inhale', timerMs: 0 } };
       const room = Math.max(0, MAX_MINIONS - s.minionsAlive);
       const summon = (['pillowSoldier', 'noisyStar'] as const).slice(0, Math.min(2, room));

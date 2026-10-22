@@ -52,8 +52,8 @@ import { BLACKOUT_ALPHA, BLACKOUT_PLAYER_RADIUS, DARK_ALPHA, LIGHT_RADIUS, fadeD
 import { QUEEN_HOVER_Y, initialQueenBrain, stepQueen, type QueenBrain } from '../game/queen';
 import { initialAxolotlBrain, stepAxolotl, type AxolotlBrain } from '../game/axolotl';
 import { MOCHI_GRAVITY, initialRabbitBrain, stepRabbit, type RabbitBrain } from '../game/rabbit';
-import { REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain } from '../game/peacock';
-import { INHALE_PULL, TAPIR_SCALE, initialTapirBrain, stepTapir, type TapirBrain } from '../game/tapir';
+import { DART_SPEED, REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain } from '../game/peacock';
+import { INHALE_PULL, MIST_SPEED, TAPIR_SCALE, initialTapirBrain, stepTapir, type TapirBrain } from '../game/tapir';
 import { owlPhase } from '../game/owl';
 import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
@@ -151,6 +151,8 @@ const MIST_LIFE_MS = 12000;
 const DART_LIFE_MS = 7000;
 const STAR_R = 12;
 const INHALE_FX_MS = 90;
+/** 離夢貘這麼近(圖的半寬再加這些)就不再吸。 */
+const INHALE_STOP_GAP = 30;
 /** 巨鼴鼠的土堆比身體寬一點(冒出來會打到的範圍都看得到)。 */
 const MOLE_MOUND_RATIO = 1.4;
 /** 雲海(世界 8 的河溝)的顏色。 */
@@ -1238,6 +1240,9 @@ export class TestRangeScene extends Phaser.Scene {
   private applyInhale(p: PlayerEntity): void {
     const boss = this.boss?.enemy;
     if (!this.inhaling || !boss || p.health.down) return;
+    // 已經貼到夢貘身上就不再拉(不會被卡在牠身上一直扣愛心)。
+    const reach = (boss.def.w / 2) * boss.artScaleMul + INHALE_STOP_GAP;
+    if (Math.abs(boss.x - p.x) < reach) return;
     const pb = p.body();
     pb.setVelocityX(pb.velocity.x + Math.sign(boss.x - p.x) * INHALE_PULL);
     this.pulls += 1;
@@ -1254,7 +1259,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (this.bossDefeated) return;
     this.slowMs[i] = MOCHI_SLOW_MS;
     this.mochiHits += 1;
-    audio.sfx('hurt');
+    audio.sfx('blocked');
     const label = this.add
       .text(p.x, p.feetY - 70, '黏住了!', { fontSize: '18px', color: '#fff8f0', stroke: '#3a2a5a', strokeThickness: 4 })
       .setOrigin(0.5, 1)
@@ -2135,7 +2140,9 @@ export class TestRangeScene extends Phaser.Scene {
     enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
     enemy.physicsBody().setVelocityX(step.vx);
     if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
-    for (const d of step.darts) this.shots.fire(enemy.x + d.dir * (enemy.def.w / 2), d.y, d.dir * d.speed, 0, 'dart', 0, DART_LIFE_MS);
+    for (const d of step.darts) {
+      this.later(boss, d.delayMs, () => this.shots.fire(enemy.x + d.dir * (enemy.def.w / 2), d.y, d.dir * DART_SPEED, 0, 'dart', 0, DART_LIFE_MS));
+    }
     if (step.fan) {
       // 開屏:尾羽一圈光散開,畫面閃一下。
       this.reverseMs = REVERSE_MS;
@@ -2163,11 +2170,18 @@ export class TestRangeScene extends Phaser.Scene {
     enemy.brain = { ...enemy.brain, facing, phase: 'idle' };
     enemy.physicsBody().setVelocityX(step.vx);
     if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
-    const mouthX = enemy.x + facing * (enemy.def.w / 2);
-    for (const m of step.mist) this.shots.fire(mouthX, m.y, facing * m.speed, 0, 'mist', 0, MIST_LIFE_MS);
+    // 圖放大了,嘴巴也跟著往外。
+    const half = (enemy.def.w / 2) * enemy.artScaleMul;
+    for (const m of step.mist) {
+      this.later(boss, m.delayMs, () => {
+        const dir: 1 | -1 = enemy.brain.facing;
+        this.shots.fire(enemy.x + dir * half, m.y, dir * MIST_SPEED, 0, 'mist', 0, MIST_LIFE_MS);
+      });
+    }
     if (!this.inhaling && step.inhaling) audio.sfx('bossPhase');
     this.inhaling = step.inhaling;
-    for (const type of step.summon) boss.minions.add(this.spawnFrom({ type, from: 'left', delayMs: 0 }, false));
+    // 手下從夢貘背後(右邊)出來,不擋在玩家逃開吸氣的方向。
+    for (const type of step.summon) boss.minions.add(this.spawnFrom({ type, from: 'right', delayMs: 0 }, false));
     if (step.enteredPhase) this.announcePhase(boss);
   }
 
@@ -2847,8 +2861,10 @@ export class TestRangeScene extends Phaser.Scene {
 
   /** 小頭目出招前頭上冒一個「!」(畫在黑暗上面,洞窟裡也看得到)。 */
   private tell(e: EnemyEntity): void {
+    // 圖放大時(夢貘)「!」也跟著畫在頭頂上。
+    const top = e.body.y + e.def.h / 2 - e.def.h * e.artScaleMul;
     const mark = this.add
-      .text(e.x, e.body.y - e.def.h / 2 - 12, '!', { fontSize: '30px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 5 })
+      .text(e.x, top - 12, '!', { fontSize: '30px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 5 })
       .setOrigin(0.5, 1)
       .setDepth(DARK_DEPTH + 1);
     this.tweens.add({ targets: mark, y: mark.y - 10, alpha: 0, delay: TELL_MS - 150, duration: 150, onComplete: () => mark.destroy() });
@@ -3032,6 +3048,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.bossGust = false;
     this.inhaling = false;
     this.reverseMs = 0;
+    this.reverseText.setVisible(false);
+    this.slowMs.fill(0);
     audio.music(null);
     audio.sfx('bossDown');
     const { x, y } = boss.enemy.body;

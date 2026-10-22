@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { MOCHI_GRAVITY, RABBIT_WALK_MS, RABBIT_WINDUP_MS, initialRabbitBrain, stepRabbit, type RabbitBrain, type RabbitSense } from '../src/game/rabbit';
-import { DART_HIGH_Y, DART_LOW_Y, PEACOCK_WALK_MS, PEACOCK_WINDUP_MS, REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain, type PeacockSense } from '../src/game/peacock';
-import { INHALE_MS, INHALE_PULL, MIST_HIGH_Y, MIST_LOW_Y, TAPIR_SCALE, TAPIR_WINDUP_MS, initialTapirBrain, stepTapir, type TapirBrain, type TapirSense } from '../src/game/tapir';
+import { DART_GAP_MS, DART_HIGH_Y, DART_LOW_Y, DART_SPEED, PEACOCK_WALK_MS, PEACOCK_WINDUP_MS, REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain, type PeacockSense } from '../src/game/peacock';
+import { INHALE_MS, INHALE_PULL, MIST_GAP_MS, MIST_HIGH_Y, MIST_LOW_Y, MIST_SPEED, TAPIR_SCALE, TAPIR_WINDUP_MS, initialTapirBrain, stepTapir, type TapirBrain, type TapirSense } from '../src/game/tapir';
 import { ENEMY_DEFS, VULTURE_SWOOP_Y, initialBrain, stepEnemy, type EnemySense } from '../src/game/enemies';
 import { CROUCH_HITBOX, STAND_HITBOX } from '../src/game/playerMotor';
 import { DEFAULT_TUNING } from '../src/config/tuning';
@@ -11,6 +11,17 @@ import { summaryLines, newRunStats } from '../src/game/runStats';
 /** 子彈圖的高度(羽毛飛鏢 14、惡夢雲 28)。 */
 const DART_H = 14;
 const MIST_H = 28;
+/** 跳一次在空中多久(秒)。 */
+const AIR_S = (2 * DEFAULT_TUNING.jumpVelocity) / DEFAULT_TUNING.gravity;
+
+/**
+ * 只會站著或原地跳的玩家,離出手的地方 d 時,一排子彈(同樣速度、依序出手)躲不躲得掉:
+ * 每支低的都要跳,而且低的到的時候不能還在空中掉不下來接著碰到高的——相鄰兩支到達的時間差要比在空中的時間長。
+ */
+function volleyDodgeable(shots: readonly { delayMs: number }[], speed: number): boolean {
+  const arrive = shots.map((x) => x.delayMs / 1000).sort((a, b) => a - b);
+  return arrive.every((t, i) => i === 0 || t - arrive[i - 1] > AIR_S + 0.05) && speed > 0;
+}
 
 describe('世界 10 的魔物', () => {
   const sense = (over: Partial<EnemySense> = {}): EnemySense => ({ x: 500, y: 456, grounded: true, targetX: 200, targetY: 456, dtMs: 50, ...over });
@@ -97,7 +108,7 @@ describe('熬夜孔雀', () => {
   const sense = (over: Partial<PeacockSense> = {}): PeacockSense => ({ x: 700, hpRatio: 1, targetX: 300, dtMs: 50, ...over });
   const run = (b: PeacockBrain, ms: number, over: Partial<PeacockSense> = {}) => {
     let fans = 0;
-    const darts: { y: number; speed: number; dir: number }[] = [];
+    const darts: { y: number; dir: number; delayMs: number }[] = [];
     for (let t = 0; t < ms; t += 50) {
       const r = stepPeacock(b, sense(over));
       b = r.brain;
@@ -117,6 +128,9 @@ describe('熬夜孔雀', () => {
     const angry = run(run(initialPeacockBrain(), PEACOCK_WALK_MS + PEACOCK_WINDUP_MS + 100).b, 700 + PEACOCK_WALK_MS + PEACOCK_WINDUP_MS + 100, { hpRatio: 0.4 });
     expect(angry.darts).toHaveLength(5);
     expect(REVERSE_MS).toBe(2500);
+    // 一支一支來,跳一次的時間內不會連來兩支(站著或原地跳就躲得掉)。
+    expect(volleyDodgeable(angry.darts, DART_SPEED)).toBe(true);
+    expect(DART_GAP_MS / 1000).toBeGreaterThan(AIR_S);
   });
 
   test('高的飛鏢站著從頭上過去;低的蹲下也躲不掉(要跳)', () => {
@@ -133,7 +147,7 @@ describe('熬夜孔雀', () => {
 describe('偷走睡意的夢貘', () => {
   const sense = (over: Partial<TapirSense> = {}): TapirSense => ({ hpRatio: 1, targetX: 9500, minionsAlive: 0, dtMs: 50, ...over });
   const run = (b: TapirBrain, ms: number, over: Partial<TapirSense> = {}) => {
-    const mist: { y: number }[] = [];
+    const mist: { y: number; delayMs: number }[] = [];
     let inhaleMs = 0;
     const summon: string[] = [];
     for (let t = 0; t < ms; t += 50) {
@@ -147,8 +161,9 @@ describe('偷走睡意的夢貘', () => {
   };
 
   test('第一階段:吐 3 團有高有低的惡夢雲、吸 2 秒,第三招改成再吐雲(不叫手下)', () => {
-    const r = run(initialTapirBrain(), 3 * (2000 + TAPIR_WINDUP_MS) + INHALE_MS + 300);
+    const r = run(initialTapirBrain(), 3 * (2000 + TAPIR_WINDUP_MS) + INHALE_MS + 2 * 2 * MIST_GAP_MS + 300);
     expect(r.mist.length).toBe(6);
+    expect(volleyDodgeable(r.mist.slice(0, 3), MIST_SPEED)).toBe(true);
     expect(new Set(r.mist.map((m) => m.y))).toEqual(new Set([MIST_LOW_Y, MIST_HIGH_Y]));
     expect(r.inhaleMs).toBeGreaterThanOrEqual(INHALE_MS - 100);
     expect(r.summon).toHaveLength(0);
@@ -168,6 +183,8 @@ describe('偷走睡意的夢貘', () => {
 
   test('惡夢雲:高的站著過、低的要跳;吸的力量比走路小(往反方向跑得掉);越來越大', () => {
     expect(MIST_HIGH_Y + MIST_H / 2).toBeLessThan(GROUND_Y - STAND_HITBOX.h);
+    // 高的雲比關主區平台底部(360)低,不會擦到平台(沒有圖時的程式畫的雲 30 高也一樣)。
+    expect(MIST_HIGH_Y - 30 / 2).toBeGreaterThan(360);
     expect(MIST_LOW_Y + MIST_H / 2).toBeGreaterThan(GROUND_Y - CROUCH_HITBOX.h);
     expect(INHALE_PULL).toBeLessThan(DEFAULT_TUNING.walkSpeed * 0.75);
     expect(TAPIR_SCALE[3]).toBeGreaterThan(TAPIR_SCALE[2]);
