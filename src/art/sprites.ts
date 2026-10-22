@@ -81,6 +81,25 @@ export const SPRITES = {
   'nessie-2': { file: 'enemies/w3-nessie-boss-phase2.png', w: 238, h: 220 },
   'nessie-3': { file: 'enemies/w3-nessie-boss-phase3.png', w: 237, h: 220 },
   'nessie-sleep': { file: 'enemies/w3-nessie-boss-sleep.png', w: 238, h: 220 },
+  squirrel: { file: 'enemies/w1-boss1-squirrel.png', w: 216, h: 150 },
+  'squirrel-sleep': { file: 'enemies/w1-boss1-squirrel-sleep.png', w: 208, h: 150 },
+  beaver: { file: 'enemies/w1-boss2-beaver.png', w: 160, h: 150 },
+  'beaver-sleep': { file: 'enemies/w1-boss2-beaver-sleep.png', w: 161, h: 150 },
+  camel: { file: 'enemies/w2-boss1-camel.png', w: 139, h: 150 },
+  'camel-sleep': { file: 'enemies/w2-boss1-camel-sleep.png', w: 137, h: 150 },
+  fennec: { file: 'enemies/w2-boss2-fennec-fox.png', w: 149, h: 150 },
+  'fennec-sleep': { file: 'enemies/w2-boss2-fennec-fox-sleep.png', w: 148, h: 150 },
+  'hermit-crab': { file: 'enemies/w3-boss1-hermit-crab.png', w: 112, h: 150 },
+  'hermit-crab-sleep': { file: 'enemies/w3-boss1-hermit-crab-sleep.png', w: 110, h: 150 },
+  eel: { file: 'enemies/w3-boss2-electric-eel.png', w: 102, h: 150 },
+  'eel-sleep': { file: 'enemies/w3-boss2-electric-eel-sleep.png', w: 102, h: 130 },
+  'b-acorn': { file: 'bullets/w1-acorn.png', w: 20, h: 26 },
+  'b-log': { file: 'bullets/w1-log.png', w: 40, h: 18 },
+  'b-water-wave': { file: 'bullets/w1-water-wave.png', w: 48, h: 28 },
+  'b-spit': { file: 'bullets/w2-spit.png', w: 16, h: 16 },
+  'b-sand-dust': { file: 'bullets/w2-sand-dust.png', w: 40, h: 24 },
+  'b-bubble': { file: 'bullets/w3-bubble.png', w: 18, h: 18 },
+  'b-electric-beam': { file: 'bullets/w3-electric-beam.png', w: 32, h: 16 },
   quicksand: { file: 'items/w2-quicksand.png', w: 96, h: 24 },
   'pressure-plate': { file: 'items/w2-pressure-plate.png', w: 40, h: 12 },
   'falling-block': { file: 'items/w2-falling-block.png', w: 40, h: 39 },
@@ -167,32 +186,33 @@ export const SPHINX_ART_SCALE = 0.75;
 /** 尼斯湖水怪原圖 220 高,畫成 0.7 倍。 */
 export const NESSIE_ART_SCALE = 0.7;
 
-/** 畫的時候要縮放的魔物(關主縮小;世界 1 的小頭目暫時用原本魔物的圖放大)。 */
+/** 小頭目原圖 150 高,畫成 0.8 倍。 */
+export const MINI_BOSS_ART_SCALE = 0.8;
+
+/** 畫的時候要縮放的魔物(關主與小頭目的原圖比較大)。 */
 export const ENEMY_ART_SCALE: Partial<Record<EnemyType, number>> = {
   nightOwl: OWL_ART_SCALE,
   sphinx: SPHINX_ART_SCALE,
   nessie: NESSIE_ART_SCALE,
-  bigClockBug: 1.5,
-  hedgehogCaptain: 1.4,
+  squirrel: MINI_BOSS_ART_SCALE,
+  beaver: MINI_BOSS_ART_SCALE,
+  camel: MINI_BOSS_ART_SCALE,
+  fennec: MINI_BOSS_ART_SCALE,
+  hermitCrab: MINI_BOSS_ART_SCALE,
+  eel: MINI_BOSS_ART_SCALE,
 };
 
-/** 小頭目染色,和一般魔物區分。 */
-export const ENEMY_ART_TINT: Partial<Record<EnemyType, number>> = { bigClockBug: 0xffc890, hedgehogCaptain: 0xffa8a8 };
+/** 魔物的固定染色(目前沒有;保留給之後區分同一張圖的變種)。 */
+export const ENEMY_ART_TINT: Partial<Record<EnemyType, number>> = {};
 
 /**
- * 美術還沒畫的小頭目(駱駝、耳廓狐)先用程式畫的造型(src/art/placeholders.ts);
- * 美術畫好後加進 SPRITES,把這裡的對照換成正式的圖。
+ * 美術規格是「朝左」,但這幾張圖畫成朝右(人面獅身爪子朝右、尾巴在左;耳廓狐尾巴在左)。
+ * 畫的時候反過來,關主才會面對玩家。
  */
-export type PlaceholderKey =
-  | 'gk-camel'
-  | 'gk-camel-sleep'
-  | 'gk-fennec'
-  | 'gk-fennec-sleep'
-  | 'gk-hermit-crab'
-  | 'gk-hermit-crab-sleep'
-  | 'gk-eel'
-  | 'gk-eel-sleep';
-export type ArtKey = SpriteKey | PlaceholderKey;
+export const ART_FACES_RIGHT: ReadonlySet<EnemyType> = new Set(['sphinx', 'fennec']);
+
+/** 魔物圖的 key(之前有程式畫的暫代造型,美術全部畫好後只剩 SpriteKey)。 */
+export type ArtKey = SpriteKey;
 
 type PhasedBoss = 'nightOwl' | 'sphinx' | 'nessie';
 
@@ -201,42 +221,42 @@ const ENEMY_AWAKE: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   coffeeBean: 'coffee-bean',
   nightBat: 'night-bat',
   hedgehog: 'hedgehog',
-  bigClockBug: 'clockbug',
-  hedgehogCaptain: 'hedgehog',
+  squirrel: 'squirrel',
+  beaver: 'beaver',
   bellScarab: 'bell-scarab',
   mummyCat: 'mummy-cat',
   sandSnake: 'sand-snake',
   vulture: 'vulture',
   tortoise: 'tortoise',
-  camel: 'gk-camel',
-  fennec: 'gk-fennec',
+  camel: 'camel',
+  fennec: 'fennec',
   jellyfish: 'jellyfish',
   clownfish: 'clownfish',
   octopus: 'octopus',
   puffer: 'puffer',
-  hermitCrab: 'gk-hermit-crab',
-  eel: 'gk-eel',
+  hermitCrab: 'hermit-crab',
+  eel: 'eel',
 };
 const ENEMY_SLEEP: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   alarmBug: 'clockbug-sleep',
   coffeeBean: 'coffee-bean-sleep',
   nightBat: 'night-bat-sleep',
   hedgehog: 'hedgehog-sleep',
-  bigClockBug: 'clockbug-sleep',
-  hedgehogCaptain: 'hedgehog-sleep',
+  squirrel: 'squirrel-sleep',
+  beaver: 'beaver-sleep',
   bellScarab: 'bell-scarab-sleep',
   mummyCat: 'mummy-cat-sleep',
   sandSnake: 'sand-snake-sleep',
   vulture: 'vulture-sleep',
   tortoise: 'tortoise-sleep',
-  camel: 'gk-camel-sleep',
-  fennec: 'gk-fennec-sleep',
+  camel: 'camel-sleep',
+  fennec: 'fennec-sleep',
   jellyfish: 'jellyfish-sleep',
   clownfish: 'clownfish-sleep',
   octopus: 'octopus-sleep',
   puffer: 'puffer-sleep',
-  hermitCrab: 'gk-hermit-crab-sleep',
-  eel: 'gk-eel-sleep',
+  hermitCrab: 'hermit-crab-sleep',
+  eel: 'eel-sleep',
 };
 const BOSS_PHASES: Record<PhasedBoss, { 1: SpriteKey; 2: SpriteKey; 3: SpriteKey; sleep: SpriteKey }> = {
   nightOwl: { 1: 'owl', 2: 'owl-2', 3: 'owl-3', sleep: 'owl-sleep' },

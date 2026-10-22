@@ -5,9 +5,7 @@ import type { PlayerEntity } from './playerEntity';
 import { SAND_JUMP, SAND_POP_VY, SAND_SPEED, freshSand, inQuicksand, sinkDepth, stepSand, type SandState } from './sand';
 import {
   BLOCK_FALL_VY,
-  BLOCK_H,
   BLOCK_LIFE_MS,
-  BLOCK_W,
   BLOCK_WARN_MS,
   PLATE_W,
   landingTop,
@@ -30,7 +28,19 @@ export const WAVE_W = 36;
 export const WAVE_H = 20;
 export const WAVE_SPEED = 260;
 const WAVE_RANGE = 1100;
-const BLOCK_START_Y = -BLOCK_H;
+/** 會掉下來的東西:沙磚、河狸的木頭落地後當踏板;冰柱落地就碎掉。 */
+export type DropKind = 'sand' | 'log' | 'icicle';
+const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number; solid: boolean }> = {
+  sand: { key: 'falling-block', w: 40, h: 38, color: SAND, solid: true },
+  log: { key: 'b-log', w: 40, h: 18, color: 0x8a5a3a, solid: true },
+  icicle: { key: 'icicle', w: 24, h: 56, color: 0xd8f0ff, solid: false },
+};
+/** 沙浪(沙塵)與河狸的水波。 */
+export type WaveKind = 'sand' | 'water';
+const WAVE_ART: Record<WaveKind, { key: string; color: number }> = {
+  sand: { key: 'b-sand-dust', color: SAND },
+  water: { key: 'b-water-wave', color: 0x8fd0f0 },
+};
 const CRUMBLE_MS = 300;
 const PLATE_PRESS_PX = 3;
 
@@ -38,6 +48,10 @@ type BlockStage = 'warn' | 'fall' | 'landed';
 
 interface Block {
   x: number;
+  w: number;
+  h: number;
+  /** 落地後會不會變成踏板(冰柱落地就碎掉)。 */
+  platform: boolean;
   stage: BlockStage;
   ms: number;
   /** 落地時底部的 y。 */
@@ -49,7 +63,7 @@ interface Block {
 }
 
 interface Wave {
-  view: Phaser.GameObjects.Ellipse;
+  view: Phaser.GameObjects.Image | Phaser.GameObjects.Ellipse;
   dir: 1 | -1;
   delayMs: number;
   travelled: number;
@@ -111,19 +125,25 @@ export class DesertHazards {
   }
 
   /** 預告後從天上掉一塊沙磚。 */
-  dropBlock(x: number): void {
-    const landY = landingTop(x, BLOCK_W, 0, this.surfaces(null));
-    const shadow = this.scene.add.ellipse(x, landY, BLOCK_W * 0.4, 8, SHADOW, 0.5).setDepth(-1);
-    const view = this.scene.textures.exists('falling-block')
-      ? this.scene.add.image(x, BLOCK_START_Y, 'falling-block').setOrigin(0.5, 1)
-      : this.scene.add.rectangle(x, BLOCK_START_Y, BLOCK_W, BLOCK_H, SAND).setOrigin(0.5, 1).setStrokeStyle(3, OUTLINE);
+  dropBlock(x: number, kind: DropKind = 'sand'): void {
+    const d = DROPS[kind];
+    const landY = landingTop(x, d.w, 0, this.surfaces(null));
+    const shadow = this.scene.add.ellipse(x, landY, d.w * 0.4, 8, SHADOW, 0.5).setDepth(-1);
+    const view = this.scene.textures.exists(d.key)
+      ? this.scene.add.image(x, -d.h, d.key).setOrigin(0.5, 1).setDisplaySize(d.w, d.h)
+      : this.scene.add.rectangle(x, -d.h, d.w, d.h, d.color).setOrigin(0.5, 1).setStrokeStyle(3, OUTLINE);
     view.setDepth(2).setVisible(false);
-    this.blocks.push({ x, stage: 'warn', ms: 0, landY, shadow, view, solid: null });
+    this.blocks.push({ x, w: d.w, h: d.h, platform: d.solid, stage: 'warn', ms: 0, landY, shadow, view, solid: null });
   }
 
   /** 沿著地面滑的沙浪,delayMs 後出發。 */
-  sendWave(x: number, dir: 1 | -1, delayMs = 0): void {
-    const view = this.scene.add.ellipse(x, GROUND_Y - WAVE_H / 2, WAVE_W, WAVE_H, SAND).setStrokeStyle(3, OUTLINE).setDepth(4).setVisible(delayMs === 0);
+  sendWave(x: number, dir: 1 | -1, delayMs = 0, kind: WaveKind = 'sand'): void {
+    const art = WAVE_ART[kind];
+    const y = GROUND_Y - WAVE_H / 2;
+    const view = this.scene.textures.exists(art.key)
+      ? this.scene.add.image(x, y, art.key).setDisplaySize(WAVE_W + 8, WAVE_H + 6).setFlipX(dir > 0)
+      : this.scene.add.ellipse(x, y, WAVE_W, WAVE_H, art.color).setStrokeStyle(3, OUTLINE);
+    view.setDepth(4).setVisible(delayMs === 0);
     this.waves.push({ view, dir, delayMs, travelled: 0 });
   }
 
@@ -165,8 +185,8 @@ export class DesertHazards {
   /** 沙磚可以落在上面的表面:平台與已經落地的沙磚(不含 self)。 */
   private surfaces(self: Block | null): Rect[] {
     const landed = this.blocks
-      .filter((b) => b !== self && b.stage === 'landed')
-      .map((b) => ({ x: b.x - BLOCK_W / 2, y: b.landY - BLOCK_H, w: BLOCK_W, h: BLOCK_H }));
+      .filter((b) => b !== self && b.platform && b.stage === 'landed')
+      .map((b) => ({ x: b.x - b.w / 2, y: b.landY - b.h, w: b.w, h: b.h }));
     return [...this.opts.platforms, ...landed];
   }
 
@@ -174,7 +194,7 @@ export class DesertHazards {
     b.ms += dt;
     if (b.stage === 'warn') {
       const k = Math.min(1, b.ms / BLOCK_WARN_MS);
-      b.shadow.setSize(BLOCK_W * (0.4 + 0.6 * k), 8).setAlpha(0.3 + 0.4 * k);
+      b.shadow.setSize(b.w * (0.4 + 0.6 * k), 8).setAlpha(0.3 + 0.4 * k);
       if (b.ms < BLOCK_WARN_MS) return;
       b.stage = 'fall';
       b.ms = 0;
@@ -183,12 +203,12 @@ export class DesertHazards {
     }
     if (b.stage === 'fall') {
       // 每格重新找落點:底下的沙磚可能已經碎掉了。
-      b.landY = landingTop(b.x, BLOCK_W, b.view.y, this.surfaces(b));
+      b.landY = landingTop(b.x, b.w, b.view.y, this.surfaces(b));
       b.shadow.setY(b.landY);
       const y = Math.min(b.landY, b.view.y + (BLOCK_FALL_VY * dt) / 1000);
       b.view.setY(y);
       for (const p of players) {
-        if (!p.health.down && overlaps(p.body(), b.x, y - BLOCK_H / 2, BLOCK_W - 6, BLOCK_H - 6)) this.opts.hurt(p);
+        if (!p.health.down && overlaps(p.body(), b.x, y - b.h / 2, b.w - 6, b.h - 6)) this.opts.hurt(p);
       }
       if (y < b.landY) return;
       b.stage = 'landed';
@@ -199,8 +219,13 @@ export class DesertHazards {
       return;
     }
     // 落地:沒有人卡在裡面才變成可以站的平台;時間到碎掉。
-    if (!b.solid && !players.some((p) => overlaps(p.body(), b.x, b.landY - BLOCK_H / 2, BLOCK_W, BLOCK_H))) {
-      const r = this.scene.add.rectangle(b.x, b.landY - BLOCK_H / 2, BLOCK_W, BLOCK_H).setVisible(false);
+    if (!b.platform) {
+      // 冰柱:落地就碎掉。
+      this.removeBlock(b, true);
+      return;
+    }
+    if (!b.solid && !players.some((p) => overlaps(p.body(), b.x, b.landY - b.h / 2, b.w, b.h))) {
+      const r = this.scene.add.rectangle(b.x, b.landY - b.h / 2, b.w, b.h).setVisible(false);
       this.opts.terrain.add(r);
       this.opts.terrainBodies.add(r.body as Phaser.Physics.Arcade.StaticBody);
       b.solid = r;
@@ -218,7 +243,7 @@ export class DesertHazards {
     for (let changed = true; changed; ) {
       changed = false;
       for (const o of this.blocks) {
-        if (o.stage !== 'landed' || landingTop(o.x, BLOCK_W, o.landY, this.surfaces(o)) <= o.landY) continue;
+        if (o.stage !== 'landed' || landingTop(o.x, o.w, o.landY, this.surfaces(o)) <= o.landY) continue;
         o.stage = 'fall';
         o.ms = 0;
         this.unsolid(o);

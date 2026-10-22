@@ -105,7 +105,7 @@ describe('失眠寄居蟹', () => {
 
   test('縮殼滑到畫面邊緣會反彈', () => {
     const brain = { ...initialCrabBrain(), mode: 'shell' as const, facing: -1 as const };
-    expect(stepCrab(brain, s({ x: 46 })).vx).toBeGreaterThan(0);
+    expect(stepCrab(brain, s({ x: ENEMY_DEFS.hermitCrab.w / 2 })).vx).toBeGreaterThan(0);
   });
 });
 
@@ -136,7 +136,7 @@ describe('熬夜電鰻', () => {
   });
 
   test('游到邊緣轉身', () => {
-    expect(stepEel(initialEelBrain(), s({ x: 60 })).vx).toBeGreaterThan(0);
+    expect(stepEel(initialEelBrain(), s({ x: ENEMY_DEFS.eel.w / 2 })).vx).toBeGreaterThan(0);
   });
 });
 

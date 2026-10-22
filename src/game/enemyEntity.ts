@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { EnemyDebug } from '../main';
 import { ENEMY_DEFS, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
-import { ENEMY_ART_SCALE, ENEMY_ART_TINT, enemySprite, type ArtKey } from '../art/sprites';
+import { ART_FACES_RIGHT, ENEMY_ART_SCALE, ENEMY_ART_TINT, enemySprite, type ArtKey } from '../art/sprites';
 import { enemyPose } from '../art/motion';
 
 const SHIELD_W = 3;
@@ -113,8 +113,9 @@ export class EnemyEntity {
     } else {
       this.artFacing = this.brain.facing;
     }
-    this.art.setFlipX(this.artFacing > 0);
-    if (this.def.type === 'hedgehog' || this.def.type === 'hedgehogCaptain') {
+    // 素材朝左;少數畫成朝右的(人面獅身、耳廓狐)反過來。
+    this.art.setFlipX(this.artFacing > 0 !== ART_FACES_RIGHT.has(this.def.type));
+    if (this.def.type === 'hedgehog') {
       this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
     }
     const pb = this.physicsBody();

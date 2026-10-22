@@ -79,11 +79,14 @@ test.describe('1-2 河邊', () => {
     for (const b of bugs) expect(b.y).toBeLessThan(480);
   });
 
-  test('小頭目刺蝟隊長:血量 40,打倒通關', async ({ page }) => {
+  test('小頭目熬夜大河狸:血量 40,拍出水波、丟木頭,打倒通關', async ({ page }) => {
     await open(page);
     await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
     await page.waitForFunction(() => !!window.__GK__!.boss, undefined, { timeout: 15000 });
+    expect((await gk(page)).boss!.type).toBe('beaver');
     expect((await gk(page)).boss!.maxHp).toBe(40);
+    await page.waitForFunction(() => window.__GK__!.desert!.waves > 0, undefined, { timeout: 5000 });
+    await page.waitForFunction(() => window.__GK__!.desert!.blocks > 0, undefined, { timeout: 6000 });
     await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
     await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
   });

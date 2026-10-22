@@ -139,6 +139,6 @@ export const RIVER: LevelDef = {
       ],
     },
   ],
-  boss: { type: 'hedgehogCaptain', lockScrollX: 9240, spawnX: 9900 },
+  boss: { type: 'beaver', lockScrollX: 9240, spawnX: 9900 },
   scenes: [{ scene: 'w1-s2', fromScrollX: 0 }],
 };

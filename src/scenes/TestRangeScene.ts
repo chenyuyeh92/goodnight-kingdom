@@ -23,12 +23,13 @@ import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/run
 import type { LevelCompleteData } from './LevelCompleteScene';
 import { ENEMY_ART_TINT, artStatus, assetPath, enemySprite, itemSprite, weaponIcon, worldSpriteKeys } from '../art/sprites';
 import { SCENE_PALETTE, SCENE_TIME, sceneKeys, type TerrainPalette } from '../art/scenes';
-import { makePlaceholderArt } from '../art/placeholders';
 import { isStoryLevel, levelNumber, nextLevel } from '../game/progress';
 import { DesertHazards } from '../game/desertHazards';
 import { initialCamelBrain, stepCamel, type CamelBrain } from '../game/camel';
 import { initialFennecBrain, stepFennec, type FennecBrain } from '../game/fennec';
 import { initialSphinxBrain, stepSphinx, type SphinxBrain } from '../game/sphinx';
+import { ACORN_GRAVITY, initialSquirrelBrain, stepSquirrel, type SquirrelBrain } from '../game/squirrel';
+import { initialBeaverBrain, stepBeaver, type BeaverBrain } from '../game/beaver';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
 import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
 import { initialNessieBrain, stepNessie, type NessieBrain } from '../game/nessie';
@@ -94,9 +95,6 @@ const BOSS_BAR_Y = 514;
 const BOSS_PHASE_TEXT_MS = 1500;
 /** 打倒關主後到結算畫面的時間。 */
 const BOSS_OUTRO_MS = 1500;
-/** 大鬧鐘蟲每 5 秒叫一隻小鬧鐘蟲,場上最多 3 隻。 */
-const MINI_BOSS_SUMMON_MS = 5000;
-const MINI_BOSS_MAX_MINIONS = 3;
 /** 打倒關主:停頓 ×3、晃動 ×2。 */
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
@@ -189,10 +187,11 @@ interface Target {
 }
 
 
-/** 各種關主與小頭目的行為狀態;walker 是世界 1 暫代的小頭目,照一般魔物移動。 */
+/** 各種關主與小頭目的行為狀態。 */
 type BossAi =
   | { kind: 'owl'; brain: OwlBrain }
-  | { kind: 'walker' }
+  | { kind: 'squirrel'; brain: SquirrelBrain; armored: boolean }
+  | { kind: 'beaver'; brain: BeaverBrain }
   | { kind: 'camel'; brain: CamelBrain }
   | { kind: 'fennec'; brain: FennecBrain; mound: Phaser.GameObjects.Ellipse | null }
   | { kind: 'sphinx'; brain: SphinxBrain }
@@ -201,12 +200,16 @@ type BossAi =
   | { kind: 'nessie'; brain: NessieBrain };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
     case 'nightOwl':
       return { kind: 'owl', brain: initialOwlBrain() };
+    case 'squirrel':
+      return { kind: 'squirrel', brain: initialSquirrelBrain(), armored: false };
+    case 'beaver':
+      return { kind: 'beaver', brain: initialBeaverBrain() };
     case 'camel':
       return { kind: 'camel', brain: initialCamelBrain() };
     case 'fennec':
@@ -219,8 +222,6 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'eel', brain: initialEelBrain() };
     case 'nessie':
       return { kind: 'nessie', brain: initialNessieBrain() };
-    default:
-      return { kind: 'walker' };
   }
 }
 
@@ -230,7 +231,7 @@ function aiPhase(ai: BossAi): 1 | 2 | 3 {
 }
 
 function aiMode(ai: BossAi): string {
-  return ai.kind === 'walker' ? 'walk' : ai.brain.mode;
+  return ai.brain.mode;
 }
 
 interface Boss {
@@ -240,9 +241,6 @@ interface Boss {
   invulnerable: boolean;
   minions: Set<EnemyEntity>;
   wasAngry: boolean;
-  /** 小頭目叫小怪的計時與方向(左右輪流)。 */
-  summonMs: number;
-  summonSide: 'left' | 'right';
 }
 
 interface Chest {
@@ -368,8 +366,9 @@ export class TestRangeScene extends Phaser.Scene {
   private currentsView: CurrentsView | null = null;
   /** 每位玩家上一格有沒有按跳躍(游泳時判斷「剛按下」)。 */
   private prevJump: boolean[] = [];
-  /** 電鰻的電流(每格重畫)。 */
+  /** 電鰻的電流(每格重畫);有美術圖時用橫向接長的電流圖。 */
   private beamGfx!: Phaser.GameObjects.Graphics;
+  private beamTiles: Phaser.GameObjects.TileSprite[] = [];
   private flags: { x: number; g: Phaser.GameObjects.Graphics; on: boolean | null }[] = [];
 
   constructor() {
@@ -449,7 +448,6 @@ export class TestRangeScene extends Phaser.Scene {
     this.terrainBodies.clear();
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
-    if (!artStatus.disabled) makePlaceholderArt(this);
     this.background = new ParallaxBackground(this, this.level.scenes);
     audio.music(levelTrack(this.level));
     this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
@@ -508,6 +506,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.currentsView = this.level.currents?.length ? new CurrentsView(this, this.level.currents) : null;
     this.prevJump = this.players.map(() => false);
     this.beamGfx = this.add.graphics().setDepth(4);
+    this.beamTiles = [];
 
     const chestGroup = this.physics.add.staticGroup();
     const alreadyOpened = new Set(this.initData.openedChests ?? []);
@@ -1106,7 +1105,8 @@ export class TestRangeScene extends Phaser.Scene {
       if (ai.kind === 'camel') this.updateCamel(boss, ai, dtMs);
       else if (ai.kind === 'fennec') this.updateFennec(boss, ai, dtMs);
       else if (ai.kind === 'crab') this.updateCrab(boss, ai, dtMs);
-      else this.updateWalkerBoss(boss, dtMs);
+      else if (ai.kind === 'squirrel') this.updateSquirrel(boss, ai, dtMs);
+      else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
     this.renderBossBar();
@@ -1313,11 +1313,19 @@ export class TestRangeScene extends Phaser.Scene {
       const a = Math.floor(this.time.now / 100) % 2 === 0 ? 0.9 : 0.4;
       g.fillStyle(BEAM_WARN, a).fillRect(lock, y - 1, VIEW_W, 2);
     }
-    for (const y of zap) {
+    const art = this.textures.exists('b-electric-beam');
+    zap.forEach((y, i) => {
+      if (art) {
+        this.beamTiles[i] ??= this.add.tileSprite(0, 0, VIEW_W, BEAM_HALF_H * 2, 'b-electric-beam').setOrigin(0, 0.5).setDepth(4);
+        // 電流圖往前流動。
+        this.beamTiles[i].setPosition(lock, y).setVisible(true).tilePositionX = this.time.now / 4;
+        return;
+      }
       g.fillStyle(0x3a2a5a, 0.8).fillRect(lock, y - BEAM_HALF_H - 2, VIEW_W, BEAM_HALF_H * 2 + 4);
       g.fillStyle(BEAM_ZAP).fillRect(lock, y - BEAM_HALF_H, VIEW_W, BEAM_HALF_H * 2);
       g.fillStyle(0xffffff).fillRect(lock, y - 3, VIEW_W, 6);
-    }
+    });
+    this.beamTiles.forEach((t, i) => t.setVisible(i < zap.length));
   }
 
   /** 尼斯湖水怪:上下漂,輪流衝撞、泡泡扇、叫小丑魚;第三階段身體帶紅色。 */
@@ -1359,14 +1367,58 @@ export class TestRangeScene extends Phaser.Scene {
     if (step.enteredPhase) this.announcePhase(boss);
   }
 
-  /** 世界 1 暫代的小頭目照一般魔物的方式移動(updateEnemies);大鬧鐘蟲會一直叫小鬧鐘蟲。 */
-  private updateWalkerBoss(boss: Boss, dtMs: number): void {
-    if (boss.enemy.def.type !== 'bigClockBug') return;
-    boss.summonMs += dtMs;
-    if (boss.summonMs < MINI_BOSS_SUMMON_MS || boss.minions.size >= MINI_BOSS_MAX_MINIONS) return;
-    boss.summonMs = 0;
-    boss.summonSide = boss.summonSide === 'left' ? 'right' : 'left';
-    boss.minions.add(this.spawnFrom({ type: 'alarmBug', from: boss.summonSide, delayMs: 0 }, false));
+  /** 失眠大松鼠:丟橡實 → 轉身用大尾巴當盾(打不動)→ 跳到另一個位置。 */
+  private updateSquirrel(boss: Boss, ai: Extract<BossAi, { kind: 'squirrel' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const step = stepSquirrel(ai.brain, {
+      x: enemy.x,
+      grounded: pb.blocked.down || pb.touching.down,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    ai.armored = step.armored;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.brain.mode === 'hop' ? 'hop' : 'idle' };
+    if (step.vx !== null) pb.setVelocityX(step.vx);
+    if (step.vy !== null) pb.setVelocityY(step.vy);
+    if (was !== 'shield' && step.brain.mode === 'shield') this.tell(enemy);
+    const handX = enemy.x + step.brain.facing * (enemy.def.w / 2);
+    const handY = GROUND_Y - enemy.def.h * 0.6;
+    for (const a of step.acorns) this.shots.fire(handX, handY, a.vx, a.vy, 'acorn', ACORN_GRAVITY);
+  }
+
+  /** 熬夜大河狸:尾巴拍地送出水波、把木頭丟到玩家頭上(落地當踏板)。 */
+  private updateBeaver(boss: Boss, ai: Extract<BossAi, { kind: 'beaver' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    const step = stepBeaver(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const w of step.waves) this.desert.sendWave(enemy.x + w.dir * (enemy.def.w / 2), w.dir, w.delayMs, 'water');
+    for (const x of step.logs) this.desert.dropBlock(x, 'log');
+    if (step.waves.length > 0) {
+      audio.sfx('splash');
+      this.cameras.main.shake(120, 0.004);
+    }
   }
 
   /** 咖啡章魚會停住或退開:一律留在畫面裡,不會躲在畫面外讓戰鬥區清不完。 */
@@ -1434,7 +1486,7 @@ export class TestRangeScene extends Phaser.Scene {
     const enemy = this.spawnEnemy(type, spawnX, flyingY[type]);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;
-    this.boss = { enemy, ai: initialAi(type), maxHp, invulnerable: false, minions: new Set(), wasAngry: false, summonMs: 0, summonSide: 'left' };
+    this.boss = { enemy, ai: initialAi(type), maxHp, invulnerable: false, minions: new Set(), wasAngry: false };
     this.bossName.setText(enemy.def.name);
     this.bossBarBg.setVisible(true);
     this.bossBar.setVisible(true);
@@ -1452,7 +1504,7 @@ export class TestRangeScene extends Phaser.Scene {
   private isArmored(e: EnemyEntity): boolean {
     if (e.def.type === 'puffer') return e.brain.phase === 'puff';
     const ai = this.boss?.enemy === e ? this.boss.ai : null;
-    return ai?.kind === 'crab' && ai.armored;
+    return (ai?.kind === 'crab' || ai?.kind === 'squirrel') && ai.armored;
   }
 
   private isInvulnerable(e: EnemyEntity): boolean {
@@ -1566,6 +1618,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.shots.clear();
     this.desert.clear();
     this.beamGfx.clear();
+    for (const t of this.beamTiles) t.setVisible(false);
     if (boss.ai.kind === 'fennec') boss.ai.mound?.destroy();
     this.bossName.setText('');
     this.bossBarBg.setVisible(false);

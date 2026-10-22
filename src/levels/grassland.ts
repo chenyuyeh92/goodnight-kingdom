@@ -123,6 +123,6 @@ export const GRASSLAND: LevelDef = {
       ],
     },
   ],
-  boss: { type: 'bigClockBug', lockScrollX: 9240, spawnX: 9900 },
+  boss: { type: 'squirrel', lockScrollX: 9240, spawnX: 9900 },
   scenes: [{ scene: 'w1-s1', fromScrollX: 0 }],
 };

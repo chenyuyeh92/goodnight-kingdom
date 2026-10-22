@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { SPRITES, SPRITE_KEYS, bulletSprite, enemySprite, isLevelAsset, itemSprite, weaponIcon, worldSpriteKeys } from '../src/art/sprites';
+import { ART_FACES_RIGHT, SPRITES, SPRITE_KEYS, bulletSprite, enemySprite, isLevelAsset, itemSprite, weaponIcon, worldSpriteKeys } from '../src/art/sprites';
 import { ENEMY_DEFS, type EnemyType } from '../src/game/enemies';
 import { WEAPONS, type WeaponId } from '../src/game/weapons';
 import type { ItemId } from '../src/game/items';
@@ -18,14 +18,12 @@ test('每張素材都在 public/assets 且大小和對照表一致', () => {
   }
 });
 
-/** 美術還沒畫、先用程式畫的造型。 */
-const PLACEHOLDERS = new Set(['gk-camel', 'gk-camel-sleep', 'gk-fennec', 'gk-fennec-sleep', 'gk-hermit-crab', 'gk-hermit-crab-sleep', 'gk-eel', 'gk-eel-sleep']);
 
 test('每種魔物都有醒著和睡著的圖,貓頭鷹與人面獅身三個階段各一張', () => {
   for (const t of Object.keys(ENEMY_DEFS) as EnemyType[]) {
     for (const state of ['awake', 'sleep'] as const) {
       const key = enemySprite(t, state);
-      expect(PLACEHOLDERS.has(key) || key in SPRITES, `${t} ${state}`).toBe(true);
+      expect(key in SPRITES, `${t} ${state}`).toBe(true);
     }
     expect(enemySprite(t, 'sleep')).not.toBe(enemySprite(t, 'awake'));
   }
@@ -43,7 +41,8 @@ test('世界 2 的魔物與機關圖進關卡才載入,世界 1 的開機就載�
   expect(isLevelAsset('owl')).toBe(false);
   expect(worldSpriteKeys(2)).toEqual(expect.arrayContaining(['bell-scarab', 'sphinx-3', 'falling-block']));
   expect(worldSpriteKeys(2).some((k) => k.startsWith('w2-s'))).toBe(false);
-  expect(worldSpriteKeys(1)).toEqual([]);
+  expect(worldSpriteKeys(1)).toEqual(expect.arrayContaining(['squirrel', 'beaver', 'b-acorn', 'b-log']));
+  expect(worldSpriteKeys(1)).not.toContain('clockbug');
 });
 
 test('道具與武器都有圖', () => {
@@ -55,4 +54,10 @@ test('道具與武器都有圖', () => {
 
 test('每把武器都有子彈圖', () => {
   for (const id of Object.keys(WEAPONS) as WeaponId[]) expect(SPRITES[bulletSprite(id)]).toBeDefined();
+});
+
+test('關主與小頭目都面對玩家:畫成朝右的圖要反過來', () => {
+  expect(ART_FACES_RIGHT.has('sphinx')).toBe(true);
+  expect(ART_FACES_RIGHT.has('fennec')).toBe(true);
+  expect(ART_FACES_RIGHT.has('nessie')).toBe(false);
 });

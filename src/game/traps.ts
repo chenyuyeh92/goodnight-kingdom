@@ -13,8 +13,6 @@ export const PLATE_W = 40;
 export const PLATE_COOLDOWN_MS = 3000;
 /** 沙磚掉下來前,地上的影子與搖晃預告時間。 */
 export const BLOCK_WARN_MS = 700;
-export const BLOCK_W = 40;
-export const BLOCK_H = 38;
 export const BLOCK_FALL_VY = 650;
 /** 落地後當平台多久才碎掉。 */
 export const BLOCK_LIFE_MS = 4000;

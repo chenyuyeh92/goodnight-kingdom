@@ -170,7 +170,7 @@ test('1-1:高處寶箱跳得上去、前面有教學告示牌', () => {
   expect(high.length).toBeGreaterThan(0);
   for (const c of high) expectReachable(c, G);
   expect(G.hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['move', 'jump', 'aimUp', 'crouch', 'melee']));
-  expect(G.boss!.type).toBe('bigClockBug');
+  expect(G.boss!.type).toBe('squirrel');
 });
 
 describe('1-2 河邊', () => {
@@ -178,10 +178,10 @@ describe('1-2 河邊', () => {
   const W = R.water!;
   const inGap = (x: number): boolean => W.gaps.some((g) => x >= g.x - 20 && x <= g.x + g.w + 20);
 
-  test('有淺水、河溝與荷葉,小頭目是刺蝟隊長', () => {
+  test('有淺水、河溝與荷葉,小頭目是熬夜大河狸', () => {
     expect(W.shallow.length).toBeGreaterThan(0);
     expect(W.gaps.length).toBeGreaterThan(0);
-    expect(R.boss!.type).toBe('hedgehogCaptain');
+    expect(R.boss!.type).toBe('beaver');
   });
 
   test('每個河溝都跳得過去:沒有荷葉時寬度 ≤ 110,有荷葉時每一跳 ≤ 110', () => {

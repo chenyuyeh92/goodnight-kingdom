@@ -6,7 +6,7 @@ import type { Span } from '../game/water';
 import type { PlateDef } from '../game/traps';
 import type { Current } from '../game/currents';
 
-export type BossType = Extract<EnemyType, 'nightOwl' | 'bigClockBug' | 'hedgehogCaptain' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie'>;
+export type BossType = Extract<EnemyType, 'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie'>;
 
 export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2' | 'w2-1' | 'w2-2' | 'w2-3' | 'w3-1' | 'w3-2' | 'w3-3';
 

@@ -62,7 +62,7 @@ export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: numb
     const tilt = Math.max(-18, Math.min(18, vx / 25));
     return { ...p, angle: vy > 150 ? tilt : 0 };
   }
-  if ((type === 'hedgehog' || type === 'hedgehogCaptain') && phase === 'roll') {
+  if (type === 'hedgehog' && phase === 'roll') {
     return { ...IDLE, angle: (tMs * ROLL_DEG_PER_MS * Math.sign(vx || -1)) % 360, spin: true };
   }
   if (!grounded) return airborne(vy);

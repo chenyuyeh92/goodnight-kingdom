@@ -6,8 +6,8 @@ export type EnemyType =
   | 'nightBat'
   | 'hedgehog'
   | 'nightOwl'
-  | 'bigClockBug'
-  | 'hedgehogCaptain'
+  | 'squirrel'
+  | 'beaver'
   | 'bellScarab'
   | 'mummyCat'
   | 'sandSnake'
@@ -44,25 +44,25 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   nightBat: { type: 'nightBat', name: '熬夜蝙蝠', tier: 'minion', hp: 1, w: 42, h: 30, color: 0x5c4b8a, flying: true, shield: false },
   hedgehog: { type: 'hedgehog', name: '失眠刺蝟', tier: 'mid', hp: 6, w: 60, h: 48, color: 0xa0a0b8, flying: false, shield: true },
   nightOwl: { type: 'nightOwl', name: '熬夜貓頭鷹', tier: 'boss', hp: 60, w: 110, h: 100, color: 0x8a7a5c, flying: true, shield: false },
-  // 小頭目:美術還沒有專屬的圖,先用原本的魔物放大、換顏色。
-  bigClockBug: { type: 'bigClockBug', name: '大鬧鐘蟲', tier: 'boss', hp: 35, w: 57, h: 66, color: 0xf0a060, flying: false, shield: false },
-  hedgehogCaptain: { type: 'hedgehogCaptain', name: '刺蝟隊長', tier: 'boss', hp: 40, w: 84, h: 66, color: 0xc08080, flying: false, shield: true },
+  // 小頭目(美術原圖 150 高,畫成 0.8 倍;判定比圖小一點)。
+  squirrel: { type: 'squirrel', name: '失眠大松鼠', tier: 'boss', hp: 35, w: 100, h: 110, color: 0xe8e0f0, flying: false, shield: false },
+  beaver: { type: 'beaver', name: '熬夜大河狸', tier: 'boss', hp: 40, w: 100, h: 110, color: 0x6a4a3a, flying: false, shield: false },
   // 世界 2 沙漠金字塔王國。
   bellScarab: { type: 'bellScarab', name: '叮噹聖甲蟲', tier: 'minion', hp: 2, w: 36, h: 44, color: 0x3f6f8f, flying: false, shield: false },
   mummyCat: { type: 'mummyCat', name: '熬夜木乃伊貓', tier: 'minion', hp: 3, w: 44, h: 44, color: 0xe8dcc0, flying: false, shield: false },
   sandSnake: { type: 'sandSnake', name: '咖啡沙蛇', tier: 'minion', hp: 2, w: 40, h: 44, color: 0x8b5e3c, flying: false, shield: false },
   vulture: { type: 'vulture', name: '失眠禿鷹', tier: 'minion', hp: 2, w: 48, h: 40, color: 0x5a4a6a, flying: true, shield: false },
   tortoise: { type: 'tortoise', name: '失眠沙漠陸龜', tier: 'mid', hp: 8, w: 50, h: 56, color: 0xc8a060, flying: false, shield: true },
-  camel: { type: 'camel', name: '失眠駱駝', tier: 'boss', hp: 40, w: 96, h: 100, color: 0xd9a066, flying: false, shield: false },
-  fennec: { type: 'fennec', name: '熬夜耳廓狐', tier: 'boss', hp: 45, w: 70, h: 64, color: 0xf0c890, flying: false, shield: false },
+  camel: { type: 'camel', name: '失眠駱駝', tier: 'boss', hp: 40, w: 90, h: 112, color: 0xd9a066, flying: false, shield: false },
+  fennec: { type: 'fennec', name: '熬夜耳廓狐', tier: 'boss', hp: 45, w: 80, h: 96, color: 0xf0c890, flying: false, shield: false },
   sphinx: { type: 'sphinx', name: '睡不著的人面獅身', tier: 'boss', hp: 70, w: 140, h: 120, color: 0xd9a066, flying: false, shield: false },
   // 世界 3 亞特蘭提斯海底王國:魚類都在水中游(不受重力),寄居蟹在海床上走。
   jellyfish: { type: 'jellyfish', name: '熬夜水母', tier: 'minion', hp: 2, w: 38, h: 48, color: 0xc8a8f0, flying: true, shield: false },
   clownfish: { type: 'clownfish', name: '鬧鐘小丑魚', tier: 'minion', hp: 1, w: 46, h: 34, color: 0xff9a50, flying: true, shield: false },
   octopus: { type: 'octopus', name: '咖啡章魚', tier: 'minion', hp: 3, w: 44, h: 48, color: 0x8b5e3c, flying: true, shield: false },
   puffer: { type: 'puffer', name: '氣鼓鼓河豚', tier: 'mid', hp: 8, w: 54, h: 54, color: 0xf0d080, flying: true, shield: false },
-  hermitCrab: { type: 'hermitCrab', name: '失眠寄居蟹', tier: 'boss', hp: 45, w: 90, h: 72, color: 0xe07050, flying: false, shield: false },
-  eel: { type: 'eel', name: '熬夜電鰻', tier: 'boss', hp: 50, w: 130, h: 40, color: 0x4a7f9f, flying: true, shield: false },
+  hermitCrab: { type: 'hermitCrab', name: '失眠寄居蟹', tier: 'boss', hp: 45, w: 80, h: 110, color: 0xe07050, flying: false, shield: false },
+  eel: { type: 'eel', name: '熬夜電鰻', tier: 'boss', hp: 50, w: 70, h: 110, color: 0x4a7f9f, flying: true, shield: false },
   nessie: { type: 'nessie', name: '尼斯湖水怪', tier: 'boss', hp: 80, w: 150, h: 140, color: 0x5a9a7a, flying: true, shield: false },
 };
 
@@ -107,14 +107,11 @@ const BAT_SPEED = 100;
 const BAT_HOVER_MS = 2000;
 const BAT_SWOOP_MS = 700;
 const BAT_SWOOP_RANGE = 60;
-/** 刺蝟隊長比一般刺蝟更常滾、滾得更快更久;陸龜不滾。 */
+/** 刺蝟會滾;陸龜不滾、轉身更慢。 */
 const HEDGEHOG_TUNE = {
   hedgehog: { walkMs: 3000, rollMs: 1000, rollSpeed: 260, walkSpeed: 40, turnMs: 700 },
-  hedgehogCaptain: { walkMs: 1800, rollMs: 1200, rollSpeed: 320, walkSpeed: 40, turnMs: 700 },
   tortoise: { walkMs: Infinity, rollMs: 0, rollSpeed: 0, walkSpeed: 30, turnMs: 1200 },
 } as const;
-/** 大鬧鐘蟲走得比小的慢。 */
-const BIG_CLOCK_SPEED = 55;
 /** 聖甲蟲平常走得比鬧鐘蟲快,每 3 秒推著鈴鐺球衝一下。 */
 const SCARAB_SPEED = 90;
 const SCARAB_DASH_SPEED = 220;
@@ -162,8 +159,8 @@ const START_PHASE: Record<EnemyType, EnemyPhase> = {
   nightBat: 'hover',
   hedgehog: 'walk',
   nightOwl: 'hover',
-  bigClockBug: 'walk',
-  hedgehogCaptain: 'walk',
+  squirrel: 'idle',
+  beaver: 'idle',
   bellScarab: 'walk',
   mummyCat: 'hop',
   sandSnake: 'idle',
@@ -195,11 +192,9 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
   const hasTarget = sense.targetX !== null;
 
   switch (type) {
-    case 'alarmBug':
-    case 'bigClockBug': {
+    case 'alarmBug': {
       const facing = faceTarget(brain, sense);
-      const speed = type === 'alarmBug' ? ALARM_SPEED : BIG_CLOCK_SPEED;
-      return { vx: hasTarget ? facing * speed : 0, vy: null, brain: { phase: 'walk', timerMs, facing, turnMs: 0 } };
+      return { vx: hasTarget ? facing * ALARM_SPEED : 0, vy: null, brain: { phase: 'walk', timerMs, facing, turnMs: 0 } };
     }
     case 'coffeeBean': {
       const facing = faceTarget(brain, sense);
@@ -223,13 +218,15 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       return { vx, vy: (BAT_HOVER_Y - sense.y) * 4, brain: { phase: 'hover', timerMs, facing, turnMs: 0 } };
     }
     case 'nightOwl':
+    case 'squirrel':
+    case 'beaver':
     case 'camel':
     case 'fennec':
     case 'sphinx':
     case 'hermitCrab':
     case 'eel':
     case 'nessie':
-      // 關主與新的小頭目由各自的檔案(owl.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts)控制。
+      // 關主與小頭目由各自的檔案(owl.ts、squirrel.ts、beaver.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts)控制。
       return { vx: 0, vy: 0, brain: { ...brain, timerMs } };
     case 'jellyfish': {
       const facing = faceTarget(brain, sense);
@@ -315,7 +312,6 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
       return { vx, vy: (VULTURE_HOVER_Y - sense.y) * 4, brain: { phase: 'hover', timerMs, facing, turnMs: 0 } };
     }
     case 'hedgehog':
-    case 'hedgehogCaptain':
     case 'tortoise': {
       const tune = HEDGEHOG_TUNE[type];
       if (brain.phase === 'roll') {
