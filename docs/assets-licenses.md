@@ -40,5 +40,6 @@
 | `public/assets/enemies/w3-*.png`、`public/assets/backgrounds/w3-*.png` | 本機 ComfyUI 生成，`docs/art/tools/process_world3.py`（共用 `artlib.py`）處理；深夜海床近景程式繪製 | Nova Cartoon XL v6.0（魔物加 Chibi Animal V2 強度 0.9；背景不加） | 見上表 | 2026-10-22 |
 | `public/assets/characters/default-guard-*.png`、`public/assets/enemies/*-walk-*.png`、`*-flap-*.png`、`*-jump.png`、`*-land.png`、`*-ball.png`、`*-dive.png`（動畫格） | 用現有素材以程式變形（`docs/art/tools/make_anim.py`） | 同原圖 | 同原圖 | 2026-10-22 |
 | `public/assets/enemies/w4-*.png`、`public/assets/backgrounds/w4-*.png`（遠景）、`public/assets/items/w4-*.png` | 本機 ComfyUI 生成魔物與遠景，`docs/art/tools/process_world4.py` 處理；中景、近景、機關程式繪製 | Nova Cartoon XL v6.0（魔物加 Chibi Animal V2 強度 0.9；背景不加） | 見上表；程式繪製的部分沒有第三方授權問題 | 2026-10-22 |
+| `public/assets/enemies/w5-*`、`w6-*`、`w7-*`、`public/assets/backgrounds/w5-*`、`w6-*`、`w7-*`（遠景）、`public/assets/items/w5-*`、`w6-*`、`w7-*` | 本機 ComfyUI 生成魔物與遠景，`docs/art/tools/process_worlds567.py` 處理；中景、近景、機關程式繪製 | Nova Cartoon XL v6.0（魔物加 Chibi Animal V2 強度 0.9；背景不加） | 見上表；程式繪製的部分沒有第三方授權問題 | 2026-10-22 |
 
 備註：純 AI 生成的圖，著作權保護在各國都還不明確（見企劃文件 8.3）。
