@@ -48,12 +48,12 @@ function airborne(vy: number): Pose {
   return { ...IDLE, scaleY: 1 + STRETCH * k, scaleX: 1 - STRETCH * 0.6 * k };
 }
 
-export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: number, vx: number, vy: number, grounded: boolean): Pose {
+export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: number, vx: number, vy: number, grounded: boolean, facing: 1 | -1 = -1): Pose {
   if (type === 'nightBat') return flap(tMs);
   // 禿鷹翅膀大,拍得比蝙蝠慢。
   if (type === 'vulture' || type === 'puffin') return flap(tMs, 300, 0.1);
   // 企鵝肚子貼地滑:整隻躺平(往滑的方向)。
-  if (type === 'penguin' && phase === 'dash') return { ...IDLE, angle: vx < 0 ? -80 : 80, spin: true };
+  if (type === 'penguin' && phase === 'dash') return { ...IDLE, angle: facing < 0 ? -80 : 80, spin: true };
   // 河豚膨脹:整隻變大。
   if (type === 'puffer' && phase === 'puff') return { ...IDLE, scaleX: 1.35, scaleY: 1.35 };
   // 在水裡游的:輕輕上下擺動(像在划水)。

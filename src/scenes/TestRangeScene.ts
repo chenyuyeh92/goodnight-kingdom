@@ -386,7 +386,6 @@ export class TestRangeScene extends Phaser.Scene {
   private beamGfx!: Phaser.GameObjects.Graphics;
   private beamTiles: Phaser.GameObjects.TileSprite[] = [];
   /** 冰上滑:每位玩家上一格的水平速度。 */
-  private prevVx: number[] = [];
   /** 還沒掉下來的冰柱(掛在上面的圖)。 */
   private hangingIcicles: { x: number; view: Phaser.GameObjects.Image | Phaser.GameObjects.Triangle }[] = [];
   private flags: { x: number; g: Phaser.GameObjects.Graphics; on: boolean | null }[] = [];
@@ -528,7 +527,6 @@ export class TestRangeScene extends Phaser.Scene {
     });
     this.currentsView = this.level.currents?.length ? new CurrentsView(this, this.level.currents) : null;
     this.prevJump = this.players.map(() => false);
-    this.prevVx = this.players.map(() => 0);
     this.hangingIcicles = (this.level.icicles ?? []).map((x) => ({
       x,
       view: this.textures.exists('icicle')
@@ -1157,7 +1155,7 @@ export class TestRangeScene extends Phaser.Scene {
       );
       const spit = e.update(nearest ? nearest.x : null, nearest ? nearest.feetY - 20 : null, dtMs, t.gravity);
       if (e.def.type === 'octopus') this.keepOnScreen(e);
-      if (spit) this.shots.fire(e.x, e.def.flying ? e.body.y : e.body.y - e.def.h / 2, spit.vx, spit.vy, 'coffee', spit.gravity);
+      if (spit) this.shots.fire(e.x, e.def.flying ? e.body.y : e.body.y - e.def.h / 2, spit.vx, spit.vy, e.def.type === 'snowman' ? 'snow' : 'coffee', spit.gravity);
       e.render();
     }
   }
@@ -1248,6 +1246,7 @@ export class TestRangeScene extends Phaser.Scene {
     ai.brain = step.brain;
     boss.invulnerable = step.invulnerable;
     enemy.setArt(enemySprite('sphinx', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
     this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
     enemy.physicsBody().setVelocityX(step.vx);
     for (const x of step.blocks) this.desert.dropBlock(x);
@@ -1307,7 +1306,7 @@ export class TestRangeScene extends Phaser.Scene {
     enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
     const icy = enemy.def.type === 'narwhal';
     if (step.teleportX !== null) pb.reset(step.teleportX, enemy.body.y);
-    if (was !== 'burrow' && step.brain.mode === 'burrow') this.puffAt(enemy.x);
+    if (was !== 'burrow' && step.brain.mode === 'burrow') this.puffAt(enemy.x, icy);
     enemy.emerging = step.hidden;
     enemy.body.setAlpha(step.hidden ? 0 : 1);
     pb.setVelocityX(step.vx);
@@ -1321,7 +1320,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (step.brain.mode !== 'under' && ai.mound) {
       ai.mound.destroy();
       ai.mound = null;
-      this.puffAt(enemy.x);
+      this.puffAt(enemy.x, icy);
     }
     for (const c of step.clumps) this.shots.fire(enemy.x, enemy.body.y - 10, c.vx, c.vy, icy ? 'ice' : 'sand', SPIT_GRAVITY);
   }
@@ -1444,6 +1443,7 @@ export class TestRangeScene extends Phaser.Scene {
     ai.brain = step.brain;
     boss.invulnerable = step.invulnerable;
     enemy.setArt(enemySprite('nessie', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
     if (ai.brain.phase === 3) enemy.baseTint = NESSIE_RAGE_TINT;
     this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
     enemy.brain = { ...enemy.brain, facing: step.brain.mode === 'return' ? 1 : -1 };
@@ -1508,6 +1508,7 @@ export class TestRangeScene extends Phaser.Scene {
     ai.brain = step.brain;
     boss.invulnerable = step.invulnerable;
     enemy.setArt(enemySprite('yeti', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
     this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
     enemy.brain = { ...enemy.brain, facing: pb.velocity.x > 50 ? 1 : -1, phase: step.brain.mode === 'leap' ? 'hop' : 'idle' };
     if (step.vx !== null) pb.setVelocityX(step.vx);
@@ -1621,9 +1622,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.tweens.add({ targets: mark, y: mark.y - 10, alpha: 0, delay: TELL_MS - 150, duration: 150, onComplete: () => mark.destroy() });
   }
 
-  private puffAt(x: number): void {
+  /** 鑽進、冒出地面時噴沙(icy:冰屑)。 */
+  private puffAt(x: number, icy = false): void {
     for (let i = 0; i < 6; i++) {
-      const d = this.add.circle(x + (i - 2.5) * 9, GROUND_Y - 4, 6, 0xe8c27a).setDepth(5);
+      const d = this.add.circle(x + (i - 2.5) * 9, GROUND_Y - 4, 6, icy ? 0xe0f4ff : 0xe8c27a).setDepth(5);
       this.tweens.add({ targets: d, y: GROUND_Y - 28 - (i % 3) * 8, alpha: 0, duration: 420, onComplete: () => d.destroy() });
     }
   }

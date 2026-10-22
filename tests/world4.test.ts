@@ -136,6 +136,13 @@ describe('失眠雪怪', () => {
     expect(stepYeti(brain, s({ hpRatio: 0.5, x: 300 })).vx).toBeGreaterThan(0);
   });
 
+  test('跳過來的落點夾在畫面裡(玩家貼著左邊也不會跳出去)', () => {
+    const brain: YetiBrain = { ...initialYetiBrain(), phase: 2, mode: 'windup', pending: 'leap', timerMs: YETI_WINDUP_MS };
+    const st = stepYeti(brain, s({ targetX: 5, hpRatio: 0.5 }));
+    const landX = 840 + (st.vx ?? 0) * 0.95;
+    expect(landX).toBeGreaterThanOrEqual(75 - 1);
+  });
+
   test('冰柱一根對準玩家、其他往兩邊排開,都在範圍內', () => {
     expect(yetiIcicles(3, 400, 30, 930)).toEqual([400, 250, 550]);
     for (const x of yetiIcicles(5, 40, 30, 930)) expect(x >= 30 && x <= 930).toBe(true);

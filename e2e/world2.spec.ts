@@ -148,6 +148,8 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'sphinx', undefined, { timeout: 8000 });
     await page.evaluate(() => window.__GK__!.hurtBoss!(30));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
+    await page.waitForTimeout(300);
+    expect((await page.evaluate(() => window.__GK__!.enemies!)).find((e) => e.type === 'sphinx')!.artKey).toBe('sphinx-2');
     await page.waitForFunction(() => (window.__GK__!.desert!.blocks ?? 0) > 0 || (window.__GK__!.enemyShots ?? 0) > 0 || (window.__GK__!.desert!.waves ?? 0) > 0, undefined, { timeout: 8000 });
   });
 

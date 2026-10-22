@@ -151,9 +151,17 @@ export class PlayerEntity {
     return { kind: 'bullet', weapon, spawn: { x: this.zone.x + off.x, y: pb.bottom + off.y, vx: v.vx, vy: v.vy } };
   }
 
+  /** 夾在畫面裡;頂到邊時往邊外的速度歸零(冰上才不會留著舊速度,轉身時卡在邊上)。 */
   clampX(minX: number, maxX: number): void {
-    if (this.zone.x < minX) this.zone.x = minX;
-    if (this.zone.x > maxX) this.zone.x = maxX;
+    const pb = this.body();
+    if (this.zone.x < minX) {
+      this.zone.x = minX;
+      if (pb.velocity.x < 0) pb.setVelocityX(0);
+    }
+    if (this.zone.x > maxX) {
+      this.zone.x = maxX;
+      if (pb.velocity.x > 0) pb.setVelocityX(0);
+    }
   }
 
   /** 移到指定位置並恢復站姿(復活用)。 */

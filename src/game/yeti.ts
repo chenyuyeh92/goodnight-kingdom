@@ -1,5 +1,5 @@
 import { MAX_DT_MS } from '../config/tuning';
-import { arcShot } from './enemies';
+import { ENEMY_DEFS, arcShot } from './enemies';
 import { owlPhase } from './owl';
 
 export type YetiMode = 'idle' | 'windup' | 'leap' | 'return' | 'angry';
@@ -123,7 +123,10 @@ export function stepYeti(b: YetiBrain, s: YetiSense): YetiStep {
         const icicles = yetiIcicles(ICICLES[b.phase], tx, s.arenaLeft + 30, s.arenaRight - 30);
         return { ...none, vx: 0, vy: null, icicles, brain: { ...b, mode: 'idle', timerMs: 0 } };
       }
-      return { ...none, vx: (tx - s.x) / LEAP_S, vy: LEAP_VY, brain: { ...b, mode: 'leap', timerMs: 0 } };
+      // 落點夾在畫面裡,身體不會跑出去。
+      const half = ENEMY_DEFS.yeti.w / 2;
+      const land = Math.min(Math.max(tx, s.arenaLeft + half), s.arenaRight - half);
+      return { ...none, vx: (land - s.x) / LEAP_S, vy: LEAP_VY, brain: { ...b, mode: 'leap', timerMs: 0 } };
     }
     case 'leap': {
       if (timerMs >= LEAP_MIN_MS && s.grounded) return { ...none, vx: 0, vy: null, waves: [-1, 1], brain: { ...b, mode: 'return', timerMs: 0 } };

@@ -19,7 +19,7 @@ export class EnemyEntity {
   hp: number;
   /** 正在從地面冒出,還不算上場。 */
   emerging = false;
-  /** 貓頭鷹的階段(選拍翅的動畫格)。 */
+  /** 關主的階段(選那一階段的圖與貓頭鷹拍翅的動畫格)。 */
   bossPhase: 1 | 2 | 3 = 1;
   /** 被打閃白光後恢復成的顏色(水怪第三階段帶紅色);沒有時用 ENEMY_ART_TINT。 */
   baseTint: number | undefined = undefined;
@@ -123,7 +123,7 @@ export class EnemyEntity {
     const tMs = this.scene.time.now + this.animOffset;
     const vx = pb?.velocity.x ?? 0;
     const vy = pb?.velocity.y ?? 0;
-    let pose = enemyPose(this.def.type, this.brain.phase, tMs, vx, vy, grounded);
+    let pose = enemyPose(this.def.type, this.brain.phase, tMs, vx, vy, grounded, this.brain.facing);
     // 美術畫的動畫格:有的話換格子,程式只負責上下晃動(不再額外伸縮、傾斜)。
     const frame = enemyFrame(this.def.type, { phase: this.brain.phase, timerMs: this.brain.timerMs, tMs, vx, vy, grounded, bossPhase: this.bossPhase });
     if (frame && this.scene.textures.exists(frame)) {
@@ -131,9 +131,9 @@ export class EnemyEntity {
       pose = { ...IDLE, dy: pose.dy };
     } else if (this.def.type === 'hedgehog') {
       this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
-    } else if (this.def.type !== 'nightOwl') {
-      // 貓頭鷹的原圖由場景依階段設定;其他魔物沒有動畫格的時候換回原圖。
-      this.setArt(enemySprite(this.def.type, 'awake'));
+    } else {
+      // 沒有動畫格的時候換回原圖(關主用目前階段的圖)。
+      this.setArt(enemySprite(this.def.type, 'awake', this.bossPhase));
     }
     const base = ENEMY_ART_SCALE[this.def.type] ?? 1;
     const bottom = this.body.y + this.def.h / 2;
@@ -163,6 +163,7 @@ export class EnemyEntity {
       arena: this.arena,
       artX: this.art?.x ?? null,
       artBottom: this.art?.y ?? null,
+      artKey: this.art?.texture.key ?? null,
     };
   }
 }

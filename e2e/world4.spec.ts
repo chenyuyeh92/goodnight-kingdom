@@ -94,6 +94,9 @@ test.describe('世界 4 冰雪極地', () => {
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'yeti', undefined, { timeout: 8000 });
     await page.evaluate(() => window.__GK__!.hurtBoss!(35));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
+    // 第二階段的圖真的畫出來(不會被換回第一階段)。
+    await page.waitForTimeout(300);
+    expect((await gk(page)).enemies!.find((e) => e.type === 'yeti')!.artKey).toBe('yeti-2');
     await page.waitForFunction(() => (window.__GK__!.enemyShots ?? 0) > 0 || window.__GK__!.desert!.blocks > 0, undefined, { timeout: 8000 });
   });
 });

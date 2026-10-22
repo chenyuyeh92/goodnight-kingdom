@@ -54,6 +54,8 @@ export interface EnemyDebug {
   /** 美術圖的水平中心與底部;沒有圖時為 null。 */
   artX: number | null;
   artBottom: number | null;
+  /** 目前畫的是哪一張圖(關主的階段、動畫格)。 */
+  artKey: string | null;
 }
 
 export interface GkDebug {

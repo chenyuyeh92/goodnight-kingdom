@@ -35,6 +35,8 @@ const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number
   log: { key: 'b-log', w: 40, h: 18, color: 0x8a5a3a, solid: true },
   icicle: { key: 'icicle', w: 24, h: 56, color: 0xd8f0ff, solid: false },
 };
+/** 冰柱碎掉時噴的是冰屑(其他是沙)。 */
+const ICE_PUFF = 0xe0f4ff;
 /** 沙浪(沙塵)與河狸的水波。 */
 export type WaveKind = 'sand' | 'water' | 'snow';
 const WAVE_ART: Record<WaveKind, { key: string; color: number }> = {
@@ -53,6 +55,8 @@ interface Block {
   h: number;
   /** 落地後會不會變成踏板(冰柱落地就碎掉)。 */
   platform: boolean;
+  /** 落地、碎掉時噴出來的顏色。 */
+  puffColor: number;
   stage: BlockStage;
   ms: number;
   /** 落地時底部的 y。 */
@@ -136,7 +140,7 @@ export class DesertHazards {
       ? this.scene.add.image(x, -d.h, d.key).setOrigin(0.5, 1).setDisplaySize(d.w, d.h)
       : this.scene.add.rectangle(x, -d.h, d.w, d.h, d.color).setOrigin(0.5, 1).setStrokeStyle(3, OUTLINE);
     view.setDepth(2).setVisible(false);
-    this.blocks.push({ x, w: d.w, h: d.h, platform: d.solid, stage: 'warn', ms: 0, landY, shadow, view, solid: null });
+    this.blocks.push({ x, w: d.w, h: d.h, platform: d.solid, puffColor: kind === 'icicle' ? ICE_PUFF : SAND, stage: 'warn', ms: 0, landY, shadow, view, solid: null });
   }
 
   /** 沿著地面滑的沙浪,delayMs 後出發。 */
@@ -218,7 +222,7 @@ export class DesertHazards {
       b.ms = 0;
       b.shadow.setVisible(false);
       this.scene.cameras.main.shake(80, 0.003);
-      this.puff(b.x, b.landY);
+      this.puff(b.x, b.landY, b.puffColor);
       return;
     }
     // 落地:沒有人卡在裡面才變成可以站的平台;時間到碎掉。
@@ -234,7 +238,7 @@ export class DesertHazards {
       b.solid = r;
     }
     if (b.ms < BLOCK_LIFE_MS) return;
-    this.puff(b.x, b.landY);
+    this.puff(b.x, b.landY, b.puffColor);
     this.removeBlock(b, true);
   }
 
@@ -309,9 +313,9 @@ export class DesertHazards {
     return this.scene.add.rectangle(p.x, GROUND_Y, PLATE_W, 8, 0xc8a060).setOrigin(0.5, 1).setStrokeStyle(2, OUTLINE).setDepth(-1);
   }
 
-  private puff(x: number, y: number): void {
+  private puff(x: number, y: number, color = SAND): void {
     for (let i = 0; i < 5; i++) {
-      const d = this.scene.add.circle(x + (i - 2) * 8, y - 4, 5, SAND).setDepth(5);
+      const d = this.scene.add.circle(x + (i - 2) * 8, y - 4, 5, color).setDepth(5);
       this.scene.tweens.add({ targets: d, y: y - 24 - (i % 2) * 10, alpha: 0, duration: 450, onComplete: () => d.destroy() });
     }
   }
