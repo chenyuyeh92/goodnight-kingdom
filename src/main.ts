@@ -94,6 +94,8 @@ export interface GkDebug {
   hurtBoss?: (amount: number) => void;
   /** 這一關關主戰的鏡頭鎖定位置(沒有關主為 null)。 */
   bossLockX?: number | null;
+  /** 掉進河溝的次數。 */
+  riverFalls?: number;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
   lastChest?: 'new' | 'starUp' | 'maxed' | null;

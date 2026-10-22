@@ -161,3 +161,42 @@ test('1-1:高處寶箱跳得上去、前面有教學告示牌', () => {
   expect(G.hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['move', 'jump', 'aimUp', 'crouch', 'melee']));
   expect(G.boss!.type).toBe('bigClockBug');
 });
+
+describe('1-2 河邊', () => {
+  const R = LEVELS['w1-2'];
+  const W = R.water!;
+  const inGap = (x: number): boolean => W.gaps.some((g) => x >= g.x - 20 && x <= g.x + g.w + 20);
+
+  test('有淺水、河溝與荷葉,小頭目是刺蝟隊長', () => {
+    expect(W.shallow.length).toBeGreaterThan(0);
+    expect(W.gaps.length).toBeGreaterThan(0);
+    expect(R.boss!.type).toBe('hedgehogCaptain');
+  });
+
+  test('每個河溝都跳得過去:沒有荷葉時寬度 ≤ 110,有荷葉時每一跳 ≤ 110', () => {
+    for (const g of W.gaps) {
+      const pads = W.pads.filter((p) => p.x >= g.x && p.x + p.w <= g.x + g.w).sort((a, b) => a.x - b.x);
+      let from = g.x;
+      for (const p of pads) {
+        expect(p.x - from, `河溝 ${g.x}`).toBeLessThanOrEqual(110);
+        from = p.x + p.w;
+      }
+      expect(g.x + g.w - from, `河溝 ${g.x}`).toBeLessThanOrEqual(110);
+    }
+  });
+
+  test('檢查點、寶箱、地面冒出的魔物都不在河溝上', () => {
+    for (const cp of R.checkpoints) expect(inGap(cp), `檢查點 ${cp}`).toBe(false);
+    for (const c of R.chests.filter((c) => c.bottom === 480)) expect(inGap(c.x), `寶箱 ${c.x}`).toBe(false);
+    for (const t of R.trickles) if (t.spawn.x !== undefined) expect(inGap(t.spawn.x)).toBe(false);
+    for (const a of R.arenas) for (const w of a.waves) for (const s of w) if (s.x !== undefined) expect(inGap(s.x)).toBe(false);
+  });
+
+  test('關主區沒有河溝', () => {
+    for (const g of W.gaps) expect(g.x + g.w).toBeLessThan(R.boss!.lockScrollX);
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of R.chests.filter((c) => c.bottom < 300)) expectReachable(c, R);
+  });
+});

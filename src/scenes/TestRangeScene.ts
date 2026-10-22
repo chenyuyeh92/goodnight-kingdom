@@ -26,6 +26,7 @@ import { SCENE_PALETTE, sceneKeys, type TerrainPalette } from '../art/scenes';
 import { WORLD1, levelNumber, nextLevel } from '../game/progress';
 import { ParallaxBackground } from '../game/background';
 import { hintText } from '../ui/hints';
+import { SHALLOW_SPEED, fellIntoRiver, groundSegments, inShallow, respawnX } from '../game/water';
 import { OWL_HOVER_Y, initialOwlBrain, stepOwl, type OwlBrain } from '../game/owl';
 import {
   initialEncounters,
@@ -84,6 +85,10 @@ const MINI_BOSS_MAX_MINIONS = 3;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 
+/** 荷葉的厚度;河岸擋魔物的隱形牆高度。 */
+const PAD_H = 10;
+const BANK_H = 80;
+
 const THORN_H = 16;
 /** 荊棘畫得比判定高一點,比較顯眼。 */
 const THORN_ART_H = 22;
@@ -121,6 +126,8 @@ const COLOR = {
   outline: 0x3a2a5a,
   flagOff: 0x7b6bc9,
   flagOn: 0xf8e08e,
+  water: 0x4a7fc0,
+  waterLight: 0xb8e0ff,
   playerA: 0xffd27a,
   playerB: 0x9be7c4,
   artTintB: 0xb8f0d0,
@@ -233,6 +240,7 @@ export class TestRangeScene extends Phaser.Scene {
   private bossBar!: Phaser.GameObjects.Rectangle;
   private bossPhaseText!: Phaser.GameObjects.Text;
   private stats!: RunStats;
+  private riverFalls = 0;
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -305,6 +313,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.bossTriggered = false;
     this.bossDefeated = false;
     this.bossLock = null;
+    this.riverFalls = 0;
     this.stats = this.initData.stats ?? newRunStats(Date.now(), this.level.chests.length);
     this.terrainBodies.clear();
 
@@ -313,15 +322,24 @@ export class TestRangeScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
 
     this.terrain = this.physics.add.staticGroup();
-    const ground = { x: 0, y: GROUND_Y, w: this.level.worldW, h: WORLD_H - GROUND_Y };
-    let groundRect: Phaser.GameObjects.Rectangle | null = null;
-    for (const t of [ground, ...this.level.terrain]) {
+    const water = this.level.water;
+    // 地面依河溝切成幾段;會飛的魔物只被地面擋住。
+    const grounds = groundSegments(this.level.worldW, water?.gaps ?? []).map((g) => ({ x: g.x, y: GROUND_Y, w: g.w, h: WORLD_H - GROUND_Y }));
+    const groundRects = new Set<unknown>();
+    for (const t of [...grounds, ...this.level.terrain]) {
       const r = this.add.rectangle(t.x + t.w / 2, t.y + t.h / 2, t.w, t.h, COLOR.terrain).setVisible(false);
-      this.drawTerrain(t, groundRect === null);
-      groundRect ??= r;
+      const isGround = grounds.includes(t);
+      this.drawTerrain(t, isGround);
+      if (isGround) groundRects.add(r);
       this.terrain.add(r);
       this.terrainBodies.add(r.body as Phaser.Physics.Arcade.StaticBody);
     }
+    for (const pad of water?.pads ?? []) {
+      const r = this.add.rectangle(pad.x + pad.w / 2, pad.y + PAD_H / 2, pad.w, PAD_H, COLOR.terrain).setVisible(false);
+      this.terrain.add(r);
+      this.terrainBodies.add(r.body as Phaser.Physics.Arcade.StaticBody);
+    }
+    if (water) this.drawWater(water);
 
     this.targetGroup = this.physics.add.staticGroup();
     for (const t of this.level.targets) {
@@ -378,7 +396,13 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.enemyGroup = this.physics.add.group();
     // 會飛的魔物(含貓頭鷹)只會被地面擋住,穿過平台與通道,不會卡在地形旁邊。
-    this.physics.add.collider(this.enemyGroup, this.terrain, undefined, (e, t) => !this.enemyFor(e)?.def.flying || t === groundRect);
+    this.physics.add.collider(this.enemyGroup, this.terrain, undefined, (e, t) => !this.enemyFor(e)?.def.flying || groundRects.has(t));
+    // 地上的魔物走到河溝邊就停住,不會掉進河裡(戰鬥區也不會因此少算)。
+    const banks = this.physics.add.staticGroup();
+    for (const g of water?.gaps ?? []) {
+      for (const x of [g.x - 2, g.x + g.w + 2]) banks.add(this.add.rectangle(x, GROUND_Y - BANK_H / 2, 4, BANK_H).setVisible(false));
+    }
+    this.physics.add.collider(this.enemyGroup, banks, undefined, (e) => !this.enemyFor(e)?.def.flying);
     // 正在從地面冒出的魔物還看不見,不傷人也不會被打到。
     const solid = (_a: unknown, e: unknown): boolean => !this.enemyFor(e)?.emerging;
     for (const p of this.players) {
@@ -472,6 +496,7 @@ export class TestRangeScene extends Phaser.Scene {
       const r = p.update(intents[i], dtMs, t, (reach) => this.findMeleeTarget(reach) !== null);
       if (r.kind === 'bullet') this.projectiles.fire(p, r.weapon, r.spawn, t);
       else if (r.kind === 'melee') this.performMelee(r.reach);
+      this.applyWater(p);
     });
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
@@ -513,6 +538,46 @@ export class TestRangeScene extends Phaser.Scene {
     g.fillStyle(COLOR.outline).fillRoundedRect(t.x - 2, t.y - 2, t.w + 4, t.h + 4, r + 2);
     g.fillStyle(this.palette.platform).fillRoundedRect(t.x, t.y, t.w, t.h, r);
     g.fillStyle(this.palette.rim).fillRoundedRect(t.x + 3, t.y + 2, t.w - 6, 4, 2);
+  }
+
+  /** 淺水區走得慢;掉進河溝扣一顆愛心,從左岸重新出來(睡著的人直接搬上岸)。 */
+  private applyWater(p: PlayerEntity): void {
+    const water = this.level.water;
+    if (!water) return;
+    const pb = p.body();
+    if (!p.health.down && (pb.blocked.down || pb.touching.down) && inShallow(p.x, water.shallow)) {
+      pb.setVelocityX(pb.velocity.x * SHALLOW_SPEED);
+    }
+    if (!fellIntoRiver(p.feetY)) return;
+    this.splash(p.x);
+    p.teleport(respawnX(p.x, water.gaps), GROUND_Y);
+    this.riverFalls += 1;
+    if (!p.health.down) this.hurtPlayer(p, false);
+  }
+
+  private splash(x: number): void {
+    for (let i = 0; i < 6; i++) {
+      const drop = this.add.circle(x + (i - 2.5) * 6, GROUND_Y + 6, 4, COLOR.water).setDepth(5);
+      this.tweens.add({ targets: drop, y: GROUND_Y - 30 - (i % 3) * 12, alpha: 0, duration: 500, ease: 'Quad.easeOut', onComplete: () => drop.destroy() });
+    }
+  }
+
+  /** 河溝畫成水面、淺水區畫成半透明的水、荷葉畫成綠色橢圓。 */
+  private drawWater(water: NonNullable<LevelDef['water']>): void {
+    const g = this.add.graphics().setDepth(-2);
+    for (const gap of water.gaps) {
+      g.fillStyle(COLOR.water).fillRect(gap.x, GROUND_Y + 12, gap.w, WORLD_H - GROUND_Y - 12);
+      g.fillStyle(COLOR.waterLight).fillRect(gap.x, GROUND_Y + 12, gap.w, 4);
+    }
+    const front = this.add.graphics().setDepth(3);
+    for (const s of water.shallow) {
+      front.fillStyle(COLOR.water, 0.45).fillRect(s.x, GROUND_Y - 6, s.w, 12);
+      front.fillStyle(COLOR.waterLight, 0.8).fillRect(s.x, GROUND_Y - 6, s.w, 2);
+    }
+    for (const pad of water.pads) {
+      g.fillStyle(COLOR.outline).fillEllipse(pad.x + pad.w / 2, pad.y + PAD_H / 2, pad.w + 6, PAD_H + 8);
+      g.fillStyle(0x6fbf73).fillEllipse(pad.x + pad.w / 2, pad.y + PAD_H / 2, pad.w, PAD_H + 2);
+    }
   }
 
   /** 教學告示牌:木頭柱子加一塊板子,字寫在板子上方。 */
@@ -1153,6 +1218,7 @@ export class TestRangeScene extends Phaser.Scene {
         : null,
       bossDefeated: this.bossDefeated,
       bossLockX: this.level.boss?.lockScrollX ?? null,
+      riverFalls: this.riverFalls,
       enemyShots: this.shots.count(),
       hurtBoss: this.testHooks
         ? (n: number) => {

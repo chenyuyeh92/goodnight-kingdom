@@ -2,6 +2,7 @@ import type { ArenaDef, TrickleDef } from '../game/encounters';
 import type { ScenePlan } from '../art/scenes';
 import type { EnemyType } from '../game/enemies';
 import type { HintKind } from '../ui/hints';
+import type { Span } from '../game/water';
 
 export type BossType = Extract<EnemyType, 'nightOwl' | 'bigClockBug' | 'hedgehogCaptain'>;
 
@@ -36,6 +37,8 @@ export interface LevelDef {
   boss: { type: BossType; lockScrollX: number; spawnX: number } | null;
   /** 背景場景:第一個從頭開始,之後依鏡頭位置淡入。 */
   scenes: readonly ScenePlan[];
+  /** 河邊的水(1-2):淺水區變慢、河溝要跳過、荷葉可以踩。 */
+  water?: { shallow: readonly Span[]; gaps: readonly Span[]; pads: readonly { x: number; y: number; w: number }[] };
   /** 路邊的教學告示牌(1-1)。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }
