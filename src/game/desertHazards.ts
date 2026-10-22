@@ -28,21 +28,23 @@ export const WAVE_W = 36;
 export const WAVE_H = 20;
 export const WAVE_SPEED = 260;
 const WAVE_RANGE = 1100;
-/** 會掉下來的東西:沙磚、河狸的木頭落地後當踏板;冰柱落地就碎掉。 */
-export type DropKind = 'sand' | 'log' | 'icicle';
-const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number; solid: boolean }> = {
-  sand: { key: 'falling-block', w: 40, h: 38, color: SAND, solid: true },
-  log: { key: 'b-log', w: 40, h: 18, color: 0x8a5a3a, solid: true },
-  icicle: { key: 'icicle', w: 24, h: 56, color: 0xd8f0ff, solid: false },
+/** 會掉下來的東西:沙磚、河狸的木頭落地後當踏板;冰柱、火山落石落地就碎掉。 */
+export type DropKind = 'sand' | 'log' | 'icicle' | 'rock';
+const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number; solid: boolean; puff: number }> = {
+  sand: { key: 'falling-block', w: 40, h: 38, color: SAND, solid: true, puff: SAND },
+  log: { key: 'b-log', w: 40, h: 18, color: 0x8a5a3a, solid: true, puff: SAND },
+  // 冰柱碎掉噴冰屑、落石噴灰。
+  icicle: { key: 'icicle', w: 24, h: 56, color: 0xd8f0ff, solid: false, puff: 0xe0f4ff },
+  rock: { key: 'falling-rock', w: 36, h: 36, color: 0x5a4a50, solid: false, puff: 0x8a7a80 },
 };
-/** 冰柱碎掉時噴的是冰屑(其他是沙)。 */
-const ICE_PUFF = 0xe0f4ff;
-/** 沙浪(沙塵)與河狸的水波。 */
-export type WaveKind = 'sand' | 'water' | 'snow';
+/** 沙浪(沙塵)、河狸的水波、雪浪、河馬的震波、火龍沿地面燒過來的火。 */
+export type WaveKind = 'sand' | 'water' | 'snow' | 'shock' | 'fire';
 const WAVE_ART: Record<WaveKind, { key: string; color: number }> = {
   sand: { key: 'b-sand-dust', color: SAND },
   water: { key: 'b-water-wave', color: 0x8fd0f0 },
   snow: { key: '', color: 0xf0f8ff },
+  shock: { key: 'b-shockwave', color: 0xe0d0c0 },
+  fire: { key: '', color: 0xff7a30 },
 };
 const CRUMBLE_MS = 300;
 const PLATE_PRESS_PX = 3;
@@ -140,7 +142,7 @@ export class DesertHazards {
       ? this.scene.add.image(x, -d.h, d.key).setOrigin(0.5, 1).setDisplaySize(d.w, d.h)
       : this.scene.add.rectangle(x, -d.h, d.w, d.h, d.color).setOrigin(0.5, 1).setStrokeStyle(3, OUTLINE);
     view.setDepth(2).setVisible(false);
-    this.blocks.push({ x, w: d.w, h: d.h, platform: d.solid, puffColor: kind === 'icicle' ? ICE_PUFF : SAND, stage: 'warn', ms: 0, landY, shadow, view, solid: null });
+    this.blocks.push({ x, w: d.w, h: d.h, platform: d.solid, puffColor: d.puff, stage: 'warn', ms: 0, landY, shadow, view, solid: null });
   }
 
   /** 沿著地面滑的沙浪,delayMs 後出發。 */

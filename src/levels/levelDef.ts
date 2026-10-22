@@ -8,12 +8,28 @@ import type { Current } from '../game/currents';
 
 export type BossType = Extract<
   EnemyType,
-  'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie' | 'polarBear' | 'narwhal' | 'yeti'
+  'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie' | 'polarBear' | 'narwhal' | 'yeti' | 'hippo' | 'snail' | 'dragon'
 >;
 
-export type LevelId = 'range' | 'forest' | 'w1-1' | 'w1-2' | 'w2-1' | 'w2-2' | 'w2-3' | 'w3-1' | 'w3-2' | 'w3-3' | 'w4-1' | 'w4-2' | 'w4-3';
+export type LevelId =
+  | 'range'
+  | 'forest'
+  | 'w1-1'
+  | 'w1-2'
+  | 'w2-1'
+  | 'w2-2'
+  | 'w2-3'
+  | 'w3-1'
+  | 'w3-2'
+  | 'w3-3'
+  | 'w4-1'
+  | 'w4-2'
+  | 'w4-3'
+  | 'w5-1'
+  | 'w5-2'
+  | 'w5-3';
 
-const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3'];
+const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3'];
 
 /** 左上角座標與寬高。 */
 export interface Rect {
@@ -58,8 +74,12 @@ export interface LevelDef {
   ice?: readonly Span[];
   /** 掛在上面、玩家走近就掉下來的冰柱(x 位置)。 */
   icicles?: readonly number[];
-  /** 平台用美術的圖畫(世界 4 的雪堆平台)。 */
-  platformArt?: 'snow-platform';
+  /** 熔岩地面(世界 5):腳踩到就燙傷,要跳過去或踩岩石平台。 */
+  lava?: readonly Span[];
+  /** 火山噴發區:玩家在區裡時,每隔一陣子從上面掉石頭。 */
+  eruptions?: readonly Span[];
+  /** 平台用美術的圖畫(世界 4 的雪堆平台、世界 5 的岩石平台)。 */
+  platformArt?: 'snow-platform' | 'rock-platform';
   /** 路邊的教學告示牌。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }

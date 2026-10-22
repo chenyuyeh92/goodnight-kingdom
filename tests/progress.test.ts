@@ -20,7 +20,8 @@ test('下一關:1-3 通關後接 2-1、2-3 接 3-1,最後一關沒有下一關',
   expect(nextLevel('forest')).toBe('w2-1');
   expect(nextLevel('w2-3')).toBe('w3-1');
   expect(nextLevel('w3-3')).toBe('w4-1');
-  expect(nextLevel('w4-3')).toBeNull();
+  expect(nextLevel('w4-3')).toBe('w5-1');
+  expect(nextLevel('w5-3')).toBeNull();
   expect(nextLevel('range')).toBeNull();
 });
 

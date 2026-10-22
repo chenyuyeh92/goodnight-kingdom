@@ -53,6 +53,18 @@ const BASE_SPRITES = {
   'w4-s4-far': { file: 'backgrounds/w4-s4-far.png', w: 1440, h: 540 },
   'w4-s4-mid': { file: 'backgrounds/w4-s4-mid.png', w: 1440, h: 540 },
   'w4-s4-near': { file: 'backgrounds/w4-s4-near.png', w: 1440, h: 540 },
+  'w5-s1-far': { file: 'backgrounds/w5-s1-far.png', w: 1440, h: 540 },
+  'w5-s1-mid': { file: 'backgrounds/w5-s1-mid.png', w: 1440, h: 540 },
+  'w5-s1-near': { file: 'backgrounds/w5-s1-near.png', w: 1440, h: 540 },
+  'w5-s2-far': { file: 'backgrounds/w5-s2-far.png', w: 1440, h: 540 },
+  'w5-s2-mid': { file: 'backgrounds/w5-s2-mid.png', w: 1440, h: 540 },
+  'w5-s2-near': { file: 'backgrounds/w5-s2-near.png', w: 1440, h: 540 },
+  'w5-s3-far': { file: 'backgrounds/w5-s3-far.png', w: 1440, h: 540 },
+  'w5-s3-mid': { file: 'backgrounds/w5-s3-mid.png', w: 1440, h: 540 },
+  'w5-s3-near': { file: 'backgrounds/w5-s3-near.png', w: 1440, h: 540 },
+  'w5-s4-far': { file: 'backgrounds/w5-s4-far.png', w: 1440, h: 540 },
+  'w5-s4-mid': { file: 'backgrounds/w5-s4-mid.png', w: 1440, h: 540 },
+  'w5-s4-near': { file: 'backgrounds/w5-s4-near.png', w: 1440, h: 540 },
   guard: { file: 'characters/default-guard.png', w: 48, h: 55 },
   'guard-walk-1': { file: 'characters/default-guard-walk-1.png', w: 48, h: 55 },
   'guard-walk-2': { file: 'characters/default-guard-walk-2.png', w: 48, h: 55 },
@@ -164,6 +176,28 @@ const BASE_SPRITES = {
   'ice-floor': { file: 'items/w4-ice-floor.png', w: 96, h: 24 },
   icicle: { file: 'items/w4-icicle.png', w: 24, h: 56 },
   'snow-platform': { file: 'items/w4-snow-platform.png', w: 96, h: 28 },
+  salamander: { file: 'enemies/w5-fire-salamander.png', w: 58, h: 52 },
+  'salamander-sleep': { file: 'enemies/w5-fire-salamander-sleep.png', w: 59, h: 52 },
+  'lava-blob': { file: 'enemies/w5-coffee-lava-blob.png', w: 50, h: 56 },
+  'lava-blob-sleep': { file: 'enemies/w5-coffee-lava-blob-sleep.png', w: 48, h: 56 },
+  'volcano-bird': { file: 'enemies/w5-noisy-volcano-bird.png', w: 60, h: 50 },
+  'volcano-bird-sleep': { file: 'enemies/w5-noisy-volcano-bird-sleep.png', w: 60, h: 49 },
+  armadillo: { file: 'enemies/w5-armadillo.png', w: 59, h: 72 },
+  'armadillo-sleep': { file: 'enemies/w5-armadillo-sleep.png', w: 57, h: 72 },
+  hippo: { file: 'enemies/w5-boss1-hippo.png', w: 181, h: 150 },
+  'hippo-sleep': { file: 'enemies/w5-boss1-hippo-sleep.png', w: 181, h: 150 },
+  snail: { file: 'enemies/w5-boss2-volcano-snail.png', w: 116, h: 150 },
+  'snail-sleep': { file: 'enemies/w5-boss2-volcano-snail-sleep.png', w: 116, h: 151 },
+  dragon: { file: 'enemies/w5-fire-dragon-boss.png', w: 197, h: 220 },
+  'dragon-2': { file: 'enemies/w5-fire-dragon-boss-phase2.png', w: 189, h: 220 },
+  'dragon-3': { file: 'enemies/w5-fire-dragon-boss-phase3.png', w: 204, h: 220 },
+  'dragon-sleep': { file: 'enemies/w5-fire-dragon-boss-sleep.png', w: 193, h: 220 },
+  'lava-floor': { file: 'items/w5-lava-floor.png', w: 96, h: 24 },
+  'falling-rock': { file: 'items/w5-falling-rock.png', w: 36, h: 36 },
+  'rock-platform': { file: 'items/w5-rock-platform.png', w: 96, h: 28 },
+  'b-steam': { file: 'bullets/w5-steam.png', w: 36, h: 28 },
+  'b-shockwave': { file: 'bullets/w5-shockwave.png', w: 48, h: 16 },
+  'b-lava-ball': { file: 'bullets/w5-lava-ball.png', w: 20, h: 20 },
   quicksand: { file: 'items/w2-quicksand.png', w: 96, h: 24 },
   'pressure-plate': { file: 'items/w2-pressure-plate.png', w: 40, h: 12 },
   'falling-block': { file: 'items/w2-falling-block.png', w: 40, h: 39 },
@@ -268,6 +302,9 @@ export const ENEMY_ART_SCALE: Partial<Record<EnemyType, number>> = {
   polarBear: MINI_BOSS_ART_SCALE,
   narwhal: MINI_BOSS_ART_SCALE,
   yeti: 0.75,
+  hippo: MINI_BOSS_ART_SCALE,
+  snail: MINI_BOSS_ART_SCALE,
+  dragon: 0.75,
 };
 
 /** 魔物的固定染色(目前沒有;保留給之後區分同一張圖的變種)。 */
@@ -282,7 +319,7 @@ export const ART_FACES_RIGHT: ReadonlySet<EnemyType> = new Set(['sphinx', 'fenne
 /** 魔物圖的 key(之前有程式畫的暫代造型,美術全部畫好後只剩 SpriteKey)。 */
 export type ArtKey = SpriteKey;
 
-type PhasedBoss = 'nightOwl' | 'sphinx' | 'nessie' | 'yeti';
+type PhasedBoss = 'nightOwl' | 'sphinx' | 'nessie' | 'yeti' | 'dragon';
 
 const ENEMY_AWAKE: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   alarmBug: 'clockbug',
@@ -310,6 +347,12 @@ const ENEMY_AWAKE: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   walrus: 'walrus',
   polarBear: 'polar-bear',
   narwhal: 'narwhal',
+  salamander: 'salamander',
+  lavaBlob: 'lava-blob',
+  volcanoBird: 'volcano-bird',
+  armadillo: 'armadillo',
+  hippo: 'hippo',
+  snail: 'snail',
 };
 const ENEMY_SLEEP: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   alarmBug: 'clockbug-sleep',
@@ -337,16 +380,23 @@ const ENEMY_SLEEP: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   walrus: 'walrus-sleep',
   polarBear: 'polar-bear-sleep',
   narwhal: 'narwhal-sleep',
+  salamander: 'salamander-sleep',
+  lavaBlob: 'lava-blob-sleep',
+  volcanoBird: 'volcano-bird-sleep',
+  armadillo: 'armadillo-sleep',
+  hippo: 'hippo-sleep',
+  snail: 'snail-sleep',
 };
 const BOSS_PHASES: Record<PhasedBoss, { 1: SpriteKey; 2: SpriteKey; 3: SpriteKey; sleep: SpriteKey }> = {
   nightOwl: { 1: 'owl', 2: 'owl-2', 3: 'owl-3', sleep: 'owl-sleep' },
   sphinx: { 1: 'sphinx', 2: 'sphinx-2', 3: 'sphinx-3', sleep: 'sphinx-sleep' },
   nessie: { 1: 'nessie', 2: 'nessie-2', 3: 'nessie-3', sleep: 'nessie-sleep' },
   yeti: { 1: 'yeti', 2: 'yeti-2', 3: 'yeti-3', sleep: 'yeti-sleep' },
+  dragon: { 1: 'dragon', 2: 'dragon-2', 3: 'dragon-3', sleep: 'dragon-sleep' },
 };
 
 export function enemySprite(type: EnemyType, state: 'awake' | 'sleep', phase: 1 | 2 | 3 = 1): ArtKey {
-  if (type === 'nightOwl' || type === 'sphinx' || type === 'nessie' || type === 'yeti') return state === 'sleep' ? BOSS_PHASES[type].sleep : BOSS_PHASES[type][phase];
+  if (type === 'nightOwl' || type === 'sphinx' || type === 'nessie' || type === 'yeti' || type === 'dragon') return state === 'sleep' ? BOSS_PHASES[type].sleep : BOSS_PHASES[type][phase];
   return state === 'sleep' ? ENEMY_SLEEP[type] : ENEMY_AWAKE[type];
 }
 

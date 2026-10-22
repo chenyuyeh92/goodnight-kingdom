@@ -33,6 +33,10 @@ import { initialBeaverBrain, stepBeaver, type BeaverBrain } from '../game/beaver
 import { initialBearBrain, stepBear, type BearBrain } from '../game/polarBear';
 import { SNOWBALL_GRAVITY, initialYetiBrain, stepYeti, type YetiBrain } from '../game/yeti';
 import { iceVx, onIce } from '../game/ice';
+import { freshEruption, onLava, stepEruption, type EruptionState } from '../game/lava';
+import { initialHippoBrain, stepHippo, type HippoBrain } from '../game/hippo';
+import { LAVA_GRAVITY, initialSnailBrain, stepSnail, type SnailBrain } from '../game/snail';
+import { FIREBALL_GRAVITY, initialDragonBrain, stepDragon, type DragonBrain } from '../game/dragon';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
 import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
 import { initialNessieBrain, stepNessie, type NessieBrain } from '../game/nessie';
@@ -102,9 +106,15 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍' };
 /** 冰柱:玩家走到左右這麼近就掉下來。 */
 const ICICLE_TRIGGER_X = 100;
+/** 熔岩圖流動一格(96 px)要多久。 */
+const LAVA_FLOW_MS = 4000;
+/** 河馬的蒸氣飄得慢,活久一點才飄得過整個畫面。 */
+const STEAM_LIFE_MS = 9000;
+/** 噴蒸氣時畫面白霧最濃的程度。 */
+const STEAM_FOG_ALPHA = 0.55;
 /** 雪怪平常站的位置(鎖住畫面右邊往內)。 */
 const YETI_HOME_INSET = 120;
 /** 水怪第三階段的圖和第一階段差不多,身體帶一點紅色區分。 */
@@ -206,10 +216,13 @@ type BossAi =
   | { kind: 'eel'; brain: EelBrain }
   | { kind: 'nessie'; brain: NessieBrain }
   | { kind: 'bear'; brain: BearBrain }
-  | { kind: 'yeti'; brain: YetiBrain };
+  | { kind: 'yeti'; brain: YetiBrain }
+  | { kind: 'hippo'; brain: HippoBrain }
+  | { kind: 'snail'; brain: SnailBrain; armored: boolean }
+  | { kind: 'dragon'; brain: DragonBrain };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -238,12 +251,18 @@ function initialAi(type: BossType): BossAi {
       return { kind: 'fennec', brain: initialFennecBrain(), mound: null };
     case 'yeti':
       return { kind: 'yeti', brain: initialYetiBrain() };
+    case 'hippo':
+      return { kind: 'hippo', brain: initialHippoBrain() };
+    case 'snail':
+      return { kind: 'snail', brain: initialSnailBrain(), armored: false };
+    case 'dragon':
+      return { kind: 'dragon', brain: initialDragonBrain() };
   }
 }
 
 /** 有三階段的關主回傳目前階段,其他回傳 1。 */
 function aiPhase(ai: BossAi): 1 | 2 | 3 {
-  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' ? ai.brain.phase : 1;
+  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' ? ai.brain.phase : 1;
 }
 
 function aiMode(ai: BossAi): string {
@@ -373,6 +392,9 @@ export class TestRangeScene extends Phaser.Scene {
   private bossPhaseText!: Phaser.GameObjects.Text;
   private stats!: RunStats;
   private riverFalls = 0;
+  /** 世界 5:踩到熔岩被燙到的次數、火山噴發次數。 */
+  private lavaBurns = 0;
+  private eruption: EruptionState = freshEruption();
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -463,6 +485,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.bossDefeated = false;
     this.bossLock = null;
     this.riverFalls = 0;
+    this.lavaBurns = 0;
+    this.eruption = freshEruption();
     this.stats = this.initData.stats ?? newRunStats(Date.now(), this.level.chests.length);
     this.terrainBodies.clear();
 
@@ -534,6 +558,7 @@ export class TestRangeScene extends Phaser.Scene {
         : this.add.triangle(x, 0, -12, 0, 12, 0, 0, 56, 0xd8f0ff).setOrigin(0.5, 0).setDepth(-1),
     }));
     for (const s of this.level.ice ?? []) this.drawIce(s.x, s.w);
+    for (const s of this.level.lava ?? []) this.drawLava(s.x, s.w);
     this.beamGfx = this.add.graphics().setDepth(4);
     this.beamTiles = [];
 
@@ -697,6 +722,7 @@ export class TestRangeScene extends Phaser.Scene {
     });
     this.currentsView?.update(dtMs, this.scrollX, VIEW_W);
     this.updateIcicles();
+    this.updateVolcano(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -797,6 +823,44 @@ export class TestRangeScene extends Phaser.Scene {
       this.tweens.add({ targets: ic.view, angle: { from: -6, to: 6 }, duration: 70, yoyo: true, repeat: 3, onComplete: () => ic.view.destroy() });
       this.desert.dropBlock(ic.x, 'icicle');
     }
+  }
+
+  /** 世界 5:腳踩在熔岩上就燙傷(往上彈);噴發區裡每隔一陣子掉石頭。 */
+  private updateVolcano(dtMs: number): void {
+    const lava = this.level.lava;
+    if (lava) {
+      for (const p of this.players) {
+        if (p.health.down) continue;
+        const pb = p.body();
+        const onGround = (pb.blocked.down || pb.touching.down) && p.feetY >= GROUND_Y - 2;
+        if (onGround && onLava(p.x, lava) && this.hurtPlayer(p, true)) {
+          this.lavaBurns += 1;
+          this.puffAt(p.x);
+        }
+      }
+    }
+    const zones = this.level.eruptions;
+    if (!zones) return;
+    const awake = this.players.filter((p) => !p.health.down).map((p) => p.x);
+    const step = stepEruption(this.eruption, zones, awake, dtMs);
+    this.eruption = step.state;
+    if (step.rocks.length === 0) return;
+    for (const x of step.rocks) this.desert.dropBlock(x, 'rock');
+    audio.sfx('bossPhase');
+    this.cameras.main.shake(180, 0.004);
+  }
+
+  /** 熔岩地面:美術的熔岩圖橫向接起來慢慢流動,沒有圖時畫橘紅色。 */
+  private drawLava(x: number, w: number): void {
+    if (this.textures.exists('lava-floor')) {
+      const t = this.add.tileSprite(x, GROUND_Y - 4, w, 24, 'lava-floor').setOrigin(0, 0).setDepth(-1);
+      this.tweens.add({ targets: t, tilePositionX: 96, duration: LAVA_FLOW_MS, repeat: -1 });
+      this.tweens.add({ targets: t, alpha: { from: 1, to: 0.8 }, duration: 700, yoyo: true, repeat: -1 });
+      return;
+    }
+    const g = this.add.graphics().setDepth(-1);
+    g.fillStyle(0xff6a2a).fillRect(x, GROUND_Y - 4, w, 12);
+    g.fillStyle(0xffd060).fillRect(x, GROUND_Y - 4, w, 3);
   }
 
   /** 冰地面:美術的冰面圖橫向接起來,沒有圖時畫淡藍色。 */
@@ -903,12 +967,14 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 無敵或睡著時不會受傷;碰到荊棘時小彈跳一下。打倒關主後不再受傷。 */
-  private hurtPlayer(p: PlayerEntity, bounce: boolean): void {
-    if (this.bossDefeated) return;
+  /** 回傳這一下有沒有真的打到(無敵時間內不算)。 */
+  private hurtPlayer(p: PlayerEntity, bounce: boolean): boolean {
+    if (this.bossDefeated) return false;
     const r = applyHit(p.health);
     p.health = r.health;
     if (r.hit) audio.sfx('hurt');
     if (r.hit && bounce && !r.health.down) p.body().setVelocityY(THORN_BOUNCE_VY);
+    return r.hit;
   }
 
   private handleTeam(): void {
@@ -1184,6 +1250,9 @@ export class TestRangeScene extends Phaser.Scene {
       else if (ai.kind === 'crab') this.updateCrab(boss, ai, dtMs);
       else if (ai.kind === 'squirrel') this.updateSquirrel(boss, ai, dtMs);
       else if (ai.kind === 'bear') this.updateBear(boss, ai, dtMs);
+      else if (ai.kind === 'hippo') this.updateHippo(boss, ai, dtMs);
+      else if (ai.kind === 'snail') this.updateSnail(boss, ai, dtMs);
+      else if (ai.kind === 'dragon') this.updateDragon(boss, ai, dtMs);
       else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1525,6 +1594,125 @@ export class TestRangeScene extends Phaser.Scene {
     if (step.enteredPhase) this.announcePhase(boss);
   }
 
+  /** 失眠溫泉河馬:泡在溫泉裡不走動,噴蒸氣(畫面冒白霧)、跳起來砸地送出震波。 */
+  private updateHippo(boss: Boss, ai: Extract<BossAi, { kind: 'hippo' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const step = stepHippo(ai.brain, {
+      grounded: pb.blocked.down || pb.touching.down,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    const facing: 1 | -1 = nearest && nearest.x > enemy.x ? 1 : -1;
+    enemy.brain = { ...enemy.brain, facing, phase: step.brain.mode === 'hop' ? 'hop' : 'idle' };
+    pb.setVelocityX(0);
+    if (step.vy !== null) pb.setVelocityY(step.vy);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    const mouthX = enemy.x + facing * (enemy.def.w / 2);
+    for (const c of step.steam) this.shots.fire(mouthX, c.y, facing * c.speed, 0, 'steam', 0, STEAM_LIFE_MS);
+    if (step.steam.length > 0) this.steamFog();
+    for (const w of step.waves) this.desert.sendWave(enemy.x + w.dir * (enemy.def.w / 2), w.dir, w.delayMs, 'shock');
+    if (step.waves.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(220, 0.007);
+    }
+  }
+
+  /** 噴蒸氣時整個畫面冒白霧,一下子看不清楚。 */
+  private steamFog(): void {
+    const fog = this.add.rectangle(VIEW_W / 2, WORLD_H / 2, VIEW_W, WORLD_H, 0xffffff, 0).setScrollFactor(0).setDepth(6);
+    this.tweens.add({
+      targets: fog,
+      fillAlpha: { from: 0, to: STEAM_FOG_ALPHA },
+      duration: 300,
+      hold: 500,
+      yoyo: true,
+      onComplete: () => fog.destroy(),
+    });
+  }
+
+  /** 熬夜火山蝸牛:慢慢爬,殼上的火山噴出熔岩球,同時縮進殼裡(打不動)。 */
+  private updateSnail(boss: Boss, ai: Extract<BossAi, { kind: 'snail' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const was = ai.brain.mode;
+    // 殼在身體後面(圖朝左,殼在右邊);熔岩球從殼頂噴出來。
+    const ventX = enemy.x - ai.brain.facing * (enemy.def.w / 4);
+    const ventY = enemy.body.y - enemy.def.h / 2;
+    const step = stepSnail(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      ventX,
+      ventY,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    ai.armored = step.armored;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== step.brain.mode && step.brain.mode === 'windup') this.tell(enemy);
+    const art = enemy.artImage();
+    if (art && was !== step.brain.mode) {
+      enemy.baseTint = step.armored ? SHELL_TINT : undefined;
+      if (step.armored) art.setTint(SHELL_TINT);
+      else art.clearTint();
+    }
+    for (const b of step.lavaBalls) this.shots.fire(ventX, ventY, b.vx, b.vy, 'lava', LAVA_GRAVITY);
+    if (step.lavaBalls.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(160, 0.004);
+    }
+  }
+
+  /** 熬夜火龍:吐火球、火山噴發掉落石、噴火沿地面燒過來;第二階段起叫火蜥蜴。 */
+  private updateDragon(boss: Boss, ai: Extract<BossAi, { kind: 'dragon' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const facing: 1 | -1 = nearest && nearest.x > enemy.x ? 1 : -1;
+    const mouthX = enemy.x + facing * (enemy.def.w / 2 - 20);
+    const mouthY = enemy.body.y - enemy.def.h / 3;
+    const step = stepDragon(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      mouthX,
+      mouthY,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      minionsAlive: boss.minions.size,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('dragon', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
+    enemy.brain = { ...enemy.brain, facing, phase: 'idle' };
+    pb.setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const b of step.fireballs) this.shots.fire(mouthX, mouthY, b.vx, b.vy, 'lava', FIREBALL_GRAVITY);
+    for (const x of step.rocks) this.desert.dropBlock(x, 'rock');
+    for (const f of step.flames) this.desert.sendWave(enemy.x + f.dir * (enemy.def.w / 2), f.dir, f.delayMs, 'fire');
+    if (step.rocks.length + step.flames.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(220, 0.007);
+    }
+    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'salamander', from: 'left', delayMs: 0 }, false));
+    if (step.enteredPhase) this.announcePhase(boss);
+  }
+
   /** 失眠大松鼠:丟橡實 → 轉身用大尾巴當盾(打不動)→ 跳到另一個位置。 */
   private updateSquirrel(boss: Boss, ai: Extract<BossAi, { kind: 'squirrel' }>, dtMs: number): void {
     const { enemy } = boss;
@@ -1663,7 +1851,7 @@ export class TestRangeScene extends Phaser.Scene {
   private isArmored(e: EnemyEntity): boolean {
     if (e.def.type === 'puffer') return e.brain.phase === 'puff';
     const ai = this.boss?.enemy === e ? this.boss.ai : null;
-    return (ai?.kind === 'crab' || ai?.kind === 'squirrel') && ai.armored;
+    return (ai?.kind === 'crab' || ai?.kind === 'squirrel' || ai?.kind === 'snail') && ai.armored;
   }
 
   private isInvulnerable(e: EnemyEntity): boolean {
@@ -1958,6 +2146,7 @@ export class TestRangeScene extends Phaser.Scene {
       bossDefeated: this.bossDefeated,
       bossLockX: this.level.boss?.lockScrollX ?? null,
       riverFalls: this.riverFalls,
+      volcano: { lavaBurns: this.lavaBurns, eruptions: this.eruption.count },
       desert: this.desert.debug(),
       dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,
       enemyShots: this.shots.count(),

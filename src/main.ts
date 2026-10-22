@@ -120,6 +120,8 @@ export interface GkDebug {
   bossLockX?: number | null;
   /** 掉進河溝的次數。 */
   riverFalls?: number;
+  /** 世界 5:踩到熔岩被燙到的次數、火山噴發次數。 */
+  volcano?: { lavaBurns: number; eruptions: number };
   /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
   desert?: { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number };
   /** 測試用:在 x 掉一塊沙磚。 */

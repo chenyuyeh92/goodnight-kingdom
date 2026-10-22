@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { parseLevelId } from '../src/levels/levelDef';
+import { GROUND_Y, parseLevelId } from '../src/levels/levelDef';
 import { LEVELS } from '../src/levels';
 
 test('parseLevelId', () => {
@@ -118,7 +118,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -359,4 +359,56 @@ test('世界 4 的小頭目是北極熊、獨角鯨,關主是雪怪', () => {
   expect(LEVELS['w4-3'].boss!.type).toBe('yeti');
   expect(LEVELS['w4-1'].hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['ice', 'icicle']));
   expect(LEVELS['w4-3'].scenes.map((s) => s.scene)).toEqual(['w4-s3', 'w4-s4']);
+});
+
+describe.each(['w5-1', 'w5-2', 'w5-3'] as const)('世界 5 火山:%s', (id) => {
+  const L = LEVELS[id];
+  const lava = L.lava ?? [];
+  const onLava = (x: number, margin: number): boolean => lava.some((s) => x >= s.x - margin && x <= s.x + s.w + margin);
+
+  test('屬於世界 5,有熔岩與噴發區,平台用岩石', () => {
+    expect(L.world).toBe(5);
+    expect(lava.length).toBeGreaterThan(0);
+    expect((L.eruptions ?? []).length).toBeGreaterThan(0);
+    expect(L.platformArt).toBe('rock-platform');
+    for (const s of L.scenes) expect(s.scene.startsWith('w5-')).toBe(true);
+  });
+
+  test('每片熔岩都跳得過:沒有平台時寬度 ≤ 110,有岩石平台時每一跳 ≤ 110、平台從地面跳得上去', () => {
+    for (const s of lava) {
+      const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= s.x && r.x + r.w <= s.x + s.w).sort((a, b) => a.x - b.x);
+      let from = s.x;
+      for (const p of plats) {
+        expect(p.x - from, `熔岩 ${s.x}`).toBeLessThanOrEqual(110);
+        expect(GROUND_Y - p.y, `平台 ${p.x}`).toBeLessThanOrEqual(140);
+        from = p.x + p.w;
+      }
+      expect(s.x + s.w - from, `熔岩 ${s.x}`).toBeLessThanOrEqual(110);
+    }
+  });
+
+  test('檢查點(雙人時 B 在右邊 40)、地上的寶箱不在熔岩上', () => {
+    for (const cp of L.checkpoints) expect(onLava(cp, 20) || onLava(cp + 40, 20), `檢查點 ${cp}`).toBe(false);
+    for (const c of L.chests.filter((c) => c.bottom === GROUND_Y)) expect(onLava(c.x, 30), `寶箱 ${c.x}`).toBe(false);
+  });
+
+  test('戰鬥區與關主區沒有熔岩、不會噴發', () => {
+    const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
+    for (const w of windows) {
+      for (const s of lava) expect(s.x + s.w <= w || s.x >= w + VIEW_W, `熔岩 ${s.x} 戰鬥區 ${w}`).toBe(true);
+      for (const z of L.eruptions ?? []) expect(z.x + z.w <= w || z.x >= w + VIEW_W, `噴發區 ${z.x} 戰鬥區 ${w}`).toBe(true);
+    }
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of L.chests.filter((c) => c.bottom < 300)) expectReachable(c, L);
+  });
+});
+
+test('世界 5 的小頭目是溫泉河馬、火山蝸牛,關主是火龍;5-1 有熔岩與噴發的告示牌', () => {
+  expect(LEVELS['w5-1'].boss!.type).toBe('hippo');
+  expect(LEVELS['w5-2'].boss!.type).toBe('snail');
+  expect(LEVELS['w5-3'].boss!.type).toBe('dragon');
+  expect(LEVELS['w5-1'].hints!.map((h) => h.kind)).toEqual(expect.arrayContaining(['lava', 'eruption']));
+  expect(LEVELS['w5-3'].scenes.map((s) => s.scene)).toEqual(['w5-s3', 'w5-s4']);
 });

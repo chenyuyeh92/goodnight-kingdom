@@ -6,7 +6,7 @@ const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
 /** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡(章魚墨汁)、駱駝口水、沙球/沙塊、泡泡、松鼠的橡實。 */
-export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice';
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava';
 
 /** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
 const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
@@ -18,16 +18,19 @@ const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
   acorn: { w: 14, h: 16, color: 0xa0683a },
   snow: { w: 16, h: 16, color: 0xffffff },
   ice: { w: 12, h: 12, color: 0xc8f0ff },
+  steam: { w: 30, h: 24, color: 0xf4f4f8 },
+  lava: { w: 16, h: 16, color: 0xff7a30 },
 };
 
 /** 有美術圖的子彈(載入了就用美術的圖,沒有就用上面程式畫的)。 */
-const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn' };
+const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball' };
 
 const textureKey = (kind: ShotKind): string => `gk-shot-${kind}`;
 
 interface Shot {
   rect: Phaser.GameObjects.Image;
   bornAt: number;
+  lifeMs: number;
 }
 
 /** 魔物發射的子彈(貓頭鷹的羽毛):碰地形消失,碰到醒著的玩家造成傷害。 */
@@ -63,8 +66,8 @@ export class EnemyShotSystem {
     });
   }
 
-  /** gravity > 0 時走拋物線(沙蛇咖啡、駱駝口水、沙塊)。 */
-  fire(x: number, y: number, vx: number, vy: number, kind: ShotKind = 'feather', gravity = 0): void {
+  /** gravity > 0 時走拋物線(沙蛇咖啡、駱駝口水、沙塊);飄得慢的(河馬的蒸氣)可以活久一點。 */
+  fire(x: number, y: number, vx: number, vy: number, kind: ShotKind = 'feather', gravity = 0, lifeMs = SHOT_LIFE_MS): void {
     const art = SHOT_ART[kind];
     const key = art && this.scene.textures.exists(art) ? art : textureKey(kind);
     // 圓的子彈(泡泡、口水、橡實)不用轉向。
@@ -73,12 +76,12 @@ export class EnemyShotSystem {
     const body = rect.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(vx, vy);
     if (gravity > 0) body.setAllowGravity(true).setGravityY(gravity);
-    this.shots.push({ rect, bornAt: this.scene.time.now });
+    this.shots.push({ rect, bornAt: this.scene.time.now, lifeMs });
   }
 
   update(): void {
     const now = this.scene.time.now;
-    for (const s of [...this.shots]) if (now - s.bornAt > SHOT_LIFE_MS) this.remove(s);
+    for (const s of [...this.shots]) if (now - s.bornAt > s.lifeMs) this.remove(s);
   }
 
   count(): number {
