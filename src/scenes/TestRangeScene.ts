@@ -746,10 +746,9 @@ export class TestRangeScene extends Phaser.Scene {
     let v = { vx: pb.velocity.x, vy: swimVy(pb.velocity.y, { jump: intent.jump, jumpPressed: stroke, down: intent.down, grounded, asleep: p.health.down }) };
     if (!p.health.down) v = pushed(v.vx, v.vy, currentAt(p.x, p.feetY - 24, this.level.currents ?? []));
     pb.setVelocity(v.vx, v.vy);
-    if (stroke || p.jumped) {
-      audio.sfx('jump');
-      this.bubbles(p.x, p.feetY - 40);
-    }
+    // 從海床起跳的聲音在一般跳躍那裡已經播過。
+    if (stroke) audio.sfx('jump');
+    if (stroke || p.jumped) this.bubbles(p.x, p.feetY - 40);
     const top = clampToWater(p.feetY, pb.velocity.y);
     if (!top) return;
     pb.reset(p.x, SWIM_TOP - pb.height / 2);
@@ -1080,6 +1079,7 @@ export class TestRangeScene extends Phaser.Scene {
         null,
       );
       const spit = e.update(nearest ? nearest.x : null, nearest ? nearest.feetY - 20 : null, dtMs, t.gravity);
+      if (e.def.type === 'octopus') this.keepOnScreen(e);
       if (spit) this.shots.fire(e.x, e.def.flying ? e.body.y : e.body.y - e.def.h / 2, spit.vx, spit.vy, 'coffee', spit.gravity);
       e.render();
     }
@@ -1263,8 +1263,10 @@ export class TestRangeScene extends Phaser.Scene {
     enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
     enemy.physicsBody().setVelocityX(step.vx);
     if (was !== step.brain.mode && (step.brain.mode === 'windup' || step.brain.mode === 'shell')) this.tell(enemy);
+    // 用 baseTint:被打閃白光後也會恢復成殼的顏色。
     const art = enemy.artImage();
     if (art && was !== step.brain.mode) {
+      enemy.baseTint = step.armored ? SHELL_TINT : undefined;
       if (step.armored) art.setTint(SHELL_TINT);
       else art.clearTint();
     }
@@ -1294,8 +1296,8 @@ export class TestRangeScene extends Phaser.Scene {
       audio.sfx('bossPhase');
       this.cameras.main.shake(150, 0.004);
     }
-    // 預告時身體一閃一閃。
-    enemy.artImage()?.setAlpha(step.brain.mode === 'charge' && Math.floor(this.time.now / 90) % 2 === 0 ? 0.4 : 1);
+    // 預告時身體一閃一閃(render 會把 body 的透明度套到圖上)。
+    enemy.body.setAlpha(step.brain.mode === 'charge' && Math.floor(this.time.now / 90) % 2 === 0 ? 0.4 : 1);
     this.drawBeams(lock, step.warn, step.zap);
     for (const y of step.zap) {
       for (const p of this.players) {
@@ -1365,6 +1367,13 @@ export class TestRangeScene extends Phaser.Scene {
     boss.summonMs = 0;
     boss.summonSide = boss.summonSide === 'left' ? 'right' : 'left';
     boss.minions.add(this.spawnFrom({ type: 'alarmBug', from: boss.summonSide, delayMs: 0 }, false));
+  }
+
+  /** 咖啡章魚會停住或退開:一律留在畫面裡,不會躲在畫面外讓戰鬥區清不完。 */
+  private keepOnScreen(e: EnemyEntity): void {
+    const half = e.def.w / 2;
+    const x = Math.min(Math.max(e.body.x, this.scrollX + half), this.scrollX + VIEW_W - half);
+    if (x !== e.body.x) e.physicsBody().reset(x, e.body.y);
   }
 
   /** 走路的小頭目不能走出鎖住的畫面。 */

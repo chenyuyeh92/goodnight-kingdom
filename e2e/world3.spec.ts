@@ -177,3 +177,21 @@ test('選關:通過 2-3 才開放世界 3', async ({ page }) => {
     ['w3-3', false],
   ]);
 });
+
+test('咖啡章魚從畫面外進來,會留在畫面裡(戰鬥區清得完)', async ({ page }) => {
+  await page.goto('./?mode=single&test=1&level=w3-2');
+  await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 30000 });
+  await page.locator('canvas').click({ position: { x: 5, y: 5 } });
+  await page.evaluate(() => window.__GK__!.warp!(800));
+  await page.evaluate(() => window.__GK__!.defeatAll!());
+  const cam = (await page.evaluate(() => window.__GK__!.cameraX))!;
+  await page.evaluate((x) => window.__GK__!.spawn!('octopus', x, 300), cam - 20);
+  await page.evaluate((x) => window.__GK__!.spawn!('octopus', x, 300), cam + 980);
+  await page.waitForTimeout(600);
+  const xs = (await page.evaluate(() => window.__GK__!.enemies!)).filter((e) => e.type === 'octopus').map((e) => e.x);
+  const camNow = (await page.evaluate(() => window.__GK__!.cameraX))!;
+  for (const x of xs) {
+    expect(x).toBeGreaterThanOrEqual(camNow + 20);
+    expect(x).toBeLessThanOrEqual(camNow + 940);
+  }
+});
