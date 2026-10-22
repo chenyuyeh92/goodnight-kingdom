@@ -21,7 +21,7 @@ import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
 import type { LevelCompleteData } from './LevelCompleteScene';
-import { ENEMY_ART_TINT, artStatus, assetPath, enemySprite, itemSprite, weaponIcon, worldSpriteKeys } from '../art/sprites';
+import { ENEMY_ART_TINT, SPRITES, artStatus, assetPath, enemySprite, itemSprite, weaponIcon, worldSpriteKeys } from '../art/sprites';
 import { SCENE_PALETTE, SCENE_TIME, sceneKeys, type TerrainPalette } from '../art/scenes';
 import { isStoryLevel, levelNumber, nextLevel } from '../game/progress';
 import { DesertHazards } from '../game/desertHazards';
@@ -39,6 +39,11 @@ import { LAVA_GRAVITY, initialSnailBrain, stepSnail, type SnailBrain } from '../
 import { FIREBALL_GRAVITY, initialDragonBrain, stepDragon, type DragonBrain } from '../game/dragon';
 import { MANGO_GRAVITY, initialSlothBrain, stepSloth, type SlothBrain } from '../game/sloth';
 import { initialJaguarBrain, stepJaguar, type JaguarBrain } from '../game/jaguar';
+import { initialGiraffeBrain, stepGiraffe, SWEEP_SPEED, type GiraffeBrain } from '../game/giraffe';
+import { JET_SPEED, JET_Y, initialElephantBrain, stepElephant, type ElephantBrain } from '../game/elephant';
+import { initialLionBrain, stepLion, type LionBrain } from '../game/lion';
+import { HERD_OFFSETS, HERD_SPEED, HERD_WARN_MS, beastHits, freshStampede, stepStampede, type StampedeState } from '../game/stampede';
+import { animFrame } from '../art/frames';
 import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
 import { BEAM_HALF_H, initialEelBrain, stepEel, type EelBrain } from '../game/eel';
@@ -109,11 +114,16 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王' };
 /** 冰柱:玩家走到左右這麼近就掉下來。 */
 const ICICLE_TRIGGER_X = 100;
 /** 熔岩圖流動一格(96 px)要多久。 */
 const LAVA_FLOW_MS = 4000;
+/** 角馬跑出畫面這麼遠才收掉。 */
+const HERD_DESPAWN = 100;
+/** 獅子王平常站的位置(鎖住畫面右邊往內)、吼聲音波飛得慢要活久一點。 */
+const LION_HOME_INSET = 130;
+const ROAR_LIFE_MS = 7000;
 /** 河馬的蒸氣飄得慢,活久一點才飄得過整個畫面。 */
 const STEAM_LIFE_MS = 9000;
 /** 噴蒸氣時畫面白霧最濃的程度。 */
@@ -233,10 +243,13 @@ type BossAi =
   | { kind: 'snail'; brain: SnailBrain; armored: boolean }
   | { kind: 'dragon'; brain: DragonBrain }
   | { kind: 'sloth'; brain: SlothBrain }
-  | { kind: 'jaguar'; brain: JaguarBrain; shadow: Phaser.GameObjects.Ellipse | null };
+  | { kind: 'jaguar'; brain: JaguarBrain; shadow: Phaser.GameObjects.Ellipse | null }
+  | { kind: 'giraffe'; brain: GiraffeBrain }
+  | { kind: 'elephant'; brain: ElephantBrain }
+  | { kind: 'lion'; brain: LionBrain };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla', 'giraffe', 'elephant', 'lion']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -278,12 +291,18 @@ function initialAi(type: BossType): BossAi {
     // 大猩猩用雪怪的招式(丟芒果、捶胸掉芒果、跳過來送出震波)。
     case 'gorilla':
       return { kind: 'yeti', brain: initialYetiBrain() };
+    case 'giraffe':
+      return { kind: 'giraffe', brain: initialGiraffeBrain() };
+    case 'elephant':
+      return { kind: 'elephant', brain: initialElephantBrain() };
+    case 'lion':
+      return { kind: 'lion', brain: initialLionBrain() };
   }
 }
 
 /** 有三階段的關主回傳目前階段,其他回傳 1。 */
 function aiPhase(ai: BossAi): 1 | 2 | 3 {
-  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' ? ai.brain.phase : 1;
+  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' || ai.kind === 'lion' ? ai.brain.phase : 1;
 }
 
 function aiMode(ai: BossAi): string {
@@ -428,6 +447,12 @@ export class TestRangeScene extends Phaser.Scene {
   private fling: { vx: number; ms: number }[] = [];
   private prevJumpVine: boolean[] = [];
   private vineGrabs = 0;
+  /** 世界 7 的獸群:奔跑區計時、正在預告的(方向與剩下的時間)、正在跑的角馬、被撞到的次數。 */
+  private stampede: StampedeState = freshStampede();
+  private herdWarnings: { dir: 1 | -1; ms: number; views: Phaser.GameObjects.GameObject[] }[] = [];
+  private beasts: { x: number; dir: 1 | -1; view: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle; dust: Phaser.GameObjects.Image | null }[] = [];
+  private herdsReleased = 0;
+  private herdHits = 0;
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -609,6 +634,11 @@ export class TestRangeScene extends Phaser.Scene {
     this.fling = this.players.map(() => ({ vx: 0, ms: 0 }));
     this.prevJumpVine = this.players.map(() => false);
     this.vineGrabs = 0;
+    this.stampede = freshStampede();
+    this.herdWarnings = [];
+    this.beasts = [];
+    this.herdsReleased = 0;
+    this.herdHits = 0;
     this.beamGfx = this.add.graphics().setDepth(4);
     this.beamTiles = [];
 
@@ -658,7 +688,10 @@ export class TestRangeScene extends Phaser.Scene {
     }
     this.physics.add.collider(this.enemyGroup, banks, undefined, (e) => !this.enemyFor(e)?.def.flying);
     // 正在從地面冒出的魔物還看不見,不傷人也不會被打到。
-    const solid = (_a: unknown, e: unknown): boolean => !this.enemyFor(e)?.emerging;
+    const solid = (_a: unknown, e: unknown): boolean => {
+      const en = this.enemyFor(e);
+      return !en?.emerging && !en?.burrowed;
+    };
     for (const p of this.players) {
       this.physics.add.overlap(p.zone, this.enemyGroup, () => this.hurtPlayer(p, true), solid);
     }
@@ -775,6 +808,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.updateIcicles();
     this.updateVolcano(dtMs);
     this.updateVines(dtMs);
+    this.updateStampede(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -926,6 +960,91 @@ export class TestRangeScene extends Phaser.Scene {
       this.fling[i] = { vx: 0, ms: 0 };
       this.vineGrabs += 1;
       return;
+    }
+  }
+
+  /** 世界 7:奔跑區計時放出角馬群(先預告);跑過的角馬撞到醒著的玩家扣一顆愛心、往上彈。 */
+  private updateStampede(dtMs: number): void {
+    const zones = this.level.stampedes;
+    if (zones) {
+      const awake = this.players.filter((p) => !p.health.down).map((p) => p.x);
+      const step = stepStampede(this.stampede, zones, awake, dtMs);
+      this.stampede = step.state;
+      if (step.warn !== null) this.warnHerd(step.warn, false);
+      if (step.release !== null) this.releaseHerd(step.release);
+    }
+    // 預告的沙塵與「!」時間到就收掉。
+    for (const w of [...this.herdWarnings]) {
+      w.ms -= Math.min(dtMs, MAX_DT_MS);
+      if (w.ms > 0) continue;
+      for (const v of w.views) v.destroy();
+      this.herdWarnings = this.herdWarnings.filter((x) => x !== w);
+    }
+    const dt = Math.min(dtMs, MAX_DT_MS) / 1000;
+    const t = this.time.now;
+    for (const b of [...this.beasts]) {
+      b.x += b.dir * HERD_SPEED * dt;
+      b.view.setX(b.x);
+      b.dust?.setX(b.x - b.dir * 30);
+      if (b.view instanceof Phaser.GameObjects.Image) {
+        const frame = animFrame(SPRITES.wildebeest.file, t, true);
+        if (frame && this.textures.exists(frame)) b.view.setTexture(frame);
+      }
+      for (const p of this.players) {
+        if (p.health.down) continue;
+        const pb = p.body();
+        if (beastHits(b.x, GROUND_Y, p.x, p.feetY - pb.height, p.feetY, pb.width / 2) && this.hurtPlayer(p, true)) this.herdHits += 1;
+      }
+      const gone = b.dir < 0 ? b.x < this.scrollX - HERD_DESPAWN : b.x > this.scrollX + VIEW_W + HERD_DESPAWN;
+      if (gone) {
+        b.view.destroy();
+        b.dust?.destroy();
+        this.beasts = this.beasts.filter((x) => x !== b);
+      }
+    }
+  }
+
+  /**
+   * 獸群預告:角馬要來的那一邊畫面邊緣揚起沙塵、跳出「!」,地面震動。
+   * release 為 true 時(關主叫的)預告完自己放出來;奔跑區的由 stepStampede 放。
+   */
+  private warnHerd(dir: 1 | -1, release: boolean): void {
+    const edgeX = dir < 0 ? VIEW_W - 50 : 50;
+    const views: Phaser.GameObjects.GameObject[] = [];
+    for (let i = 0; i < 3; i++) {
+      const y = GROUND_Y - 20 - i * 26;
+      const puff = this.textures.exists('herd-dust')
+        ? this.add.image(edgeX, y, 'herd-dust').setAlpha(0.8)
+        : this.add.ellipse(edgeX, y, 64, 32, 0xd8c090, 0.7);
+      puff.setScrollFactor(0).setDepth(6);
+      this.tweens.add({ targets: puff, scaleX: 1.3, scaleY: 1.2, duration: 200 + i * 60, yoyo: true, repeat: -1 });
+      views.push(puff);
+    }
+    const mark = this.add
+      .text(edgeX, GROUND_Y - 110, '!', { fontSize: '44px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 6 })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(7);
+    this.tweens.add({ targets: mark, scale: 1.25, duration: 150, yoyo: true, repeat: -1 });
+    views.push(mark);
+    this.cameras.main.shake(HERD_WARN_MS, 0.0025);
+    audio.sfx('bossAppear');
+    this.herdWarnings.push({ dir, ms: HERD_WARN_MS, views });
+    if (release) this.time.delayedCall(HERD_WARN_MS, () => this.releaseHerd(dir));
+  }
+
+  /** 放出一群角馬:從畫面外(dir 的反方向那邊)排成兩隻一組跑過來。 */
+  private releaseHerd(dir: 1 | -1): void {
+    if (this.bossDefeated) return;
+    this.herdsReleased += 1;
+    for (const o of HERD_OFFSETS) {
+      const x = dir < 0 ? this.scrollX + VIEW_W + 40 + o : this.scrollX - 40 - o;
+      const view = this.textures.exists('wildebeest')
+        ? this.add.image(x, GROUND_Y, 'wildebeest').setOrigin(0.5, 1).setFlipX(dir > 0)
+        : this.add.rectangle(x, GROUND_Y, 44, 48, 0x8a6a4a).setOrigin(0.5, 1);
+      view.setDepth(4);
+      const dust = this.textures.exists('herd-dust') ? this.add.image(x - dir * 30, GROUND_Y - 12, 'herd-dust').setAlpha(0.55).setDepth(3) : null;
+      this.beasts.push({ x, dir, view, dust });
     }
   }
 
@@ -1374,6 +1493,9 @@ export class TestRangeScene extends Phaser.Scene {
       else if (ai.kind === 'dragon') this.updateDragon(boss, ai, dtMs);
       else if (ai.kind === 'sloth') this.updateSloth(boss, ai, dtMs);
       else if (ai.kind === 'jaguar') this.updateJaguar(boss, ai, dtMs);
+      else if (ai.kind === 'giraffe') this.updateGiraffe(boss, ai, dtMs);
+      else if (ai.kind === 'elephant') this.updateElephant(boss, ai, dtMs);
+      else if (ai.kind === 'lion') this.updateLion(boss, ai, dtMs);
       else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1720,6 +1842,93 @@ export class TestRangeScene extends Phaser.Scene {
     if (step.enteredPhase) this.announcePhase(boss);
   }
 
+  /** 失眠長頸鹿:脖子橫掃(高的站著、低的跳過),玩家靠太近就用後腿蹬一下。 */
+  private updateGiraffe(boss: Boss, ai: Extract<BossAi, { kind: 'giraffe' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const was = ai.brain.mode;
+    const step = stepGiraffe(ai.brain, { x: enemy.x, hpRatio: enemy.hp / boss.maxHp, targetX: nearest ? nearest.x : null, dtMs });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const sw of step.sweeps) {
+      this.later(boss, sw.delayMs, () => this.shots.fire(enemy.x + sw.dir * (enemy.def.w / 2), sw.y, sw.dir * SWEEP_SPEED, 0, 'sweep'));
+    }
+  }
+
+  /** 熬夜大象:鼻子噴一串水柱(蹲下躲)、跺腳送出震波(跳過)。 */
+  private updateElephant(boss: Boss, ai: Extract<BossAi, { kind: 'elephant' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const was = ai.brain.mode;
+    const step = stepElephant(ai.brain, { x: enemy.x, hpRatio: enemy.hp / boss.maxHp, targetX: nearest ? nearest.x : null, dtMs });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    if (step.jet !== null) this.shots.fire(enemy.x + step.jet * (enemy.def.w / 2), JET_Y, step.jet * JET_SPEED, 0, 'jet');
+    for (const w of step.waves) this.desert.sendWave(enemy.x + w.dir * (enemy.def.w / 2), w.dir, w.delayMs, 'stomp');
+    if (step.waves.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(220, 0.007);
+    }
+  }
+
+  /** 失眠獅子王:獅吼(音波有高有低)、撲過來落地送出震波、叫角馬群從背後衝過來;第二階段起叫疣豬。 */
+  private updateLion(boss: Boss, ai: Extract<BossAi, { kind: 'lion' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const lock = this.bossLock ?? this.scrollX;
+    const pb = enemy.physicsBody();
+    const was = ai.brain.mode;
+    const step = stepLion(ai.brain, {
+      x: enemy.x,
+      grounded: pb.blocked.down || pb.touching.down,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      homeX: lock + VIEW_W - LION_HOME_INSET,
+      halfW: enemy.def.w / 2,
+      arenaLeft: lock,
+      arenaRight: lock + VIEW_W,
+      minionsAlive: boss.minions.size,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('lion', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
+    const facing: 1 | -1 = nearest && nearest.x > enemy.x ? 1 : -1;
+    enemy.brain = { ...enemy.brain, facing, phase: step.brain.mode === 'leap' ? 'hop' : step.brain.mode === 'return' ? 'walk' : 'idle' };
+    if (step.vx !== null) pb.setVelocityX(step.vx);
+    if (step.vy !== null) pb.setVelocityY(step.vy);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    const mouthX = enemy.x + facing * (enemy.def.w / 2 - 10);
+    for (const r of step.roars) this.shots.fire(mouthX, r.y, facing * r.speed, 0, 'roar', 0, ROAR_LIFE_MS);
+    if (step.roars.length > 0) this.cameras.main.shake(300, 0.005);
+    for (const dir of step.waves) this.desert.sendWave(enemy.x + dir * (enemy.def.w / 2), dir, 0, 'stomp');
+    if (step.waves.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(220, 0.007);
+    }
+    // 角馬群從玩家背後(左邊)衝過來。
+    if (step.stampede) this.warnHerd(1, true);
+    if (step.summon) boss.minions.add(this.spawnFrom({ type: 'warthog', from: 'left', delayMs: 0 }, false));
+    if (step.enteredPhase) this.announcePhase(boss);
+  }
+
+  /** 關主晚一點才出的招:到時候關主已經被打倒(或換了)就不出。 */
+  private later(boss: Boss, delayMs: number, fn: () => void): void {
+    if (delayMs <= 0) {
+      fn();
+      return;
+    }
+    this.time.delayedCall(delayMs, () => {
+      if (this.boss === boss && !this.bossDefeated) fn();
+    });
+  }
+
   /** 失眠樹懶:慢慢爬,搖樹讓芒果掉下來、丟芒果;靠太近用爪子往前掃。 */
   private updateSloth(boss: Boss, ai: Extract<BossAi, { kind: 'sloth' }>, dtMs: number): void {
     const { enemy } = boss;
@@ -2053,7 +2262,9 @@ export class TestRangeScene extends Phaser.Scene {
     return (ai?.kind === 'crab' || ai?.kind === 'squirrel' || ai?.kind === 'snail') && ai.armored;
   }
 
+  /** 換階段的關主、躲進地洞的狐獴:打不到。 */
   private isInvulnerable(e: EnemyEntity): boolean {
+    if (e.burrowed) return true;
     return this.boss?.enemy === e && this.boss.invulnerable;
   }
 
@@ -2379,6 +2590,7 @@ export class TestRangeScene extends Phaser.Scene {
       riverFalls: this.riverFalls,
       volcano: { lavaBurns: this.lavaBurns, eruptions: this.eruption.count },
       vines: { grabs: this.vineGrabs, holding: [...this.holding] },
+      stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
       desert: this.desert.debug(),
       dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,
       enemyShots: this.shots.count(),

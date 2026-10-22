@@ -128,6 +128,8 @@ export interface GkDebug {
   volcano?: { lavaBurns: number; eruptions: number };
   /** 世界 6:抓住藤蔓的次數、每位玩家抓著哪一條(沒抓是 null)。 */
   vines?: { grabs: number; holding: (number | null)[] };
+  /** 世界 7:正在預告的獸群、放出過幾群、場上的角馬數、被撞到的次數。 */
+  stampede?: { warnings: number; herds: number; beasts: number; hits: number };
   /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
   desert?: { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number };
   /** 測試用:在 x 掉一塊沙磚。 */

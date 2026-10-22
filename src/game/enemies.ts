@@ -43,7 +43,14 @@ export type EnemyType =
   | 'pangolin'
   | 'sloth'
   | 'jaguar'
-  | 'gorilla';
+  | 'gorilla'
+  | 'meerkat'
+  | 'warthog'
+  | 'hornbill'
+  | 'rhino'
+  | 'giraffe'
+  | 'elephant'
+  | 'lion';
 export type EnemyTier = 'minion' | 'mid' | 'high' | 'boss';
 
 export interface EnemyDef {
@@ -109,9 +116,17 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   sloth: { type: 'sloth', name: '失眠樹懶', tier: 'boss', hp: 45, w: 90, h: 100, color: 0xe0a050, flying: false, shield: false },
   jaguar: { type: 'jaguar', name: '熬夜美洲豹', tier: 'boss', hp: 50, w: 110, h: 105, color: 0xe8b050, flying: false, shield: false },
   gorilla: { type: 'gorilla', name: '吵鬧大猩猩', tier: 'boss', hp: 110, w: 130, h: 160, color: 0x5a5a6a, flying: false, shield: false },
+  // 世界 7 非洲大草原。
+  meerkat: { type: 'meerkat', name: '熬夜狐獴', tier: 'minion', hp: 2, w: 34, h: 46, color: 0xb08a5a, flying: false, shield: false },
+  warthog: { type: 'warthog', name: '咖啡疣豬', tier: 'minion', hp: 3, w: 48, h: 44, color: 0xc89a5a, flying: false, shield: false },
+  hornbill: { type: 'hornbill', name: '吵鬧犀鳥', tier: 'minion', hp: 1, w: 46, h: 44, color: 0x3a3a3a, flying: true, shield: false },
+  rhino: { type: 'rhino', name: '失眠犀牛', tier: 'mid', hp: 10, w: 72, h: 64, color: 0xd8b860, flying: false, shield: true },
+  giraffe: { type: 'giraffe', name: '失眠長頸鹿', tier: 'boss', hp: 45, w: 80, h: 120, color: 0xe8b050, flying: false, shield: false },
+  elephant: { type: 'elephant', name: '熬夜大象', tier: 'boss', hp: 50, w: 115, h: 110, color: 0x5a5a6a, flying: false, shield: false },
+  lion: { type: 'lion', name: '失眠獅子王', tier: 'boss', hp: 120, w: 150, h: 160, color: 0xf0c060, flying: false, shield: false },
 };
 
-export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll' | 'dash' | 'idle' | 'swim' | 'puff' | 'hide';
+export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll' | 'dash' | 'idle' | 'swim' | 'puff' | 'hide' | 'burrow';
 
 export interface EnemyBrain {
   phase: EnemyPhase;
@@ -161,6 +176,8 @@ const HEDGEHOG_TUNE = {
   armadillo: { walkMs: 2800, rollMs: 900, rollSpeed: 240, walkSpeed: 38, turnMs: 900 },
   // 穿山甲:正面鱗片盾,縮成球滾得比犰狳久。
   pangolin: { walkMs: 3000, rollMs: 1200, rollSpeed: 220, walkSpeed: 40, turnMs: 900 },
+  // 犀牛:正面的角擋子彈,每隔一陣子低頭衝撞(不會滾)。
+  rhino: { walkMs: 2600, rollMs: 900, rollSpeed: 320, walkSpeed: 40, turnMs: 900 },
   tortoise: { walkMs: Infinity, rollMs: 0, rollSpeed: 0, walkSpeed: 30, turnMs: 1200 },
 } as const;
 /** 走一走衝一下:聖甲蟲推著鈴鐺球衝;企鵝搖搖擺擺走,肚子貼地滑一段。 */
@@ -169,12 +186,18 @@ const DASHER_TUNE = {
   penguin: { speed: 45, dashSpeed: 260, walkMs: 2600, dashMs: 1100 },
   // 火蜥蜴:爬過來,每隔一陣子快速竄一小段。
   salamander: { speed: 60, dashSpeed: 200, walkMs: 2400, dashMs: 500 },
+  // 疣豬:走一走,低頭衝過來。
+  warthog: { speed: 50, dashSpeed: 300, walkMs: 2000, dashMs: 700 },
 } as const;
 /** 雪人:慢慢走過來,停在 250 外,每 2.6 秒朝 520 以內的玩家丟雪球。 */
 const SNOWMAN_SPEED = 35;
 const SNOWMAN_KEEP = 250;
 const SNOWMAN_THROW_MS = 2600;
 const SNOWMAN_RANGE = 520;
+/** 狐獴:跑 1.6 秒,躲進地洞 1.2 秒。 */
+const MEERKAT_SPEED = 75;
+export const MEERKAT_RUN_MS = 1600;
+export const MEERKAT_BURROW_MS = 1200;
 /** 變色龍:走一走,然後停下來變色躲起來(看不太到,但打得到)。 */
 const CHAMELEON_SPEED = 55;
 export const CHAMELEON_WALK_MS = 2200;
@@ -198,6 +221,7 @@ const DIVER_TUNE = {
   puffin: { hoverY: 230, speed: 150, swoopRange: 170, swoopVx: 220, hoverMs: 1700, swoopMs: 750 },
   volcanoBird: { hoverY: 240, speed: 140, swoopRange: 160, swoopVx: 200, hoverMs: 1900, swoopMs: 780 },
   parrot: { hoverY: 220, speed: 160, swoopRange: 180, swoopVx: 230, hoverMs: 1600, swoopMs: 760 },
+  hornbill: { hoverY: 240, speed: 130, swoopRange: 160, swoopVx: 200, hoverMs: 2000, swoopMs: 800 },
 } as const;
 /** 水母:上下漂(振幅 50、週期 2.4 秒),慢慢往玩家漂。 */
 const JELLY_BOB = 50;
@@ -262,6 +286,13 @@ const START_PHASE: Record<EnemyType, EnemyPhase> = {
   sloth: 'idle',
   jaguar: 'idle',
   gorilla: 'idle',
+  meerkat: 'walk',
+  warthog: 'walk',
+  hornbill: 'hover',
+  rhino: 'walk',
+  giraffe: 'idle',
+  elephant: 'idle',
+  lion: 'idle',
 };
 
 export function initialBrain(type: EnemyType): EnemyBrain {
@@ -278,6 +309,16 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
   const hasTarget = sense.targetX !== null;
 
   switch (type) {
+    case 'meerkat': {
+      // 狐獴:往玩家跑一段,再躲進地洞(只露出頭頂,打不到也碰不到)一下,再冒出來。
+      const facing = faceTarget(brain, sense);
+      if (brain.phase === 'burrow') {
+        if (timerMs >= MEERKAT_BURROW_MS) return { vx: 0, vy: null, brain: { phase: 'walk', timerMs: 0, facing, turnMs: 0 } };
+        return { vx: 0, vy: null, brain: { ...brain, timerMs, facing } };
+      }
+      if (hasTarget && timerMs >= MEERKAT_RUN_MS) return { vx: 0, vy: null, brain: { phase: 'burrow', timerMs: 0, facing, turnMs: 0 } };
+      return { vx: hasTarget ? facing * MEERKAT_SPEED : 0, vy: null, brain: { phase: 'walk', timerMs, facing, turnMs: 0 } };
+    }
     case 'chameleon': {
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'hide') {
@@ -330,7 +371,10 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'sloth':
     case 'jaguar':
     case 'gorilla':
-      // 關主與小頭目由各自的檔案(owl.ts、squirrel.ts、beaver.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts、polarBear.ts、yeti.ts、hippo.ts、snail.ts、dragon.ts、sloth.ts、jaguar.ts)控制。
+    case 'giraffe':
+    case 'elephant':
+    case 'lion':
+      // 關主與小頭目由各自的檔案(owl.ts、squirrel.ts、beaver.ts、camel.ts、fennec.ts、sphinx.ts、crab.ts、eel.ts、nessie.ts、polarBear.ts、yeti.ts、hippo.ts、snail.ts、dragon.ts、sloth.ts、jaguar.ts、giraffe.ts、elephant.ts、lion.ts)控制。
       return { vx: 0, vy: 0, brain: { ...brain, timerMs } };
     case 'jellyfish': {
       const facing = faceTarget(brain, sense);
@@ -375,7 +419,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     }
     case 'bellScarab':
     case 'penguin':
-    case 'salamander': {
+    case 'salamander':
+    case 'warthog': {
       const tune = DASHER_TUNE[type];
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'dash') {
@@ -422,7 +467,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'vulture':
     case 'puffin':
     case 'volcanoBird':
-    case 'parrot': {
+    case 'parrot':
+    case 'hornbill': {
       const tune = DIVER_TUNE[type];
       const facing = faceTarget(brain, sense);
       if (brain.phase === 'swoop') {
@@ -440,7 +486,8 @@ export function stepEnemy(type: EnemyType, brain: EnemyBrain, sense: EnemySense)
     case 'tortoise':
     case 'walrus':
     case 'armadillo':
-    case 'pangolin': {
+    case 'pangolin':
+    case 'rhino': {
       const tune = HEDGEHOG_TUNE[type];
       if (brain.phase === 'roll') {
         if (timerMs >= tune.rollMs) {

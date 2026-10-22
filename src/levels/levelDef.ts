@@ -9,7 +9,7 @@ import type { Vine } from '../game/vine';
 
 export type BossType = Extract<
   EnemyType,
-  'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie' | 'polarBear' | 'narwhal' | 'yeti' | 'hippo' | 'snail' | 'dragon' | 'sloth' | 'jaguar' | 'gorilla'
+  'nightOwl' | 'squirrel' | 'beaver' | 'camel' | 'fennec' | 'sphinx' | 'hermitCrab' | 'eel' | 'nessie' | 'polarBear' | 'narwhal' | 'yeti' | 'hippo' | 'snail' | 'dragon' | 'sloth' | 'jaguar' | 'gorilla' | 'giraffe' | 'elephant' | 'lion'
 >;
 
 export type LevelId =
@@ -31,9 +31,12 @@ export type LevelId =
   | 'w5-3'
   | 'w6-1'
   | 'w6-2'
-  | 'w6-3';
+  | 'w6-3'
+  | 'w7-1'
+  | 'w7-2'
+  | 'w7-3';
 
-const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3'];
+const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3'];
 
 /** 左上角座標與寬高。 */
 export interface Rect {
@@ -84,8 +87,10 @@ export interface LevelDef {
   eruptions?: readonly Span[];
   /** 可以抓住盪過去的藤蔓(世界 6):頂端掛在 (x, top),通常掛在跳不過的寬河溝上。 */
   vines?: readonly Vine[];
-  /** 平台用美術的圖畫(世界 4 的雪堆平台、世界 5 的岩石平台、世界 6 的木頭平台)。 */
-  platformArt?: 'snow-platform' | 'rock-platform' | 'log-platform';
+  /** 獸群奔跑區(世界 7):玩家在區裡時,每隔一陣子一群角馬衝過來。 */
+  stampedes?: readonly Span[];
+  /** 平台用美術的圖畫(世界 4 的雪堆平台、世界 5 的岩石平台、世界 6 的木頭平台、世界 7 的岩石平台)。 */
+  platformArt?: 'snow-platform' | 'rock-platform' | 'log-platform' | 'savanna-platform';
   /** 路邊的教學告示牌。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }

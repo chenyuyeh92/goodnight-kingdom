@@ -18,6 +18,9 @@ import { LAVA_RIVER } from './lavaRiver';
 import { RIVER_FOREST } from './riverForest';
 import { WATERFALL } from './waterfall';
 import { CANOPY } from './canopy';
+import { ACACIA } from './acacia';
+import { WATERHOLE } from './waterhole';
+import { PRIDE_ROCK } from './pride';
 
 export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   range: RANGE,
@@ -39,4 +42,7 @@ export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   'w6-1': RIVER_FOREST,
   'w6-2': WATERFALL,
   'w6-3': CANOPY,
+  'w7-1': ACACIA,
+  'w7-2': WATERHOLE,
+  'w7-3': PRIDE_ROCK,
 };

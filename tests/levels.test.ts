@@ -118,7 +118,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -482,4 +482,46 @@ test('世界 6 的小頭目是樹懶、美洲豹,關主是大猩猩;6-1 有藤�
   expect(LEVELS['w6-3'].boss!.type).toBe('gorilla');
   expect(LEVELS['w6-1'].hints!.map((h) => h.kind)).toContain('vine');
   expect(LEVELS['w6-3'].scenes.map((s) => s.scene)).toEqual(['w6-s3', 'w6-s4']);
+});
+
+describe.each(['w7-1', 'w7-2', 'w7-3'] as const)('世界 7 草原:%s', (id) => {
+  const L = LEVELS[id];
+  const zones = L.stampedes ?? [];
+
+  test('屬於世界 7,有獸群奔跑區,平台用岩石', () => {
+    expect(L.world).toBe(7);
+    expect(zones.length).toBeGreaterThan(0);
+    expect(L.platformArt).toBe('savanna-platform');
+    for (const s of L.scenes) expect(s.scene.startsWith('w7-')).toBe(true);
+  });
+
+  test('每個奔跑區裡都有從地面跳得上去、角馬碰不到的岩石平台', () => {
+    for (const z of zones) {
+      const safe = L.terrain.filter((r) => r.h <= 20 && r.x >= z.x && r.x + r.w <= z.x + z.w && GROUND_Y - r.y <= 140 && r.y + r.h <= GROUND_Y - 56);
+      expect(safe.length, `奔跑區 ${z.x}`).toBeGreaterThan(0);
+    }
+  });
+
+  test('檢查點離奔跑區遠一點(重來時不會一出來就被撞)', () => {
+    for (const z of zones) for (const cp of L.checkpoints) expect(cp + 40 < z.x - 100 || cp > z.x + z.w + 100, `奔跑區 ${z.x} 檢查點 ${cp}`).toBe(true);
+  });
+
+  test('戰鬥區與關主區不在奔跑區裡', () => {
+    const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
+    for (const w of windows) for (const z of zones) expect(z.x + z.w <= w || z.x >= w + VIEW_W, `奔跑區 ${z.x} 戰鬥區 ${w}`).toBe(true);
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of L.chests.filter((c) => c.bottom < 300)) expectReachable(c, L);
+  });
+});
+
+test('世界 7 的小頭目是長頸鹿、大象,關主是獅子王;7-1 有獸群的告示牌;榮耀岩上有岩石可以躲角馬群', () => {
+  expect(LEVELS['w7-1'].boss!.type).toBe('giraffe');
+  expect(LEVELS['w7-2'].boss!.type).toBe('elephant');
+  expect(LEVELS['w7-3'].boss!.type).toBe('lion');
+  expect(LEVELS['w7-1'].hints!.map((h) => h.kind)).toContain('stampede');
+  expect(LEVELS['w7-3'].scenes.map((s) => s.scene)).toEqual(['w7-s3', 'w7-s4']);
+  const lock = LEVELS['w7-3'].boss!.lockScrollX;
+  expect(LEVELS['w7-3'].terrain.filter((r) => r.x >= lock && r.x + r.w <= lock + VIEW_W).length).toBeGreaterThanOrEqual(2);
 });

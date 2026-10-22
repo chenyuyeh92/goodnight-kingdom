@@ -13,6 +13,8 @@ const COLOR_SHIELD = 0xffffff;
 
 /** 變色龍躲起來時的透明度。 */
 const CAMOUFLAGE_ALPHA = 0.18;
+/** 狐獴躲進地洞時只露出這麼多(高度比例)。 */
+const BURROW_SCALE_Y = 0.3;
 
 /** 一隻魔物:色塊、物理 body、行為狀態與血量。 */
 export class EnemyEntity {
@@ -150,7 +152,9 @@ export class EnemyEntity {
     } else {
       this.art.setOrigin(0.5, 1).setPosition(this.body.x, bottom + pose.dy);
     }
-    this.art.setScale(base * pose.scaleX, base * pose.scaleY).setAngle(pose.angle);
+    // 躲進地洞:身體壓扁貼在地上,只露出頭頂。
+    const squash = this.burrowed ? BURROW_SCALE_Y : 1;
+    this.art.setScale(base * pose.scaleX, base * pose.scaleY * squash).setAngle(pose.angle);
     // 變色龍躲起來時幾乎看不到(還是打得到、碰到會痛)。
     this.art.setAlpha(this.body.alpha * (this.brain.phase === 'hide' ? CAMOUFLAGE_ALPHA : 1));
   }
@@ -159,6 +163,11 @@ export class EnemyEntity {
     this.body.destroy();
     this.shield?.destroy();
     this.art?.destroy();
+  }
+
+  /** 狐獴躲進地洞:只露出頭頂,打不到也碰不到。 */
+  get burrowed(): boolean {
+    return this.brain.phase === 'burrow';
   }
 
   /** 有盾而且還沒破。 */
