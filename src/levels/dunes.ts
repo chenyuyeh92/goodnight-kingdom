@@ -119,7 +119,7 @@ export const DUNES: LevelDef = {
           { type: 'bellScarab', from: 'left', delayMs: 800 },
         ],
         [
-          { type: 'sandSnake', from: 'ground', x: 6960, delayMs: 0 },
+          { type: 'sandSnake', from: 'ground', x: 6590, delayMs: 0 },
           { type: 'vulture', from: 'left', delayMs: 300 },
           { type: 'mummyCat', from: 'right', delayMs: 700 },
           { type: 'tortoise', from: 'left', delayMs: 1100 },

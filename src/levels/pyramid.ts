@@ -126,7 +126,8 @@ export const PYRAMID: LevelDef = {
       ],
     },
   ],
-  boss: { type: 'sphinx', lockScrollX: 9240, spawnX: 10080 },
+  // 貼著世界右邊,玩家不能躲到人面獅身背後。
+  boss: { type: 'sphinx', lockScrollX: 9240, spawnX: 10130 },
   scenes: [
     { scene: 'w2-s3', fromScrollX: 0 },
     { scene: 'w2-s4', fromScrollX: 8400 },

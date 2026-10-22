@@ -93,6 +93,19 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     expect((await gk(page)).players![0].x).toBeGreaterThan(x + 60);
   });
 
+  test('疊起來的沙磚:下面那塊碎掉,上面那塊掉到地上,不會浮在半空中', async ({ page }) => {
+    await open(page, 'w2-1');
+    await page.evaluate(() => window.__GK__!.warp!(2000));
+    await calm(page);
+    await page.evaluate(() => window.__GK__!.dropBlock!(1940));
+    await page.waitForFunction(() => window.__GK__!.desert!.bottoms.length === 1, undefined, { timeout: 3000 });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => window.__GK__!.dropBlock!(1940));
+    await page.waitForFunction(() => window.__GK__!.desert!.bottoms.includes(442), undefined, { timeout: 3000 });
+    // 下面那塊碎掉後,上面那塊落到地面(底部 480)。
+    await page.waitForFunction(() => window.__GK__!.desert!.bottoms.length === 1 && window.__GK__!.desert!.bottoms[0] === 480, undefined, { timeout: 5000 });
+  });
+
   test('雙人:只有陷進流沙的人扣愛心', async ({ page }) => {
     await open(page, 'w2-2', '', 'duo');
     await page.evaluate(() => window.__GK__!.warp!(1960));

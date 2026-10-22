@@ -617,14 +617,15 @@ export class TestRangeScene extends Phaser.Scene {
       }
       else if (r.kind === 'melee') this.performMelee(r.reach);
       this.applyWater(p);
-      this.desert.applySand(p, i, dtMs);
+      // 打擊停頓時物理暫停,流沙與機關也一起停。
+      if (!this.physics.world.isPaused) this.desert.applySand(p, i, dtMs);
     });
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
     this.updateEnemies(dtMs, t);
     this.updateBoss(dtMs, time);
-    this.desert.update(dtMs);
+    if (!this.physics.world.isPaused) this.desert.update(dtMs);
     this.shots.update();
     this.updatePickups(time);
     this.handleTeam();
@@ -1227,6 +1228,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.sleepAway(e, false);
       this.removeEnemy(e);
     }
+    this.shots.clear();
     const enemy = this.spawnEnemy(type, spawnX, type === 'nightOwl' ? OWL_HOVER_Y : undefined);
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;

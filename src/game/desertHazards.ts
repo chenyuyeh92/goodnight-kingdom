@@ -112,8 +112,7 @@ export class DesertHazards {
 
   /** 預告後從天上掉一塊沙磚。 */
   dropBlock(x: number): void {
-    const surfaces = [...this.opts.platforms, ...this.solidRects()];
-    const landY = landingTop(x, BLOCK_W, 0, surfaces);
+    const landY = landingTop(x, BLOCK_W, 0, this.surfaces(null));
     const shadow = this.scene.add.ellipse(x, landY, BLOCK_W * 0.4, 8, SHADOW, 0.5).setDepth(-1);
     const view = this.scene.textures.exists('falling-block')
       ? this.scene.add.image(x, BLOCK_START_Y, 'falling-block').setOrigin(0.5, 1)
@@ -151,9 +150,10 @@ export class DesertHazards {
     for (const w of [...this.waves]) this.removeWave(w);
   }
 
-  debug(): { blocks: number; landed: number; waves: number; sink: number[]; sinks: number; platesFired: number } {
+  debug(): { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number } {
     return {
       blocks: this.blocks.length,
+      bottoms: this.blocks.filter((b) => b.stage === 'landed').map((b) => b.landY),
       landed: this.blocks.filter((b) => b.solid).length,
       waves: this.waves.length,
       sink: this.sandStates.map((s) => s.ms),
@@ -162,8 +162,12 @@ export class DesertHazards {
     };
   }
 
-  private solidRects(): Rect[] {
-    return this.blocks.filter((b) => b.stage === 'landed').map((b) => ({ x: b.x - BLOCK_W / 2, y: b.landY - BLOCK_H, w: BLOCK_W, h: BLOCK_H }));
+  /** 沙磚可以落在上面的表面:平台與已經落地的沙磚(不含 self)。 */
+  private surfaces(self: Block | null): Rect[] {
+    const landed = this.blocks
+      .filter((b) => b !== self && b.stage === 'landed')
+      .map((b) => ({ x: b.x - BLOCK_W / 2, y: b.landY - BLOCK_H, w: BLOCK_W, h: BLOCK_H }));
+    return [...this.opts.platforms, ...landed];
   }
 
   private updateBlock(b: Block, dt: number, players: readonly PlayerEntity[]): void {
@@ -178,6 +182,9 @@ export class DesertHazards {
       return;
     }
     if (b.stage === 'fall') {
+      // 每格重新找落點:底下的沙磚可能已經碎掉了。
+      b.landY = landingTop(b.x, BLOCK_W, b.view.y, this.surfaces(b));
+      b.shadow.setY(b.landY);
       const y = Math.min(b.landY, b.view.y + (BLOCK_FALL_VY * dt) / 1000);
       b.view.setY(y);
       for (const p of players) {
@@ -205,16 +212,31 @@ export class DesertHazards {
 
   private removeBlock(b: Block, crumble = false): void {
     this.blocks = this.blocks.filter((x) => x !== b);
-    if (b.solid) {
-      this.opts.terrainBodies.delete(b.solid.body as Phaser.Physics.Arcade.StaticBody);
-      this.opts.terrain.remove(b.solid, true, true);
-    }
+    this.unsolid(b);
     b.shadow.destroy();
+    // 疊在上面的沙磚沒有東西撐了,繼續往下掉(不會浮在半空中);疊好幾層時一路檢查到穩定。
+    for (let changed = true; changed; ) {
+      changed = false;
+      for (const o of this.blocks) {
+        if (o.stage !== 'landed' || landingTop(o.x, BLOCK_W, o.landY, this.surfaces(o)) <= o.landY) continue;
+        o.stage = 'fall';
+        o.ms = 0;
+        this.unsolid(o);
+        changed = true;
+      }
+    }
     if (!crumble) {
       b.view.destroy();
       return;
     }
     this.scene.tweens.add({ targets: b.view, alpha: 0, scaleY: 0.3, duration: CRUMBLE_MS, onComplete: () => b.view.destroy() });
+  }
+
+  private unsolid(b: Block): void {
+    if (!b.solid) return;
+    this.opts.terrainBodies.delete(b.solid.body as Phaser.Physics.Arcade.StaticBody);
+    this.opts.terrain.remove(b.solid, true, true);
+    b.solid = null;
   }
 
   private updateWave(w: Wave, dt: number, players: readonly PlayerEntity[]): void {

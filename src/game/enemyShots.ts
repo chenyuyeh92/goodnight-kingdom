@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 
 const SHOT_LIFE_MS = 4000;
+/** 剛射出的子彈這段時間內穿過地形(駱駝站在踏板下吐口水,不會一出嘴就消失)。 */
+const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
 /** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡、駱駝口水、沙球/沙塊。 */
@@ -41,7 +43,10 @@ export class EnemyShotSystem {
       g.generateTexture(key, look.w + 4, look.h + 4);
       g.destroy();
     }
-    scene.physics.add.overlap(this.group, terrain, (s) => this.removeObj(s));
+    scene.physics.add.overlap(this.group, terrain, (s) => {
+      const shot = this.shots.find((x) => x.rect === s);
+      if (shot && this.scene.time.now - shot.bornAt >= TERRAIN_GRACE_MS) this.remove(shot);
+    });
   }
 
   /** onHit 回傳 true 表示打中(羽毛消失),false 表示穿過(例如玩家睡著)。 */
