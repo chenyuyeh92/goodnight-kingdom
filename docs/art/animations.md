@@ -82,7 +82,7 @@
 | `w8-thunderbird-boss-phase3` | 拍翅 | `w8-thunderbird-boss-phase3-flap-1.png` ～ `-4.png` |
 | `w8-yak` | 走路 | `w8-yak-walk-1.png` ～ `-4.png` |
 | `w9-boss1-firefly-queen` | 彈跳 | `w9-boss1-firefly-queen-bounce-1.png` ～ `-4.png` |
-| `w9-boss2-axolotl` | 走路 | `w9-boss2-axolotl-walk-1.png` ～ `-4.png` |
+| `w9-boss2-axolotl` | 游動 | `w9-boss2-axolotl-swim-1.png` ～ `-4.png` |
 | `w9-coffee-worm` | 彈跳 | `w9-coffee-worm-bounce-1.png` ～ `-4.png` |
 | `w9-giant-mole-boss` | 走路 | `w9-giant-mole-boss-walk-1.png` ～ `-4.png` |
 | `w9-giant-mole-boss-phase2` | 走路 | `w9-giant-mole-boss-phase2-walk-1.png` ～ `-4.png` |

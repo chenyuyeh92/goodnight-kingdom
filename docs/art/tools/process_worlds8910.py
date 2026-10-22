@@ -19,18 +19,18 @@ A = lambda *p: os.path.join(ROOT, "public", "assets", *p)
 PICKS = {
     "w8-coffee-cloud": ("G16/w8/w8-coffee-cloud_00002_.png", (56, 52), False),
     "w8-coffee-cloud-sleep": ("G17/w8s/w8-coffee-cloud-sleep_00002_.png", (56, 52), False),
-    "w8-noisy-eagle": ("G16/w8/w8-noisy-eagle_00002_.png", (60, 56), False),
-    "w8-noisy-eagle-sleep": ("G17/w8s/w8-noisy-eagle-sleep_00002_.png", (60, 56), False),
-    "w8-pika": ("G16/w8/w8-pika_00004_.png", (48, 52), False),
-    "w8-pika-sleep": ("G17/w8s/w8-pika-sleep_00002_.png", (48, 52), False),
+    "w8-noisy-eagle": ("G16/w8/w8-noisy-eagle_00002_.png", (60, 56), True),
+    "w8-noisy-eagle-sleep": ("G17/w8s/w8-noisy-eagle-sleep_00002_.png", (60, 56), True),
+    "w8-pika": ("G16/w8/w8-pika_00004_.png", (48, 52), True),
+    "w8-pika-sleep": ("G17/w8s/w8-pika-sleep_00002_.png", (48, 52), True),
     "w8-yak": ("G16/w8/w8-yak_00003_.png", (80, 72), False),
     "w8-yak-sleep": ("G17/w8s/w8-yak-sleep_00002_.png", (80, 72), False),
     "w9-coffee-worm": ("G16/w9/w9-coffee-worm_00004_.png", (48, 56), False),
     "w9-coffee-worm-sleep": ("G17/w9s/w9-coffee-worm-sleep_00002_.png", (48, 56), False),
     "w9-mushroom-sprite": ("G16/w9/w9-mushroom-sprite_00001_.png", (48, 56), False),
     "w9-mushroom-sprite-sleep": ("G17/w9s/w9-mushroom-sprite-sleep_00002_.png", (48, 56), False),
-    "w9-noisy-moth": ("G16/w9/w9-noisy-moth_00003_.png", (60, 56), False),
-    "w9-noisy-moth-sleep": ("G17/w9s/w9-noisy-moth-sleep_00002_.png", (60, 56), False),
+    "w9-noisy-moth": ("G16/w9/w9-noisy-moth_00003_.png", (60, 56), True),
+    "w9-noisy-moth-sleep": ("G17/w9s/w9-noisy-moth-sleep_00002_.png", (60, 56), True),
     "w9-rhino-beetle": ("G16/w9/w9-rhino-beetle_00002_.png", (80, 72), False),
     "w9-rhino-beetle-sleep": ("G17/w9s/w9-rhino-beetle-sleep_00002_.png", (80, 72), False),
     "w10-coffee-teapot": ("G16/w10/w10-coffee-teapot_00002_.png", (52, 56), False),
@@ -42,9 +42,9 @@ PICKS = {
     "w10-noisy-star": ("G16/w10/w10-noisy-star-v2_00003_.png", (56, 56), False),
     "w10-noisy-star-sleep": ("G17/w10s/w10-noisy-star-sleep_00002_.png", (56, 56), False),
 }
-FAR_PICKS = {"w8-1": "00002", "w8-2": "00001", "w8-3": "00004", "w8-4": "00003",
-             "w9-1": "00002", "w9-2": "00002", "w9-3": "00002", "w9-4": "v2_00002",
-             "w10-1": "00002", "w10-2": "00002", "w10-3": "00001", "w10-4": "00002"}
+FAR_PICKS = {"w8-1": "00002", "w8-2": "00001", "w8-3": "00003", "w8-4": "00003",
+             "w9-1": "00002", "w9-2": "00002", "w9-3": "00002", "w9-4": "v2_00001",
+             "w10-1": "00002", "w10-2": "00002", "w10-3": "00001", "w10-4": "00003"}
 FAR_PATCH = {"w8-1": [((745, 372, 835, 448), -130)]}  # 蓋掉模型自己加的白色小動物
 
 for name, (src, box, flip) in PICKS.items():
@@ -81,8 +81,8 @@ else:
         # 世界 10：城下花園（白天）→ 城牆（黃昏）→ 城堡大廳（晚上）→ 月光王座（深夜）
         "w10-s1": (FAR("w10", 1), rocks_mid((70, 120, 80), seed=101, n=8), seabed((110, 150, 100), phase=0.5)),  # 花園：圓灌木
         "w10-s2": (FAR("w10", 2), castle_mid((100, 64, 92), seed=102, n=0), seabed((80, 50, 74), phase=1.3)),
-        "w10-s3": (FAR("w10", 3), pillars_mid((80, 70, 120), seed=103), seabed((30, 22, 60), phase=2.1)),
-        "w10-s4": (FAR("w10", 4), pillars_mid((60, 50, 100), seed=104, n=4), seabed((18, 12, 40), phase=2.9)),
+        "w10-s3": (FAR("w10", 3), pillars_mid((80, 70, 120), seed=113), seabed((30, 22, 60), phase=2.1)),
+        "w10-s4": (FAR("w10", 4), pillars_mid((60, 50, 100), seed=114, n=4), seabed((18, 12, 40), phase=2.9)),
     }
     for key, layers in SCENES.items():
         for n, im in zip(("far", "mid", "near"), layers):
