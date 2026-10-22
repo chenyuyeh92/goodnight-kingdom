@@ -1,6 +1,7 @@
 import { test, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { ART_FACES_RIGHT, SPRITES, SPRITE_KEYS, bulletSprite, enemySprite, isLevelAsset, itemSprite, weaponIcon, worldSpriteKeys } from '../src/art/sprites';
+import { ANIMS } from '../src/art/animSprites';
+import { ART_FACES_RIGHT, SPRITES, SPRITE_KEYS, assetPath, bulletSprite, enemySprite, isLevelAsset, itemSprite, weaponIcon, worldSpriteKeys } from '../src/art/sprites';
 import { ENEMY_DEFS, type EnemyType } from '../src/game/enemies';
 import { WEAPONS, type WeaponId } from '../src/game/weapons';
 import type { ItemId } from '../src/game/items';
@@ -40,7 +41,9 @@ test('世界 2 的魔物與機關圖進關卡才載入,世界 1 的開機就載�
   expect(isLevelAsset('clockbug')).toBe(false);
   expect(isLevelAsset('owl')).toBe(false);
   expect(worldSpriteKeys(2)).toEqual(expect.arrayContaining(['bell-scarab', 'sphinx-3', 'falling-block']));
-  expect(worldSpriteKeys(2).some((k) => k.startsWith('w2-s'))).toBe(false);
+  expect(worldSpriteKeys(2).some((k) => SPRITES[k].file.startsWith('backgrounds/'))).toBe(false);
+  // 動畫格跟著原圖一起在關卡裡載入。
+  expect(worldSpriteKeys(2)).toEqual(expect.arrayContaining(['w2-sphinx-boss-phase3-walk-4', 'w2-insomnia-vulture-flap-1']));
   expect(worldSpriteKeys(1)).toEqual(expect.arrayContaining(['squirrel', 'beaver', 'b-acorn', 'b-log']));
   expect(worldSpriteKeys(1)).not.toContain('clockbug');
 });
@@ -60,4 +63,20 @@ test('關主與小頭目都面對玩家:畫成朝右的圖要反過來', () => {
   expect(ART_FACES_RIGHT.has('sphinx')).toBe(true);
   expect(ART_FACES_RIGHT.has('fennec')).toBe(true);
   expect(ART_FACES_RIGHT.has('nessie')).toBe(false);
+});
+
+test('動畫格:每一組 4 格,大小和原圖一樣(腳底同一條線)', () => {
+  for (const [file, a] of Object.entries(ANIMS)) {
+    expect(a.frames, file).toHaveLength(4);
+    const base = Object.values(SPRITES).find((x) => x.file === file);
+    if (!base) continue;
+    for (const f of a.frames) expect(SPRITES[f].h, f).toBe(base.h);
+  }
+  expect(ANIMS['enemies/w2-sphinx-boss-phase2.png'].kind).toBe('walk');
+  expect(ANIMS['enemies/w4-noisy-puffin.png'].kind).toBe('flap');
+});
+
+test('網頁載入的都是轉好的 WebP', () => {
+  expect(assetPath('bell-scarab')).toBe('web/enemies/w2-bell-scarab.webp');
+  expect(assetPath('guard')).toBe('web/characters/default-guard.webp');
 });

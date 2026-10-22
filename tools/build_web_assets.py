@@ -2,9 +2,10 @@
 
 1. 粉圓字型子集:只留 src/ 裡出現過的字加上 ASCII,轉 woff2,依 OFL 改名為 Goodnight Round。
    改了遊戲文字之後要重跑(tests/webAssets.test.ts 會檢查有沒有漏字)。
-2. 背景與封面背景 PNG 轉 WebP(美術原檔不動)。
+2. 背景、封面背景、魔物與角色等所有圖 PNG 轉 WebP(美術原檔不動)。
 
-用法:python3 tools/build_web_assets.py [--font]   (--font 只重做字型;需要 pip install fonttools brotli pillow)
+用法:python3 tools/build_web_assets.py [--font|--sprites]
+  --font 只重做字型、--sprites 只轉小圖(美術交新圖後跑這個);需要 pip install fonttools brotli pillow
 """
 from pathlib import Path
 import shutil
@@ -54,6 +55,26 @@ def build_font() -> None:
     shutil.copy(LICENSE_SRC, OUT / 'fonts/LICENSE-OFL.txt')
 
 
+# 魔物、角色、道具等小圖:全部轉成 WebP(有透明)。原圖沒變過就不重轉。
+SPRITE_DIRS = ('enemies', 'characters', 'items', 'bullets', 'weapons', 'fx', 'ui')
+
+
+def build_sprites() -> None:
+    count = 0
+    for d in SPRITE_DIRS:
+        dst = OUT / d
+        dst.mkdir(parents=True, exist_ok=True)
+        for png in sorted((ROOT / 'public/assets' / d).glob('*.png')):
+            out = dst / (png.stem + '.webp')
+            if d == 'ui' and png.stem == 'cover-bg':
+                continue
+            if out.exists() and out.stat().st_mtime >= png.stat().st_mtime:
+                continue
+            Image.open(png).save(out, 'WEBP', quality=WEBP_QUALITY, method=4)
+            count += 1
+    print(f'sprites: {count} 張轉成 WebP')
+
+
 def build_backgrounds() -> None:
     dst = OUT / 'backgrounds'
     dst.mkdir(parents=True, exist_ok=True)
@@ -67,8 +88,12 @@ def build_backgrounds() -> None:
 
 if __name__ == '__main__':
     import sys
+    if '--sprites' in sys.argv:
+        build_sprites()
+        sys.exit(0)
     build_font()
     if '--font' not in sys.argv:
         build_backgrounds()
+        build_sprites()
     total = sum(p.stat().st_size for p in OUT.rglob('*') if p.is_file())
     print(f'public/web: {total / 1024 / 1024:.1f} MB')

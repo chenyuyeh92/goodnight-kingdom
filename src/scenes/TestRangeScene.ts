@@ -1837,7 +1837,11 @@ export class TestRangeScene extends Phaser.Scene {
       .setScale(art.scaleX, art.scaleY)
       .setFlipX(art.flipX)
       .setDepth(art.depth);
-    if (stay) return;
+    if (stay) {
+      // 關主睡著留在原地:輕輕上下呼吸(睡著的圖沒有動畫格)。
+      this.tweens.add({ targets: img, scaleY: img.scaleY * 1.04, scaleX: img.scaleX * 0.98, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      return;
+    }
     this.tweens.add({ targets: img, y: img.y - SLEEP_RISE, alpha: 0, delay: SLEEP_HOLD_MS, duration: SLEEP_FADE_MS, onComplete: () => img.destroy() });
     if (!this.textures.exists('dream-sheep')) return;
     const sheep = this.add.image(art.x, art.y - art.displayHeight, 'dream-sheep').setAlpha(0.85).setDepth(6);

@@ -1,9 +1,10 @@
 import type { EnemyType } from '../game/enemies';
 import type { ItemId } from '../game/items';
 import type { WeaponId } from '../game/weapons';
+import { ANIM_SPRITES } from './animSprites';
 
 /** 美術素材:檔名(相對 public/assets)與原始大小。素材已是遊戲內 1 倍大小。 */
-export const SPRITES = {
+const BASE_SPRITES = {
   'bg-far': { file: 'backgrounds/forest-far.png', w: 1440, h: 540 },
   'bg-mid': { file: 'backgrounds/forest-mid.png', w: 1609, h: 540 },
   'bg-near': { file: 'backgrounds/forest-near.png', w: 1396, h: 540 },
@@ -212,6 +213,9 @@ export const SPRITES = {
   'b-moon': { file: 'bullets/moon-beam.png', w: 32, h: 10 },
 } as const satisfies Record<string, { file: string; w: number; h: number }>;
 
+/** 全部素材:手寫的原圖與世界 1 動畫格,加上產生的世界 2–10 與 Boss 動畫格(animSprites.ts)。 */
+export const SPRITES = { ...BASE_SPRITES, ...ANIM_SPRITES } as const;
+
 export type SpriteKey = keyof typeof SPRITES;
 
 export const SPRITE_KEYS = Object.keys(SPRITES) as SpriteKey[];
@@ -230,14 +234,12 @@ export function worldSpriteKeys(world: number): SpriteKey[] {
   return SPRITE_KEYS.filter((k) => !SPRITES[k].file.startsWith('backgrounds/') && SPRITES[k].file.includes(`/w${world}-`));
 }
 
-/** 這些大圖用 tools/build_web_assets.py 轉成 WebP 載入。 */
-const WEBP = /^(backgrounds\/|ui\/cover-bg\.png$)/;
-
-/** 網頁實際載入的路徑(相對網站根目錄):背景用 tools/build_web_assets.py 轉好的 WebP,其他用美術原檔。 */
+/**
+ * 網頁實際載入的路徑(相對網站根目錄):全部用 tools/build_web_assets.py 轉好的 WebP(有透明、檔案小很多)。
+ * 美術原檔 PNG 留在 public/assets/ 方便修改。
+ */
 export function assetPath(key: SpriteKey): string {
-  const file = SPRITES[key].file;
-  if (WEBP.test(file)) return `web/${file.replace(/\.png$/, '.webp')}`;
-  return `assets/${file}`;
+  return `web/${SPRITES[key].file.replace(/\.png$/, '.webp')}`;
 }
 
 /** 貓頭鷹原圖 200 高,畫成 0.75 倍。 */

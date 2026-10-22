@@ -1,5 +1,6 @@
 import type { EnemyPhase, EnemyType } from '../game/enemies';
 import type { SpriteKey } from './sprites';
+import { ANIMS } from './animSprites';
 
 /**
  * 美術畫的動畫格(世界 1:鬧鐘蟲、刺蝟走路,蝙蝠、貓頭鷹拍翅,咖啡豆跳起/蹲下,小綿羊守衛走路與跳躍)。
@@ -57,6 +58,19 @@ export function enemyFrame(type: EnemyType, f: FrameInput): SpriteKey | null {
     default:
       return null;
   }
+}
+
+/** 美術建議每格 0.12–0.15 秒。 */
+const ANIM_FRAME_MS = 130;
+
+/**
+ * 世界 2–10 與 Boss 的動畫格(依原圖找,關主每個階段各一套):拍翅、游動、彈跳一直播;
+ * 走路的角色在移動時正常播,站著不動時放慢一倍,像在呼吸、晃動。
+ */
+export function animFrame(baseFile: string, tMs: number, moving: boolean): SpriteKey | null {
+  const a = ANIMS[baseFile];
+  if (!a) return null;
+  return cycle(a.frames, tMs, a.kind === 'walk' && !moving ? ANIM_FRAME_MS * 2 : ANIM_FRAME_MS);
 }
 
 /** 小綿羊守衛(預設角色)的動畫格:空中用跳躍格、走路用走路格;站著或玩家自己畫的守衛回傳 null。 */

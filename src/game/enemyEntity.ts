@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import type { EnemyDebug } from '../main';
 import { ENEMY_DEFS, initialBrain, stepEnemy, type EnemyBrain, type EnemyDef, type EnemyType } from './enemies';
-import { ART_FACES_RIGHT, ENEMY_ART_SCALE, ENEMY_ART_TINT, enemySprite, type ArtKey } from '../art/sprites';
+import { ART_FACES_RIGHT, ENEMY_ART_SCALE, ENEMY_ART_TINT, SPRITES, enemySprite, type ArtKey } from '../art/sprites';
 import { IDLE, enemyPose } from '../art/motion';
-import { enemyFrame } from '../art/frames';
+import { animFrame, enemyFrame } from '../art/frames';
 
 const SHIELD_W = 3;
 const SHIELD_ALPHA = 0.5;
@@ -124,16 +124,18 @@ export class EnemyEntity {
     const vx = pb?.velocity.x ?? 0;
     const vy = pb?.velocity.y ?? 0;
     let pose = enemyPose(this.def.type, this.brain.phase, tMs, vx, vy, grounded, this.brain.facing);
-    // 美術畫的動畫格:有的話換格子,程式只負責上下晃動(不再額外伸縮、傾斜)。
-    const frame = enemyFrame(this.def.type, { phase: this.brain.phase, timerMs: this.brain.timerMs, tMs, vx, vy, grounded, bossPhase: this.bossPhase });
+    // 原圖:關主用目前階段的圖;刺蝟滾的時候用滾球圖。
+    const baseArt: ArtKey = this.def.type === 'hedgehog' && this.brain.phase === 'roll' ? 'hedgehog-roll' : enemySprite(this.def.type, 'awake', this.bossPhase);
+    // 美術畫的動畫格:世界 1 小怪有特別的格子(起跳、俯衝),其他依原圖找。
+    const frame =
+      enemyFrame(this.def.type, { phase: this.brain.phase, timerMs: this.brain.timerMs, tMs, vx, vy, grounded, bossPhase: this.bossPhase }) ??
+      animFrame(SPRITES[baseArt].file, tMs, Math.abs(vx) > 5 || !grounded);
     if (frame && this.scene.textures.exists(frame)) {
       this.setArt(frame);
-      pose = { ...IDLE, dy: pose.dy };
-    } else if (this.def.type === 'hedgehog') {
-      this.setArt(this.brain.phase === 'roll' ? 'hedgehog-roll' : 'hedgehog');
+      // 有動畫格時程式只負責上下晃動;滾動、躺平(spin)與河豚膨脹的大小照舊。
+      if (!pose.spin) pose = { ...IDLE, dy: pose.dy, scaleX: this.brain.phase === 'puff' ? pose.scaleX : 1, scaleY: this.brain.phase === 'puff' ? pose.scaleY : 1 };
     } else {
-      // 沒有動畫格的時候換回原圖(關主用目前階段的圖)。
-      this.setArt(enemySprite(this.def.type, 'awake', this.bossPhase));
+      this.setArt(baseArt);
     }
     const base = ENEMY_ART_SCALE[this.def.type] ?? 1;
     const bottom = this.body.y + this.def.h / 2;
