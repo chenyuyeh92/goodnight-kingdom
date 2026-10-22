@@ -1,4 +1,4 @@
-"""世界 2–10 的小怪、中階怪與全部 Boss 的動畫格（第一關另見 make_anim.py）。
+"""世界 2–10 的小怪、中階怪與全部 Boss（含第一關的松鼠、河狸）的動畫格（第一關小怪另見 make_anim.py）。
 
 用法：C:/ai-studio/ComfyUI_windows_portable/python_embeded/python.exe -I docs/art/tools/make_anim_all.py <專案根目錄>
 規則同第一關：每格畫布 = 原圖大小、朝向相同、腳底在同一條線、不整體縮放（角色不會忽大忽小）。
@@ -23,17 +23,22 @@ def frame(src, sx=1.0, sy=1.0, shear=0.0):
     W, H = src.size; x0, y0, x1, y1 = box(src); cw, ch = x1 - x0, y1 - y0; c = src.crop((x0, y0, x1, y1))
     nh = max(1, round(ch * min(sy, 1.0)))
     sx = min(sx, (W - abs(shear) * nh) / cw, 1.0); nw = max(1, round(cw * sx))
-    c = c.resize((nw, nh), Image.LANCZOS)
+    c = c.resize((nw, nh), Image.LANCZOS); extra = 0
     if shear:
-        c = c.transform((nw + round(abs(shear) * nh), nh), Image.AFFINE, (1, shear, -shear * nh if shear > 0 else 0, 0, 1, 0), resample=Image.BICUBIC)
+        extra = round(abs(shear) * nh)
+        c = c.transform((nw + extra, nh), Image.AFFINE, (1, shear, -shear * nh if shear > 0 else 0, 0, 1, 0), resample=Image.BICUBIC)
     out = Image.new("RGBA", (W, H), (0, 0, 0, 0)); cx = (x0 + x1) / 2
-    out.alpha_composite(c, (max(0, min(W - c.width, round(cx - c.width / 2))), y1 - c.height))
+    # 以腳底為支點：斜切後最底列的中心對齊原圖中心，腳不會左右滑
+    x = round(cx - nw / 2 - (extra if shear < 0 else 0))
+    out.alpha_composite(c, (max(0, min(W - c.width, x)), y1 - c.height))
     return out
 
-def flap(src, amp, band=(0.35, 0.72), inner=0.30, cells=24):
-    """網格彎曲：只彎左右外側、band 高度範圍內的部分；amp > 0 往上。整數網格，彎曲量 0 時和原圖完全一樣。"""
-    W, H = src.size; cx = W / 2; b0, b1 = H * band[0], H * band[1]; fe = H * 0.08
+def flap(src, amp, band=(0.35, 0.72), inner=0.30, cells=24, head_band=(0.55, 0.80)):
+    """網格彎曲：只彎左右外側、band 高度範圍內的部分；amp > 0 往上。整數網格，彎曲量 0 時和原圖完全一樣。
+    魔物朝左，頭和嘴在左邊，所以左側改用較低的 head_band，避免彎到嘴和臉。"""
+    W, H = src.size; cx = W / 2; fe = H * 0.08
     def off(x, y):
+        b0, b1 = (H * head_band[0], H * head_band[1]) if x < cx else (H * band[0], H * band[1])
         s = max(0.0, (abs(x - cx) / (W / 2) - inner) / (1 - inner)) ** 2
         w = 0.0 if (y < b0 - fe or y > b1 + fe) else (y - (b0 - fe)) / fe if y < b0 else ((b1 + fe) - y) / fe if y > b1 else 1.0
         return amp * s * w
@@ -60,7 +65,7 @@ def anim(src, kind):
 # 每隻的動作種類（沒列在這裡的都是 walk）
 KIND = {
     # 世界 2
-    "w2-insomnia-vulture": "flap",
+    "w2-insomnia-vulture": "flap", "w2-mummy-cat": "bounce",
     # 世界 3
     "w3-sleepy-jellyfish": "bounce", "w3-alarm-clownfish": "swim", "w3-coffee-octopus": "bounce", "w3-puffer-fish": "swim",
     "w3-nessie-boss": "swim", "w3-boss2-electric-eel": "swim", "w3-boss1-hermit-crab": "bounce",
@@ -73,13 +78,15 @@ KIND = {
     # 世界 7
     "w7-noisy-hornbill": "flap",
     # 世界 8–10 Boss
-    "w8-thunderbird-boss": "flap", "w9-boss1-firefly-queen": "flap", "w9-boss2-axolotl": "swim",
+    "w8-thunderbird-boss": "flap", "w9-boss1-firefly-queen": "bounce",  # 翅膀在背上、手提燈在旁邊，用彈跳比較不會變形 "w9-boss2-axolotl": "swim",
 }
 
 def targets():
     """世界 2–10 的醒著圖（含關主二三階段），不含睡著版、已經是動畫格的檔、第一關。"""
     for f in sorted(os.listdir(E)):
-        if not f.endswith(".png") or not f.startswith(tuple(f"w{i}-" for i in range(2, 11))):
+        if not f.endswith(".png") or not f.startswith(tuple(f"w{i}-" for i in range(1, 11))):
+            continue
+        if f.startswith("w1-") and "-boss" not in f:  # 第一關小怪另見 make_anim.py
             continue
         name = f[:-4]
         if name.endswith("-sleep") or any(f"-{k}-" in name for k in ("walk", "flap", "swim", "bounce")):
