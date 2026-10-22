@@ -10,35 +10,15 @@
 import math, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw
-from artlib import cutout, save, OUTLINE
+from artlib import cutout, save, keep_largest, OUTLINE
 
 OUT_DIR, ROOT = sys.argv[1], sys.argv[2]
-G13, G14, G15 = os.path.join(OUT_DIR, "gk13"), os.path.join(OUT_DIR, "gk14"), os.path.join(OUT_DIR, "gk15")
+G13, G14, G15, G18 = (os.path.join(OUT_DIR, g) for g in ("gk13", "gk14", "gk15", "gk18"))
 A = lambda *p: os.path.join(ROOT, "public", "assets", *p)
 MINI_H, BOSS_H = 150, 220
 
-def keep_largest(im):
-    """只保留不透明像素中最大的連通塊（以 1/4 解析度計算，再放大成遮罩）。"""
-    a = im.getchannel("A"); sm = a.resize((max(1, a.width // 4), max(1, a.height // 4)))
-    w, h = sm.size; px = sm.load(); seen = bytearray(w * h); best = []
-    for y0 in range(h):
-        for x0 in range(w):
-            if px[x0, y0] < 60 or seen[y0 * w + x0]: continue
-            stack = [(x0, y0)]; seen[y0 * w + x0] = 1; comp = []
-            while stack:
-                x, y = stack.pop(); comp.append((x, y))
-                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1), (x + 1, y + 1), (x - 1, y - 1), (x + 1, y - 1), (x - 1, y + 1)):
-                    if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and px[nx, ny] >= 60:
-                        seen[ny * w + nx] = 1; stack.append((nx, ny))
-            if len(comp) > len(best): best = comp
-    m = Image.new("L", (w, h), 0); mp = m.load()
-    for x, y in best: mp[x, y] = 255
-    from PIL import ImageFilter
-    m = m.filter(ImageFilter.MaxFilter(3)).resize(a.size)
-    im.putalpha(Image.composite(a, Image.new("L", a.size, 0), m)); return im
-
 def load(src, flip):
-    im = cutout(src.replace("G13/", G13 + "/").replace("G14/", G14 + "/").replace("G15/", G15 + "/"))
+    im = cutout(src.replace("G13/", G13 + "/").replace("G14/", G14 + "/").replace("G15/", G15 + "/").replace("G18/", G18 + "/"))
     # 清掉很淡的雜點（地面陰影殘留），再重新裁切，讓最底列是身體
     im.putalpha(im.getchannel("A").point(lambda v: 0 if v < 60 else v))
     im = keep_largest(im)  # 只留最大的一塊：拿掉模型自己加在旁邊的小角色、花草
@@ -69,13 +49,13 @@ BOSSES = {
     "w10-boss2-peacock": (MINI_H, False, {'': 'G13/b10/b10-2-peacock_00002_.png', '-sleep': 'G14/b10s/b10-2-peacock-sleep_00002_.png'}),
     "w8-thunderbird-boss": (BOSS_H, False, {"": "G15/r8/r8-thunderbird-boss_00001_.png", "-sleep": "G15/r8s/r8-thunderbird-boss-sleep_00001_.png", "-phase2": "G15/r8s/r8-thunderbird-boss-phase2_00001_.png", "-phase3": "G15/r8s/r8-thunderbird-boss-phase3_00001_.png"}),
     "w9-giant-mole-boss": (BOSS_H, False, {"": "G15/r9/r9-giant-mole-boss_00003_.png", "-sleep": "G15/r9s/r9-giant-mole-boss-sleep_00002_.png", "-phase2": "G15/r9s/r9-giant-mole-boss-phase2_00001_.png", "-phase3": "G15/r9s/r9-giant-mole-boss-phase3_00002_.png"}),
-    "w10-dream-tapir-boss": (BOSS_H, False, {"": "G15/r10/r10-dream-tapir-boss_00002_.png", "-sleep": "G15/r10s/r10-dream-tapir-boss-sleep_00001_.png", "-phase2": "G15/r10s/r10-dream-tapir-boss-phase2_00001_.png", "-phase3": "G15/r10s/r10-dream-tapir-boss-phase3_00002_.png"}),
+    "w10-dream-tapir-boss": (BOSS_H, True, {"": "G18/x/x-dream-tapir-boss_00004_.png", "-sleep": "G18/ys/x-dream-tapir-boss-sleep_00001_.png", "-phase2": "G18/ys/x-dream-tapir-boss-phase2_00002_.png", "-phase3": "G18/ys/x-dream-tapir-boss-phase3_00001_.png"}),  # 2026-10-22 重畫，原圖朝右要翻
 }
 # 旁邊黏著多出來的小角色（和本體連在一起，keep_largest 拿不掉）：翻轉後只保留左邊這個比例的寬度
 CROP_KEEP = {}  # 2026-10-22 巨鼴鼠重畫後旁邊沒有多的角色，不用再切
 
 for name, (h, flip, srcs) in BOSSES.items():
-    if not all(os.path.exists(v.replace("G13/", G13 + "/").replace("G14/", G14 + "/").replace("G15/", G15 + "/")) for v in srcs.values()):
+    if not all(os.path.exists(v.replace("G13/", G13 + "/").replace("G14/", G14 + "/").replace("G15/", G15 + "/").replace("G18/", G18 + "/")) for v in srcs.values()):
         print(f"提醒：{name} 的來源圖還沒齊，先跳過"); continue
     def prep(src):
         im = load(src, flip)

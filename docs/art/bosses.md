@@ -37,12 +37,12 @@
 | 9-3 | 失眠巨鼴鼠（關主） | `w9-giant-mole-boss.png` 224×220 `w9-giant-mole-boss-sleep.png` 214×222 `w9-giant-mole-boss-phase2.png` 218×220 `w9-giant-mole-boss-phase3.png` 221×220 | `bullets/w9-rock.png` 24×22 |
 | 10-1 | 失眠月兔 | `w10-boss1-moon-rabbit.png` 144×150 `w10-boss1-moon-rabbit-sleep.png` 144×150 | `bullets/w10-mochi.png` 24×18、`bullets/w10-shockwave.png` 48×16 |
 | 10-2 | 熬夜孔雀 | `w10-boss2-peacock.png` 134×150 `w10-boss2-peacock-sleep.png` 134×150 | `bullets/w10-feather.png` 36×14 |
-| 10-3 | 偷走睡意的失眠魔王：夢貘（最終魔王） | `w10-dream-tapir-boss.png` 141×220 `w10-dream-tapir-boss-sleep.png` 141×220 `w10-dream-tapir-boss-phase2.png` 142×220 `w10-dream-tapir-boss-phase3.png` 142×220 | `bullets/w10-dream-mist.png` 40×28 |
+| 10-3 | 偷走睡意的失眠魔王：夢貘（最終魔王） | `w10-dream-tapir-boss.png` 228×220 `w10-dream-tapir-boss-sleep.png` 230×220 `w10-dream-tapir-boss-phase2.png` 230×219 `w10-dream-tapir-boss-phase3.png` 228×220 | `bullets/w10-dream-mist.png` 40×28 |
 
 ## 已知問題
 
 - 松鼠的大尾巴在身體後面；「尾巴當盾」時程式可以讓牠轉身或縮起來表現。
 - 2026-10-22 依負責人要求重畫：寄居蟹（橘色小螃蟹躲在咖啡杯裡，寬 112）、雷鳥（黑色暴風鳥、黃嘴、閃電頭冠）、巨鼴鼠（灰色、粉紅長鼻、挖土大爪）、夢貘（深色貘、星星斑點、皇冠）；尼斯湖水怪翻成朝左。
-- 夢貘的鼻子還是偏短，比較像小貘。
+- 夢貘 2026-10-22 再重畫一次：身上是星空、戴皇冠、比較長的鼻子（模型很難畫出大象那種長鼻）。
 - 螢火蟲女王、火山蝸牛的睡著版眼睛沒有完全閉上。
 - 新關主的二、三階段差別主要在表情和周圍特效，程式可以加變色或抖動。

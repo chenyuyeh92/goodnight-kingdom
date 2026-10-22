@@ -74,18 +74,30 @@
 | `w7-wildebeest` | 走路 | `w7-wildebeest-walk-1.png` ～ `-4.png` |
 | `w8-boss1-mountain-goat` | 走路 | `w8-boss1-mountain-goat-walk-1.png` ～ `-4.png` |
 | `w8-boss2-panda` | 走路 | `w8-boss2-panda-walk-1.png` ～ `-4.png` |
+| `w8-coffee-cloud` | 彈跳 | `w8-coffee-cloud-bounce-1.png` ～ `-4.png` |
+| `w8-noisy-eagle` | 拍翅 | `w8-noisy-eagle-flap-1.png` ～ `-4.png` |
+| `w8-pika` | 走路 | `w8-pika-walk-1.png` ～ `-4.png` |
 | `w8-thunderbird-boss` | 拍翅 | `w8-thunderbird-boss-flap-1.png` ～ `-4.png` |
 | `w8-thunderbird-boss-phase2` | 拍翅 | `w8-thunderbird-boss-phase2-flap-1.png` ～ `-4.png` |
 | `w8-thunderbird-boss-phase3` | 拍翅 | `w8-thunderbird-boss-phase3-flap-1.png` ～ `-4.png` |
+| `w8-yak` | 走路 | `w8-yak-walk-1.png` ～ `-4.png` |
 | `w9-boss1-firefly-queen` | 彈跳 | `w9-boss1-firefly-queen-bounce-1.png` ～ `-4.png` |
-| `w9-boss2-axolotl` | 走路 | `w9-boss2-axolotl-walk-1.png` ～ `-4.png` |
+| `w9-boss2-axolotl` | 游動 | `w9-boss2-axolotl-swim-1.png` ～ `-4.png` |
+| `w9-coffee-worm` | 彈跳 | `w9-coffee-worm-bounce-1.png` ～ `-4.png` |
 | `w9-giant-mole-boss` | 走路 | `w9-giant-mole-boss-walk-1.png` ～ `-4.png` |
 | `w9-giant-mole-boss-phase2` | 走路 | `w9-giant-mole-boss-phase2-walk-1.png` ～ `-4.png` |
 | `w9-giant-mole-boss-phase3` | 走路 | `w9-giant-mole-boss-phase3-walk-1.png` ～ `-4.png` |
+| `w9-mushroom-sprite` | 彈跳 | `w9-mushroom-sprite-bounce-1.png` ～ `-4.png` |
+| `w9-noisy-moth` | 拍翅 | `w9-noisy-moth-flap-1.png` ～ `-4.png` |
+| `w9-rhino-beetle` | 走路 | `w9-rhino-beetle-walk-1.png` ～ `-4.png` |
 | `w10-boss1-moon-rabbit` | 走路 | `w10-boss1-moon-rabbit-walk-1.png` ～ `-4.png` |
 | `w10-boss2-peacock` | 走路 | `w10-boss2-peacock-walk-1.png` ～ `-4.png` |
+| `w10-clock-guard` | 走路 | `w10-clock-guard-walk-1.png` ～ `-4.png` |
+| `w10-coffee-teapot` | 彈跳 | `w10-coffee-teapot-bounce-1.png` ～ `-4.png` |
 | `w10-dream-tapir-boss` | 走路 | `w10-dream-tapir-boss-walk-1.png` ～ `-4.png` |
 | `w10-dream-tapir-boss-phase2` | 走路 | `w10-dream-tapir-boss-phase2-walk-1.png` ～ `-4.png` |
 | `w10-dream-tapir-boss-phase3` | 走路 | `w10-dream-tapir-boss-phase3-walk-1.png` ～ `-4.png` |
+| `w10-noisy-star` | 彈跳 | `w10-noisy-star-bounce-1.png` ～ `-4.png` |
+| `w10-pillow-soldier` | 走路 | `w10-pillow-soldier-walk-1.png` ～ `-4.png` |
 
 已知：貓頭鷹、雷鳥這類翅膀收在身體旁邊的，拍翅幅度比較小；程式可以再加上下浮動。腳下畫了地面或水面的角色（人面獅身、尼斯湖水怪等），走路／游動時地面會跟著一點點變形。
