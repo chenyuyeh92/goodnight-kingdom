@@ -206,6 +206,32 @@ export interface TestRangeData {
   testHooks?: boolean;
 }
 
+const HEART_FULL = 'gk-heart';
+const HEART_EMPTY = 'gk-heart-empty';
+const HEART_SIZE = 18;
+
+/** 程式畫愛心貼圖(實心粉紅、空心外框),只畫一次。 */
+function makeHeartTextures(scene: Phaser.Scene): void {
+  if (scene.textures.exists(HEART_FULL)) return;
+  const s = HEART_SIZE;
+  const draw = (key: string, fill: number | null): void => {
+    const g = scene.make.graphics({}, false);
+    const heart = (pad: number, color: number): void => {
+      const r = s / 4 - pad / 2;
+      g.fillStyle(color);
+      g.fillCircle(s / 4 + pad / 4, s / 3, r);
+      g.fillCircle((s * 3) / 4 - pad / 4, s / 3, r);
+      g.fillTriangle(pad, s / 3 + 1, s - pad, s / 3 + 1, s / 2, s - pad - 1);
+    };
+    heart(0, 0x3a2a5a);
+    heart(3, fill ?? 0x5a4a8f);
+    g.generateTexture(key, s, s);
+    g.destroy();
+  };
+  draw(HEART_FULL, 0xff7aa2);
+  draw(HEART_EMPTY, null);
+}
+
 /** 每一關的配樂依第一個場景的時段:白天、黃昏,其餘(晚上)。 */
 function levelTrack(level: LevelDef): TrackId {
   const scene = level.scenes[0].scene;
@@ -277,7 +303,7 @@ export class TestRangeScene extends Phaser.Scene {
   private initData: TestRangeData = {};
   private maxReachedX = START_X;
   private restarting = false;
-  private hudRows: { icon: Phaser.GameObjects.Image | null; text: Phaser.GameObjects.Text }[] = [];
+  private hudRows: { icon: Phaser.GameObjects.Image | null; label: Phaser.GameObjects.Text; hearts: Phaser.GameObjects.Image[]; text: Phaser.GameObjects.Text }[] = [];
 
   init(data: TestRangeData): void {
     this.initData = data ?? {};
@@ -454,16 +480,24 @@ export class TestRangeScene extends Phaser.Scene {
       })
       .setScrollFactor(0)
       .setDepth(10);
+    makeHeartTextures(this);
+    const duo = this.mode === 'duo';
+    const heartStep = duo ? 15 : 19;
     this.hudRows = this.players.map((_, i) => {
       const x = 16 + i * HUD_ROW_W;
       const icon = this.textures.exists(weaponIcon('yawnBubble'))
         ? this.add.image(x + HUD_ICON / 2, 52, weaponIcon('yawnBubble')).setScrollFactor(0).setDepth(10)
         : null;
-      const text = this.add
-        .text(icon ? x + HUD_ICON + 6 : x, 40, '', { fontSize: this.mode === 'duo' ? '16px' : '20px', color: '#ffb3c7', ...HUD_STROKE })
-        .setScrollFactor(0)
-        .setDepth(10);
-      return { icon, text };
+      const style = { fontSize: duo ? '16px' : '20px', color: '#ffb3c7', ...HUD_STROKE };
+      const labelX = icon ? x + HUD_ICON + 6 : x;
+      const label = this.add.text(labelX, 40, duo ? (i === 0 ? 'A' : 'B') : '', style).setScrollFactor(0).setDepth(10);
+      // 愛心用程式畫的圖(♥ 字元在部分 Android 會變成表情符號)。
+      const heartsX = labelX + (duo ? 18 : 0) + HEART_SIZE / 2;
+      const hearts = Array.from({ length: MAX_HEARTS }, (_, h) =>
+        this.add.image(heartsX + h * heartStep, 53, HEART_FULL).setScrollFactor(0).setDepth(10).setScale(duo ? 0.8 : 1),
+      );
+      const text = this.add.text(heartsX + MAX_HEARTS * heartStep, 40, '', style).setScrollFactor(0).setDepth(10);
+      return { icon, label, hearts, text };
     });
     this.arenaHud = this.add
       .text(VIEW_W / 2, 90, '', { fontSize: '26px', color: '#ffe08a', ...HUD_STROKE })
@@ -700,9 +734,10 @@ export class TestRangeScene extends Phaser.Scene {
     const labels = this.mode === 'duo' ? ['A', 'B'] : [''];
     this.players.forEach((p, i) => {
       const row = this.hudRows[i];
-      const name = labels[i] ? `${labels[i]} ` : '';
-      const hearts = '♥'.repeat(p.health.hearts) + '♡'.repeat(MAX_HEARTS - p.health.hearts);
-      row.text.setText(p.health.down ? `${name}睡著了…` : `${name}${hearts} ${weaponHud(p.loadout, p.buffs)}`);
+      const down = p.health.down;
+      row.label.setText(labels[i]);
+      row.hearts.forEach((h, n) => h.setTexture(n < p.health.hearts ? HEART_FULL : HEART_EMPTY).setVisible(!down));
+      row.text.setText(down ? '睡著了…' : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
       if (!row.icon) return;
       const key = weaponIcon(activeWeapon(p.loadout).id);
       if (this.textures.exists(key) && row.icon.texture.key !== key) row.icon.setTexture(key);

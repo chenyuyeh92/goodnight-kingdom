@@ -426,6 +426,7 @@
 - 第一版不收集任何個人資料,不使用分析追蹤。
 - 公開前提供隱私權政策與支援頁(沿用既有作品的做法)。
 - 在主網站 `chenyuyeh92.github.io` 作品區加入連結,並更新 sitemap。
+- **2026-10-22 實作:** 隱私權政策、支援與說明、授權三頁放在遊戲網站裡(`/goodnight-kingdom/privacy.html`、`support.html`、`licenses.html`),中英文;設定畫面下方有連結。分享到社群時有標題、說明與封面圖。主網站的作品卡片與 sitemap 做在主網站的分支 `claude/ai-game-dev-workflow-dqbe1t`,**等葉宸佑確認後再合併**。
 
 ---
 

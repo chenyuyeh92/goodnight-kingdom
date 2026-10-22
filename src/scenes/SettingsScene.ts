@@ -13,6 +13,12 @@ const DOWN = new Set(['KeyS', 'ArrowDown']);
 const LEFT = new Set(['KeyA', 'ArrowLeft']);
 const RIGHT = new Set(['KeyD', 'ArrowRight']);
 const OK = new Set(['Enter', 'Space', 'KeyC', 'Comma']);
+/** 說明頁(跟遊戲放在同一個網站,開新分頁)。 */
+const PAGES = [
+  { label: '支援與說明', file: 'support.html' },
+  { label: '隱私權政策', file: 'privacy.html' },
+  { label: '授權', file: 'licenses.html' },
+] as const;
 /** 清除存檔要按兩次。 */
 const CONFIRM_MS = 3000;
 
@@ -56,6 +62,13 @@ export class SettingsScene extends Phaser.Scene {
     this.clearButton = smallButton(this, 480, ROW_Y.clear, '清除所有存檔', () => this.clearSaves(), 240);
     this.message = this.add.text(480, ROW_Y.clear + 40, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     smallButton(this, 480, ROW_Y.back, '返回(Esc)', () => this.back(), 200);
+    PAGES.forEach((p, i) => {
+      const link = this.add
+        .text(300 + i * 180, 515, p.label, { fontSize: '16px', color: '#f8e08e', stroke: '#2b2a6b', strokeThickness: 4 })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      link.on('pointerup', () => window.open(`${import.meta.env.BASE_URL}${p.file}`, '_blank', 'noopener'));
+    });
 
     onMenuKey(this, (e) => {
       const i = ROWS.indexOf(this.row);

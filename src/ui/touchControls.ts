@@ -132,7 +132,8 @@ export function mountTouchControls(parent: HTMLElement): TouchControls {
     if (document.visibilityState === 'hidden') clearAll();
   });
 
-  const portrait = window.matchMedia('(orientation: portrait)');
+  // 只有手機直拿才提示轉橫向;iPad 直拿畫面夠大,照樣可以玩。
+  const portrait = window.matchMedia('(orientation: portrait) and (max-width: 700px)');
   const updateRotate = (): void => {
     rotate.style.display = portrait.matches ? 'flex' : 'none';
   };

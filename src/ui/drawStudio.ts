@@ -52,7 +52,7 @@ const CSS = `
 .swatch.on { outline: 3px solid #fff6e5; outline-offset: 2px; }
 #draw-rotate { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center;
   background: rgba(29, 26, 58, 0.95); font-size: 22px; padding: 24px; }
-@media (orientation: portrait) and (pointer: coarse) { #draw-rotate { display: flex; } }
+@media (orientation: portrait) and (pointer: coarse) and (max-width: 700px) { #draw-rotate { display: flex; } }
 `;
 
 /** 全畫面的畫畫介面:畫筆、橡皮擦、油漆桶、復原、清除、10 色;離開時移除所有元素與監聽。 */
