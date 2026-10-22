@@ -2,7 +2,7 @@
 
 1. 粉圓字型子集:只留 src/ 裡出現過的字加上 ASCII,轉 woff2,依 OFL 改名為 GK Huninn。
    改了遊戲文字之後要重跑(tests/webAssets.test.ts 會檢查有沒有漏字)。
-2. 背景 PNG 轉 WebP(美術原檔不動)。
+2. 背景與封面背景 PNG 轉 WebP(美術原檔不動)。
 
 用法:python3 tools/build_web_assets.py [--font]   (--font 只重做字型;需要 pip install fonttools brotli pillow)
 """
@@ -58,6 +58,10 @@ def build_backgrounds() -> None:
     dst.mkdir(parents=True, exist_ok=True)
     for png in sorted((ROOT / 'public/assets/backgrounds').glob('*.png')):
         Image.open(png).save(dst / (png.stem + '.webp'), 'WEBP', quality=WEBP_QUALITY, method=6)
+    # 封面背景原圖 1920×1080,遊戲畫面只有 960×540,縮小再轉。
+    (OUT / 'ui').mkdir(parents=True, exist_ok=True)
+    cover = Image.open(ROOT / 'public/assets/ui/cover-bg.png').convert('RGB').resize((960, 540), Image.LANCZOS)
+    cover.save(OUT / 'ui/cover-bg.webp', 'WEBP', quality=WEBP_QUALITY, method=6)
 
 
 if __name__ == '__main__':

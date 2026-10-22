@@ -61,9 +61,13 @@ test.describe('武器', () => {
     await open(page);
     await give(page, 'milkSpray');
     await page.keyboard.down('KeyC');
-    await page.waitForFunction(() => (window.__GK__!.bullets ?? 0) >= 5, undefined, { timeout: 500 });
+    // 在第一次發射的那一格就讀數量:往下斜的那發很快會碰到地面消失。
+    const first = await page.waitForFunction(() => {
+      const b = window.__GK__!.bullets ?? 0;
+      return b > 0 ? b : false;
+    }, undefined, { timeout: 500, polling: 'raf' });
     await page.keyboard.up('KeyC');
-    expect((await gk(page)).bullets! % 5).toBe(0);
+    expect(await first.jsonValue()).toBe(5);
   });
 
   test('豎琴音符會轉向打到頭上的蝙蝠', async ({ page }) => {

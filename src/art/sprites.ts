@@ -37,6 +37,22 @@ export const SPRITES = {
   'w-lullaby-harp': { file: 'weapons/lullaby-harp.png', w: 40, h: 38 },
   'w-blanket-boomerang': { file: 'weapons/blanket-boomerang.png', w: 40, h: 37 },
   'w-moon-lamp': { file: 'weapons/moon-lamp.png', w: 27, h: 40 },
+  'ui-cover-bg': { file: 'ui/cover-bg.png', w: 1920, h: 1080 },
+  'ui-logo': { file: 'ui/logo.png', w: 1243, h: 518 },
+  'ui-guard': { file: 'ui/cover-guard.png', w: 350, h: 400 },
+  'ui-panel': { file: 'ui/panel.png', w: 96, h: 96 },
+  btn: { file: 'ui/button-normal.png', w: 240, h: 64 },
+  'btn-hover': { file: 'ui/button-hover.png', w: 240, h: 64 },
+  'btn-pressed': { file: 'ui/button-pressed.png', w: 240, h: 64 },
+  'btn-start': { file: 'ui/button-start.png', w: 240, h: 64 },
+  'btn-start-hover': { file: 'ui/button-start-hover.png', w: 240, h: 64 },
+  'btn-start-pressed': { file: 'ui/button-start-pressed.png', w: 240, h: 64 },
+  'btn-duo': { file: 'ui/button-duo.png', w: 240, h: 64 },
+  'btn-duo-hover': { file: 'ui/button-duo-hover.png', w: 240, h: 64 },
+  'btn-duo-pressed': { file: 'ui/button-duo-pressed.png', w: 240, h: 64 },
+  'btn-backpack': { file: 'ui/button-backpack.png', w: 240, h: 64 },
+  'btn-backpack-hover': { file: 'ui/button-backpack-hover.png', w: 240, h: 64 },
+  'btn-backpack-pressed': { file: 'ui/button-backpack-pressed.png', w: 240, h: 64 },
   'b-yawn': { file: 'bullets/yawn-bubble.png', w: 12, h: 12 },
   'b-sheep': { file: 'bullets/sheep.png', w: 20, h: 16 },
   'b-pillow': { file: 'bullets/pillow.png', w: 32, h: 19 },
@@ -49,10 +65,13 @@ export type SpriteKey = keyof typeof SPRITES;
 
 export const SPRITE_KEYS = Object.keys(SPRITES) as SpriteKey[];
 
+/** 這些大圖用 tools/build_web_assets.py 轉成 WebP 載入。 */
+const WEBP = /^(backgrounds\/|ui\/cover-bg\.png$)/;
+
 /** 網頁實際載入的路徑(相對網站根目錄):背景用 tools/build_web_assets.py 轉好的 WebP,其他用美術原檔。 */
 export function assetPath(key: SpriteKey): string {
   const file = SPRITES[key].file;
-  if (file.startsWith('backgrounds/')) return `web/${file.replace(/\.png$/, '.webp')}`;
+  if (WEBP.test(file)) return `web/${file.replace(/\.png$/, '.webp')}`;
   return `assets/${file}`;
 }
 

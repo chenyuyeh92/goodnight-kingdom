@@ -95,6 +95,6 @@ test('開場選單在手機上點得到', async ({ page }) => {
   await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
   await expect(page.locator('#touch-controls')).toHaveCount(0);
   const box = (await page.locator('canvas').boundingBox())!;
-  await page.mouse.click(box.x + (240 / 960) * box.width, box.y + (330 / 540) * box.height);
+  await page.mouse.click(box.x + (480 / 960) * box.width, box.y + (250 / 540) * box.height);
   await page.waitForFunction(() => window.__GK__?.screen === 'range');
 });

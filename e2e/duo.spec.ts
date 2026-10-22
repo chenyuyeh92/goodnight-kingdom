@@ -29,11 +29,11 @@ test.describe('開場選單', () => {
     expect(s.players).toHaveLength(2);
   });
 
-  test('點「單人」進入單人', async ({ page }) => {
+  test('點「開始遊戲」進入單人', async ({ page }) => {
     await page.goto('./');
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     const box = (await page.locator('canvas').boundingBox())!;
-    await page.mouse.click(box.x + (240 / 960) * box.width, box.y + (330 / 540) * box.height);
+    await page.mouse.click(box.x + (480 / 960) * box.width, box.y + (250 / 540) * box.height);
     await page.waitForFunction(() => window.__GK__?.screen === 'range');
     const s = await gk(page);
     expect(s.mode).toBe('single');
