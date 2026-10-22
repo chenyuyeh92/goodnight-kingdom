@@ -4,8 +4,8 @@
 
 | 檔案 | 內容 | 實際大小（寬×高 px） | 備註 |
 |---|---|---|---|
-| `public/assets/enemies/w9-mushroom-sprite.png` | 熬夜蘑菇精靈（小怪） | 46×56 | |
-| `public/assets/enemies/w9-mushroom-sprite-sleep.png` | 熬夜蘑菇精靈（小怪） 睡著 | 46×56 | |
+| `public/assets/enemies/w9-mushroom-sprite.png` | 熬夜蘑菇精靈（小怪） | 45×56 | |
+| `public/assets/enemies/w9-mushroom-sprite-sleep.png` | 熬夜蘑菇精靈（小怪） 睡著 | 44×56 | |
 | `public/assets/enemies/w9-coffee-worm.png` | 咖啡蚯蚓（小怪） | 37×56 | |
 | `public/assets/enemies/w9-coffee-worm-sleep.png` | 咖啡蚯蚓（小怪） 睡著 | 36×56 | |
 | `public/assets/enemies/w9-noisy-moth.png` | 吵鬧發光蛾（小怪，會飛） | 52×56 | |
@@ -30,5 +30,5 @@
 ## 已知問題
 
 - 中景、近景、機關是程式畫的，比較簡單。
-- 蘑菇精靈的睡著版眼睛只有半閉；身體偏人形。
+- 蘑菇精靈 2026-10-22 重畫成矮胖的蘑菇身體（鴨子般的小腳），不再是人形。
 - 飛行的小怪飛行時底部要高於 y=452，讓玩家蹲下能閃過。

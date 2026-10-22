@@ -284,3 +284,24 @@ def acacia_mid(color, W=1440, seed=0, n=5, base=472):
         g = 10 + 8 * (0.5 + 0.5 * math.sin(2 * math.pi * x * 9 / W))
         d.line([(x, base + 4), (x + 3, base - g)], fill=c, width=2)
     return im
+
+def keep_largest(im):
+    """只保留不透明像素中最大的連通塊（以 1/4 解析度計算，再放大成遮罩）。"""
+    a = im.getchannel("A"); sm = a.resize((max(1, a.width // 4), max(1, a.height // 4)))
+    w, h = sm.size; px = sm.load(); seen = bytearray(w * h); best = []
+    for y0 in range(h):
+        for x0 in range(w):
+            if px[x0, y0] < 60 or seen[y0 * w + x0]: continue
+            stack = [(x0, y0)]; seen[y0 * w + x0] = 1; comp = []
+            while stack:
+                x, y = stack.pop(); comp.append((x, y))
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1), (x + 1, y + 1), (x - 1, y - 1), (x + 1, y - 1), (x - 1, y + 1)):
+                    if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and px[nx, ny] >= 60:
+                        seen[ny * w + nx] = 1; stack.append((nx, ny))
+            if len(comp) > len(best): best = comp
+    m = Image.new("L", (w, h), 0); mp = m.load()
+    for x, y in best: mp[x, y] = 255
+    from PIL import ImageFilter
+    m = m.filter(ImageFilter.MaxFilter(3)).resize(a.size)
+    im.putalpha(Image.composite(a, Image.new("L", a.size, 0), m)); return im
+

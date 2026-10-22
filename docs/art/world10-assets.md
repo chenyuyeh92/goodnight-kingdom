@@ -7,10 +7,10 @@
 | `public/assets/enemies/w10-pillow-soldier.png` | 熬夜枕頭兵（小怪） | 44×60 | |
 | `public/assets/enemies/w10-pillow-soldier-sleep.png` | 熬夜枕頭兵（小怪） 睡著 | 45×60 | |
 | `public/assets/enemies/w10-coffee-teapot.png` | 咖啡茶壺精靈（小怪） | 48×56 | |
-| `public/assets/enemies/w10-coffee-teapot-sleep.png` | 咖啡茶壺精靈（小怪） 睡著 | 48×56 | |
+| `public/assets/enemies/w10-coffee-teapot-sleep.png` | 咖啡茶壺精靈（小怪） 睡著 | 47×56 | |
 | `public/assets/enemies/w10-noisy-star.png` | 吵鬧小星星（小怪，會飛） | 41×56 | |
 | `public/assets/enemies/w10-noisy-star-sleep.png` | 吵鬧小星星（小怪，會飛） 睡著 | 41×56 | |
-| `public/assets/enemies/w10-clock-guard.png` | 失眠大鐘守衛（中階，拿盾） | 41×80 | |
+| `public/assets/enemies/w10-clock-guard.png` | 失眠大鐘守衛（中階，拿盾） | 42×80 | |
 | `public/assets/enemies/w10-clock-guard-sleep.png` | 失眠大鐘守衛（中階，拿盾） 睡著 | 42×80 | |
 | `public/assets/items/w10-moon-platform.png` | 月亮平台 | 96×28 | 程式畫； |
 | `public/assets/items/w10-star.png` | 星星（收集用） | 24×24 | 程式畫； |
@@ -31,5 +31,5 @@
 
 - 中景、近景、機關是程式畫的，比較簡單。
 - 吵鬧小星星是「騎在星星上的紫色小精靈」，不是星星本身長臉。
-- 枕頭兵、茶壺精靈的睡著版眼睛不太像閉著；大鐘守衛的盾牌上有一張月亮臉。
+- 2026-10-22 重畫：枕頭兵、茶壺精靈的睡著版改成確實閉眼；大鐘守衛改成單純的大鐘（模型總會在旁邊多畫小動物，所以只留大鐘本體），前面的星星圓盾是程式畫的；大鐘沒有臉，睡著版和醒著版是同一張，睡著請用程式加 Zzz。
 - 飛行的小怪飛行時底部要高於 y=452，讓玩家蹲下能閃過。

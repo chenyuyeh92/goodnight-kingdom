@@ -7,11 +7,11 @@ Boss 在 process_bosses.py。
 import math, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw
-from artlib import (cutout, fit, far, seabed, transition, save, patch, OUTLINE,
+from artlib import (cutout, fit, keep_largest, far, seabed, transition, save, patch, OUTLINE,
                     pines_mid, rocks_mid, icicles_mid, castle_mid, clouds_mid, pillars_mid)
 
 OUT_DIR, ROOT = sys.argv[1], sys.argv[2]
-G16, G17 = os.path.join(OUT_DIR, "gk16"), os.path.join(OUT_DIR, "gk17")
+G16, G17, G18 = (os.path.join(OUT_DIR, g) for g in ("gk16", "gk17", "gk18"))
 A = lambda *p: os.path.join(ROOT, "public", "assets", *p)
 
 # ---- 挑圖結果 ----
@@ -27,18 +27,18 @@ PICKS = {
     "w8-yak-sleep": ("G17/w8s/w8-yak-sleep_00002_.png", (80, 72), False),
     "w9-coffee-worm": ("G16/w9/w9-coffee-worm_00004_.png", (48, 56), False),
     "w9-coffee-worm-sleep": ("G17/w9s/w9-coffee-worm-sleep_00002_.png", (48, 56), False),
-    "w9-mushroom-sprite": ("G16/w9/w9-mushroom-sprite_00001_.png", (48, 56), False),
-    "w9-mushroom-sprite-sleep": ("G17/w9s/w9-mushroom-sprite-sleep_00002_.png", (48, 56), False),
+    "w9-mushroom-sprite": ("G18/x/x-mushroom-sprite_00002_.png", (48, 56), False),
+    "w9-mushroom-sprite-sleep": ("G18/ys/x-mushroom-sprite-sleep_00001_.png", (48, 56), False),
     "w9-noisy-moth": ("G16/w9/w9-noisy-moth_00003_.png", (60, 56), True),
     "w9-noisy-moth-sleep": ("G17/w9s/w9-noisy-moth-sleep_00002_.png", (60, 56), True),
     "w9-rhino-beetle": ("G16/w9/w9-rhino-beetle_00002_.png", (80, 72), False),
     "w9-rhino-beetle-sleep": ("G17/w9s/w9-rhino-beetle-sleep_00002_.png", (80, 72), False),
     "w10-coffee-teapot": ("G16/w10/w10-coffee-teapot_00002_.png", (52, 56), False),
-    "w10-coffee-teapot-sleep": ("G17/w10s/w10-coffee-teapot-sleep_00002_.png", (52, 56), False),
+    "w10-coffee-teapot-sleep": ("G18/ys/w10-coffee-teapot-sleep2_00002_.png", (52, 56), False),
     "w10-pillow-soldier": ("G16/w10/w10-pillow-soldier_00002_.png", (56, 60), False),
-    "w10-pillow-soldier-sleep": ("G17/w10s/w10-pillow-soldier-sleep_00002_.png", (56, 60), False),
-    "w10-clock-guard": ("G16/w10/w10-clock-guard-v2_00003_.png", (64, 80), False),
-    "w10-clock-guard-sleep": ("G17/w10s/w10-clock-guard-sleep_00002_.png", (64, 80), False),
+    "w10-pillow-soldier-sleep": ("G18/ys/w10-pillow-soldier-sleep2_00002_.png", (56, 60), False),
+    "w10-clock-guard": ("G18/x/x-clock-guard2_00001_.png", (64, 80), False),
+    "w10-clock-guard-sleep": ("G18/x/x-clock-guard2_00001_.png", (64, 80), False),  # 大鐘本身沒有臉，睡著版用同一張，程式加 Zzz 即可
     "w10-noisy-star": ("G16/w10/w10-noisy-star-v2_00003_.png", (56, 56), False),
     "w10-noisy-star-sleep": ("G17/w10s/w10-noisy-star-sleep_00002_.png", (56, 56), False),
 }
@@ -47,11 +47,23 @@ FAR_PICKS = {"w8-1": "00002", "w8-2": "00001", "w8-3": "00003", "w8-4": "00003",
              "w10-1": "00002", "w10-2": "00002", "w10-3": "00001", "w10-4": "00003"}
 FAR_PATCH = {"w8-1": [((745, 372, 835, 448), -130)]}  # 蓋掉模型自己加的白色小動物
 
+def clock_shield(im):
+    """大鐘守衛：模型總會在大鐘旁邊多畫一隻小動物，所以只留大鐘本體（keep_largest），再用程式在前面（左下）畫一面星星圓盾。"""
+    im = im.crop(im.getchannel("A").getbbox()); W, H = im.size; r = int(W * 0.32)
+    out = Image.new("RGBA", (W + r // 2, H), (0, 0, 0, 0)); out.alpha_composite(im, (r // 2, 0)); d = ImageDraw.Draw(out)
+    cx, cy = r, int(H * 0.68); o = max(4, r // 8)
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=OUTLINE); d.ellipse((cx - r + o, cy - r + o, cx + r - o, cy + r - o), fill=(170, 110, 70, 255))
+    pts = [(cx + (r * .55 if i % 2 == 0 else r * .23) * math.cos(math.radians(-90 + i * 36)), cy + (r * .55 if i % 2 == 0 else r * .23) * math.sin(math.radians(-90 + i * 36))) for i in range(10)]
+    d.polygon(pts, fill=(248, 224, 142, 255), outline=OUTLINE, width=max(2, o // 2))
+    return out
+
 for name, (src, box, flip) in PICKS.items():
-    path = src.replace("G16/", G16 + "/").replace("G17/", G17 + "/")
+    path = src.replace("G16/", G16 + "/").replace("G17/", G17 + "/").replace("G18/", G18 + "/")
     if not os.path.exists(path):
         print(f"提醒：{name} 的來源圖還沒有，先跳過"); continue
     im = cutout(path)
+    if name.startswith("w10-clock-guard"):
+        im = clock_shield(keep_largest(im))
     if flip: im = im.transpose(Image.FLIP_LEFT_RIGHT)
     save(fit(im, box), A("enemies", name + ".png"))
 
