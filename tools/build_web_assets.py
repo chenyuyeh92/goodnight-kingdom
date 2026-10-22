@@ -1,6 +1,6 @@
 """產生網頁用的素材(結果放在 public/web/,要 commit):
 
-1. 粉圓字型子集:只留 src/ 裡出現過的字加上 ASCII,轉 woff2,依 OFL 改名為 GK Huninn。
+1. 粉圓字型子集:只留 src/ 裡出現過的字加上 ASCII,轉 woff2,依 OFL 改名為 Goodnight Round。
    改了遊戲文字之後要重跑(tests/webAssets.test.ts 會檢查有沒有漏字)。
 2. 背景與封面背景 PNG 轉 WebP(美術原檔不動)。
 
@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parent.parent
 FONT_SRC = ROOT / 'public/assets/fonts/jf-openhuninn-2.1.ttf'
 LICENSE_SRC = ROOT / 'public/assets/fonts/jf-openhuninn-LICENSE.txt'
 OUT = ROOT / 'public/web'
-FAMILY = 'GK Huninn'
+# OFL:修改過(子集化)的字型不能用保留名稱(open huninn、huninn、Varela、Varela Round),連部分都不用。
+FAMILY = 'Goodnight Round'
 WEBP_QUALITY = 85
 
 
@@ -48,8 +49,8 @@ def build_font() -> None:
             rec.string = f'{FAMILY} subset'
     (OUT / 'fonts').mkdir(parents=True, exist_ok=True)
     font.flavor = 'woff2'
-    font.save(OUT / 'fonts/gk-huninn.woff2')
-    (OUT / 'fonts/gk-huninn-chars.txt').write_text(''.join(wanted), encoding='utf-8')
+    font.save(OUT / 'fonts/goodnight-round.woff2')
+    (OUT / 'fonts/goodnight-round-chars.txt').write_text(''.join(wanted), encoding='utf-8')
     shutil.copy(LICENSE_SRC, OUT / 'fonts/LICENSE-OFL.txt')
 
 

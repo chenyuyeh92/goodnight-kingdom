@@ -7,7 +7,7 @@ import { smallButton } from './menuButton';
 
 type Row = 'music' | 'sfx' | 'muted' | 'clear' | 'back';
 const ROWS: readonly Row[] = ['music', 'sfx', 'muted', 'clear', 'back'];
-const ROW_Y: Record<Row, number> = { music: 150, sfx: 225, muted: 300, clear: 375, back: 470 };
+const ROW_Y: Record<Row, number> = { music: 140, sfx: 210, muted: 280, clear: 350, back: 445 };
 const UP = new Set(['KeyW', 'ArrowUp']);
 const DOWN = new Set(['KeyS', 'ArrowDown']);
 const LEFT = new Set(['KeyA', 'ArrowLeft']);
@@ -63,11 +63,7 @@ export class SettingsScene extends Phaser.Scene {
     this.message = this.add.text(480, ROW_Y.clear + 40, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     smallButton(this, 480, ROW_Y.back, '返回(Esc)', () => this.back(), 200);
     PAGES.forEach((p, i) => {
-      const link = this.add
-        .text(300 + i * 180, 515, p.label, { fontSize: '16px', color: '#f8e08e', stroke: '#2b2a6b', strokeThickness: 4 })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-      link.on('pointerup', () => window.open(`${import.meta.env.BASE_URL}${p.file}`, '_blank', 'noopener'));
+      smallButton(this, 300 + i * 180, 515, p.label, () => window.open(`${import.meta.env.BASE_URL}${p.file}`, '_blank', 'noopener'), 160);
     });
 
     onMenuKey(this, (e) => {

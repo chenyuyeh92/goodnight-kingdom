@@ -14,6 +14,7 @@ export function weaponHud(l: Loadout, b: Buffs): string {
   } else {
     text += ` ${l.ammo === null ? '∞' : l.ammo}`;
   }
-  const icons = (b.cocoaMs > 0 ? '☕' : '') + (b.starMs > 0 ? '★' : '');
+  // ☕ 在部分 Android 會變成彩色表情符號,改用文字。
+  const icons = (b.cocoaMs > 0 ? '可可' : '') + (b.starMs > 0 ? '★' : '');
   return icons ? `${text} ${icons}` : text;
 }

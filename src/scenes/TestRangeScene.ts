@@ -736,7 +736,11 @@ export class TestRangeScene extends Phaser.Scene {
       const row = this.hudRows[i];
       const down = p.health.down;
       row.label.setText(labels[i]);
-      row.hearts.forEach((h, n) => h.setTexture(n < p.health.hearts ? HEART_FULL : HEART_EMPTY).setVisible(!down));
+      row.hearts.forEach((h, n) => {
+        const key = n < p.health.hearts ? HEART_FULL : HEART_EMPTY;
+        if (h.texture.key !== key) h.setTexture(key);
+        h.setVisible(!down);
+      });
       row.text.setText(down ? '睡著了…' : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
       if (!row.icon) return;
       const key = weaponIcon(activeWeapon(p.loadout).id);

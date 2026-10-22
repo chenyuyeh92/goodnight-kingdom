@@ -17,5 +17,5 @@ test('月亮燈顯示 10 格熱度條,過熱時加註', () => {
 });
 
 test('熱可可與流星期間顯示圖示', () => {
-  expect(weaponHud(BASE_LOADOUT, { cocoaMs: 100, starMs: 100 })).toBe('哈欠泡泡 ∞ ☕★');
+  expect(weaponHud(BASE_LOADOUT, { cocoaMs: 100, starMs: 100 })).toBe('哈欠泡泡 ∞ 可可★');
 });

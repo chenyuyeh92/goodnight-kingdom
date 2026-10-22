@@ -11,7 +11,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 test('子集字型包含原始碼裡所有中文字(漏字會顯示成方框,請重跑 tools/build_web_assets.py)', () => {
-  const have = new Set(readFileSync('public/web/fonts/gk-huninn-chars.txt', 'utf8'));
+  const have = new Set(readFileSync('public/web/fonts/goodnight-round-chars.txt', 'utf8'));
   const missing = new Set<string>();
   for (const f of sourceFiles('src')) {
     // 註解不會顯示在畫面上,不算。

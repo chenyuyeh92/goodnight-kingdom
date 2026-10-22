@@ -60,3 +60,29 @@ test.describe('上線準備', () => {
     expect(await heartsShown(page)).toEqual({ full: 5, empty: 1 });
   });
 });
+
+test('設定畫面點「返回」回到主頁,不會被同位置的「設定」按鈕又帶回來', async ({ page }) => {
+  await page.goto('./?test=1');
+  await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
+  const box = (await page.locator('canvas').boundingBox())!;
+  const at = (x: number, y: number) => ({ x: box.x + (x / 960) * box.width, y: box.y + (y / 540) * box.height });
+  const settings = at(480, 474);
+  await page.mouse.click(settings.x, settings.y);
+  await page.waitForFunction(() => window.__GK__!.screen === 'settings');
+  const back = at(480, 445);
+  await page.mouse.move(back.x, back.y);
+  await page.mouse.down();
+  await page.waitForTimeout(150);
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  expect((await page.evaluate(() => window.__GK__!.screen))).toBe('mode-select');
+});
+
+test('說明頁在手機寬度不會左右捲動', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 700 });
+  for (const p of ['privacy.html', 'support.html', 'licenses.html']) {
+    await page.goto(`./${p}`);
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(over, p).toBeLessThanOrEqual(0);
+  }
+});

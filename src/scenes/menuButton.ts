@@ -23,6 +23,7 @@ export function menuButton(
   const base = withText ? art! : tex.exists('btn') ? 'btn' : null;
   if (base) {
     const img = scene.add.image(x, y, base).setInteractive({ useHandCursor: true });
+    let pressed = false;
     const text = withText ? null : scene.add.text(x, y - 3, label, { fontSize: '24px', color: '#3a2a5a' }).setOrigin(0.5);
     const set = (state: '' | '-hover' | '-pressed'): void => {
       const key = `${base}${state}`;
@@ -30,10 +31,18 @@ export function menuButton(
       text?.setY(y - 3 + (state === '-pressed' ? PRESS_DY : 0));
     };
     img.on('pointerover', () => set('-hover'));
-    img.on('pointerout', () => set(''));
-    img.on('pointerdown', () => set('-pressed'));
+    img.on('pointerout', () => {
+      pressed = false;
+      set('');
+    });
+    img.on('pointerdown', () => {
+      pressed = true;
+      set('-pressed');
+    });
     img.on('pointerup', () => {
       set('-hover');
+      if (!pressed) return;
+      pressed = false;
       audio.sfx('select');
       onClick();
     });
@@ -62,10 +71,17 @@ export function smallButton(
   const bg = scene.add.rectangle(x, y, w, 44, 0xfff6e5).setStrokeStyle(3, 0x3a2a5a).setInteractive({ useHandCursor: true });
   const text = scene.add.text(x, y, label, { fontSize: '18px', color: '#3a2a5a' }).setOrigin(0.5);
   let enabled = true;
+  // 放開時才觸發,而且要在這顆按鈕上按下過:換畫面後同一個位置的按鈕不會被「放開」誤觸。
+  let pressed = false;
   bg.on('pointerover', () => enabled && bg.setFillStyle(0xf8e08e));
-  bg.on('pointerout', () => bg.setFillStyle(0xfff6e5));
-  bg.on('pointerdown', () => {
-    if (!enabled) return;
+  bg.on('pointerout', () => {
+    pressed = false;
+    bg.setFillStyle(0xfff6e5);
+  });
+  bg.on('pointerdown', () => (pressed = enabled));
+  bg.on('pointerup', () => {
+    if (!pressed || !enabled) return;
+    pressed = false;
     audio.sfx('select');
     onClick();
   });

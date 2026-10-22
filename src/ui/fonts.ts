@@ -1,5 +1,5 @@
-/** 遊戲字型:粉圓子集(tools/build_web_assets.py 產生),依 OFL 改名為 GK Huninn。 */
-export const GAME_FONT = 'GK Huninn';
+/** 遊戲字型:粉圓子集(tools/build_web_assets.py 產生),依 OFL 改名為 Goodnight Round(不含保留名稱)。 */
+export const GAME_FONT = 'Goodnight Round';
 
 const FONT_TIMEOUT_MS = 3000;
 
@@ -7,7 +7,7 @@ const FONT_TIMEOUT_MS = 3000;
 export async function loadGameFont(): Promise<boolean> {
   if (typeof FontFace === 'undefined' || !document.fonts) return false;
   try {
-    const face = new FontFace(GAME_FONT, `url(${import.meta.env.BASE_URL}web/fonts/gk-huninn.woff2)`);
+    const face = new FontFace(GAME_FONT, `url(${import.meta.env.BASE_URL}web/fonts/goodnight-round.woff2)`);
     const loaded = face.load().then((f) => {
       (document.fonts as unknown as { add(f: FontFace): void }).add(f);
       return true;
