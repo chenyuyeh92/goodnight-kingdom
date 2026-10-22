@@ -74,8 +74,9 @@ export interface GkDebug {
   guardTarget?: 'A' | 'B';
   /** 選關畫面:每一關是否解鎖、最佳時間。 */
   levels?: { id: LevelId; unlocked: boolean; best: number | null }[];
-  /** 選關畫面正在看第幾個世界。 */
+  /** 選關畫面正在看第幾個世界、測試模式是否開著。 */
   world?: number;
+  testMode?: boolean;
   /** 美術素材載入狀態。 */
   art?: { loaded: number; missing: string[]; disabled: boolean };
   /** 通關結算的文字列。 */

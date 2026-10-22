@@ -8,6 +8,7 @@ import type { LevelId } from '../levels/levelDef';
 import type { TestRangeData } from './TestRangeScene';
 import { startLevel } from './LoadoutScene';
 import { onMenuKey } from './menuKeys';
+import { TEST_TOOLS, setTestMode, testModeOn } from '../config/testTools';
 import { menuButton, smallButton } from './menuButton';
 
 const CARD_W = 250;
@@ -50,7 +51,8 @@ export class LevelSelectScene extends Phaser.Scene {
     if (world > 1) smallButton(this, 100, 70, touch ? `← 世界 ${world - 1}` : `← 世界 ${world - 1}(Q)`, () => go(world - 1), 160);
     if (world < WORLDS.length) smallButton(this, 860, 70, touch ? `世界 ${world + 1} →` : `世界 ${world + 1} →(E)`, () => go(world + 1), 160);
 
-    const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: isUnlocked(id, cleared), best: cleared[id] ?? null }));
+    const testMode = testModeOn();
+    const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: testMode || isUnlocked(id, cleared), best: cleared[id] ?? null }));
     levels.forEach((l, i) => {
       const x = 480 + (i - 1) * CARD_GAP;
       const card = this.textures.exists('ui-panel')
@@ -63,14 +65,22 @@ export class LevelSelectScene extends Phaser.Scene {
       this.add.text(x, CARD_Y - 20, LEVELS[l.id].name, { fontSize: '22px', color: ink }).setOrigin(0.5);
       this.add.text(x, CARD_Y + 18, TIME_OF_DAY[i], { fontSize: '18px', color: ink }).setOrigin(0.5);
       const prev = previousLevel(l.id);
-      const status = !l.unlocked && prev
+      const status = testMode
+        ? '測試模式開放'
+        : !l.unlocked && prev
         ? `鎖住:先通過 ${levelNumber(prev)}`
         : l.best !== null
           ? `最佳 ${formatDuration(l.best)}`
           : '還沒通關';
       this.add.text(x, CARD_Y + 62, status, { fontSize: '18px', color: l.unlocked ? '#b0477a' : ink }).setOrigin(0.5);
-      if (!touch) this.add.text(x, CARD_Y + CARD_H / 2 + 24, `按 ${i + 1}`, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5);
+      if (!touch) this.add.text(x, CARD_Y + CARD_H / 2 + 24, testMode ? `按 ${i + 1}(Shift+${i + 1} 打關主)` : `按 ${i + 1}`, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5);
+      if (testMode && LEVELS[l.id].boss) smallButton(this, x, CARD_Y + 96, '直接打關主', () => this.play(l.id, true, true), 150);
     });
+    // 測試工具:公開上市前關掉(src/config/testTools.ts)。
+    if (TEST_TOOLS) {
+      const label = (on: boolean): string => `測試模式:${on ? '開' : '關'}${touch ? '' : '(T)'}`;
+      smallButton(this, 110, 488, label(testMode), () => this.toggleTest(), 190);
+    }
     // 手機沒有 Esc,一定要有按鈕回主頁。
     menuButton(this, 480, 488, touch ? '回到主頁' : '回到主頁(Esc)', () => this.back());
 
@@ -78,17 +88,27 @@ export class LevelSelectScene extends Phaser.Scene {
       if (e.code === 'Escape') this.back();
       if (PREV_WORLD.has(e.code)) go(world - 1);
       if (NEXT_WORLD.has(e.code)) go(world + 1);
+      if (e.code === 'KeyT' && TEST_TOOLS) this.toggleTest();
       const i = /^Digit([1-3])$/.exec(e.code);
       if (i) {
         const l = levels[Number(i[1]) - 1];
-        this.play(l.id, l.unlocked);
+        this.play(l.id, l.unlocked, testMode && e.shiftKey);
       }
     });
-    window.__GK__ = { ready: true, screen: 'level-select', levels, world };
+    window.__GK__ = { ready: true, screen: 'level-select', levels, world, testMode };
   }
 
-  private play(id: LevelId, unlocked: boolean): void {
-    if (unlocked) startLevel(this, { ...this.data_, level: id });
+  /** atBoss(測試模式):從最後一個檢查點出發,戰鬥區當作已經清完,走幾步就是關主。 */
+  private play(id: LevelId, unlocked: boolean, atBoss = false): void {
+    if (!unlocked) return;
+    const level = LEVELS[id];
+    const boss = atBoss && level.boss ? { checkpointX: Math.max(...level.checkpoints), arenasCleared: level.arenas.length } : {};
+    startLevel(this, { ...this.data_, level: id, ...boss });
+  }
+
+  private toggleTest(): void {
+    setTestMode(!testModeOn());
+    this.scene.restart(this.data_);
   }
 
   /** 點到鎖住的關卡:左右晃一下。 */
