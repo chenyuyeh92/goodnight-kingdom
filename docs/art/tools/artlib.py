@@ -234,6 +234,42 @@ def jungle_mid(color, W=1440, seed=0, n=10, base=474, leaf=None):
         r = rnd.randint(14, 22); d.ellipse((x - r * 1.4, base - r * 1.4, x + r * 1.4, base + 4), fill=lc)
     return im
 
+def castle_mid(color, W=1440, seed=0, n=5, base=474):
+    """城堡剪影：城牆＋城垛＋圓塔（尖屋頂），左右兩端城牆接續。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    d.rectangle((0, base - 26, W, base + 2), fill=c)  # 矮牆，只擋地面附近一點
+    for x in range(0, W, 24):  # 城垛，間距 24 整除 1440
+        d.rectangle((x, base - 38, x + 12, base - 26), fill=c)
+    for x in _spread(W, n, rnd, margin=140):
+        tw = rnd.randint(30, 44); th = rnd.randint(120, 190)
+        d.rectangle((x - tw, base - th, x + tw, base), fill=c)
+        d.polygon([(x - tw - 8, base - th), (x, base - th - tw * 1.6), (x + tw + 8, base - th)], fill=c)
+    return im
+
+def pillars_mid(color, W=1440, seed=0, n=6, base=474):
+    """室內：細柱子＋柱頭，柱子之間是低矮的欄杆（城堡大廳、王座用）。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    for x in range(0, W, 16):  # 欄杆，間距 16 整除 1440
+        d.rectangle((x + 4, base - 22, x + 8, base), fill=c)
+    d.rectangle((0, base - 26, W, base - 20), fill=c)
+    for x in _spread(W, n, rnd, margin=120):
+        w = 12; d.rectangle((x - w, 60, x + w, base + 2), fill=c)
+        d.rectangle((x - w - 8, 50, x + w + 8, 64), fill=c); d.rectangle((x - w - 6, base - 10, x + w + 6, base + 2), fill=c)
+    return im
+
+def clouds_mid(color, W=1440, seed=0, n=8, base=474):
+    """雲海中景：一團團圓圓的雲，底部連成一片。"""
+    import random
+    rnd = random.Random(seed); im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = color + (255,)
+    d.rectangle((0, base - 20, W, base + 2), fill=c)
+    for x in _spread(W, n, rnd):
+        for _ in range(3):
+            r = rnd.randint(22, 40); dx = rnd.randint(-40, 40)
+            d.ellipse((x + dx - r * 1.3, base - 20 - r * 1.4, x + dx + r * 1.3, base - 10), fill=c)
+    return im
+
 def acacia_mid(color, W=1440, seed=0, n=5, base=472):
     """金合歡：細樹幹分叉、平頂的樹冠。"""
     import random

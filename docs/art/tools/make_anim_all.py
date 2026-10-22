@@ -77,6 +77,9 @@ KIND = {
     "w6-alarm-parrot": "flap", "w6-tree-frog": "bounce",
     # 世界 7
     "w7-noisy-hornbill": "flap",
+    # 世界 8–10 小怪
+    "w8-noisy-eagle": "flap", "w8-coffee-cloud": "bounce", "w9-noisy-moth": "flap", "w9-mushroom-sprite": "bounce", "w9-coffee-worm": "bounce",
+    "w10-noisy-star": "bounce", "w10-coffee-teapot": "bounce",
     # 世界 8–10 Boss
     "w8-thunderbird-boss": "flap", "w9-boss1-firefly-queen": "bounce",  # 翅膀在背上、手提燈在旁邊，用彈跳比較不會變形 "w9-boss2-axolotl": "swim",
 }
