@@ -49,6 +49,13 @@ export type SpriteKey = keyof typeof SPRITES;
 
 export const SPRITE_KEYS = Object.keys(SPRITES) as SpriteKey[];
 
+/** 網頁實際載入的路徑(相對網站根目錄):背景用 tools/build_web_assets.py 轉好的 WebP,其他用美術原檔。 */
+export function assetPath(key: SpriteKey): string {
+  const file = SPRITES[key].file;
+  if (file.startsWith('backgrounds/')) return `web/${file.replace(/\.png$/, '.webp')}`;
+  return `assets/${file}`;
+}
+
 /** 貓頭鷹原圖 200 高,畫成 0.75 倍。 */
 export const OWL_ART_SCALE = 0.75;
 
