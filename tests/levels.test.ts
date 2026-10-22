@@ -623,6 +623,10 @@ describe.each(['w9-1', 'w9-2', 'w9-3'] as const)('世界 9 洞窟:%s', (id) => {
     expect(crystals.filter((c) => c >= lock && c <= lock + VIEW_W).length).toBeGreaterThanOrEqual(2);
   });
 
+  test('檢查點(雙人時 B 在右邊 40)不在淺水裡(重來時不會走得很慢)', () => {
+    for (const cp of L.checkpoints) for (const s of L.water?.shallow ?? []) expect(cp + 40 < s.x - 20 || cp > s.x + s.w + 20, `檢查點 ${cp} 淺水 ${s.x}`).toBe(true);
+  });
+
   test('淺水不在戰鬥區與關主區', () => {
     const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
     for (const w of windows) for (const s of L.water?.shallow ?? []) expect(s.x + s.w <= w || s.x >= w + VIEW_W, `淺水 ${s.x}`).toBe(true);

@@ -38,9 +38,9 @@ export const UNDERGROUND_RIVER: LevelDef = {
   water: {
     shallow: [
       { x: 1100, w: 400 },
-      { x: 3800, w: 500 },
+      { x: 4200, w: 500 },
       { x: 5100, w: 400 },
-      { x: 7700, w: 400 },
+      { x: 7600, w: 400 },
     ],
     gaps: [],
     pads: [],

@@ -141,6 +141,8 @@ const BUBBLE_LIFE_MS = 6000;
 /** 巨鼴鼠的土堆顏色、最多同時幾隻咖啡蚯蚓。 */
 const MOLE_DIRT = 0x5a3a2a;
 const MOLE_MAX_WORMS = 3;
+/** 巨鼴鼠的土堆比身體寬一點(冒出來會打到的範圍都看得到)。 */
+const MOLE_MOUND_RATIO = 1.4;
 /** 雲海(世界 8 的河溝)的顏色。 */
 const CLOUD_GAP = { fill: 0xd8d0ec, light: 0xffffff } as const;
 /** 熊貓的迴旋竹子飛出去再飛回來,回到熊貓手上就消失(不會飛去打背後的人);雷鳥颳強風時畫面輕輕晃。 */
@@ -886,7 +888,6 @@ export class TestRangeScene extends Phaser.Scene {
     this.updateVines(dtMs);
     this.updateStampede(dtMs);
     this.updateWind(dtMs);
-    this.updateDarkness(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -911,6 +912,8 @@ export class TestRangeScene extends Phaser.Scene {
     for (const p of awake) p.clampX(minPlayerX(this.scrollX, SCREEN_MARGIN), this.scrollX + VIEW_W - SCREEN_MARGIN);
     for (const p of awake) this.maxReachedX = Math.max(this.maxReachedX, p.x);
     for (const p of this.players) p.render(time);
+    // 黑暗的光圈在鏡頭移動、玩家夾回畫面之後才畫(不會比畫面慢一格)。
+    this.updateDarkness(dtMs);
     this.renderHud();
 
     this.publishDebug();
@@ -1091,7 +1094,7 @@ export class TestRangeScene extends Phaser.Scene {
     for (const e of this.enemies) {
       if (e.emerging) continue;
       const t = e.def.type;
-      if (t === 'moth' || t === 'firefly' || t === 'queen') lights.push({ x: e.x, y: e.body.y, r: LIGHT_RADIUS[t] });
+      if (t === 'moth' || t === 'firefly' || t === 'queen' || t === 'axolotl') lights.push({ x: e.x, y: e.body.y, r: LIGHT_RADIUS[t] });
       // 巨鼴鼠的頭燈:照著前面。
       if (t === 'mole') lights.push({ x: e.x + e.brain.facing * 40, y: e.body.y - e.def.h / 4, r: LIGHT_RADIUS.headlamp });
     }
@@ -1839,7 +1842,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (step.brain.mode === 'under' && !ai.mound) {
       // 耳廓狐冒出沙堆;獨角鯨是冰面的裂痕。
       // 巨鼴鼠是一大堆深色的土。
-      const w = mole ? MOUND_W * 1.6 : MOUND_W;
+      const w = mole ? enemy.def.w * MOLE_MOUND_RATIO : MOUND_W;
       ai.mound = this.add.ellipse(step.brain.moundX, GROUND_Y - MOUND_H / 4, w, MOUND_H, icy ? 0xd8f0ff : mole ? MOLE_DIRT : COLOR.dirt).setDepth(3);
       if (icy) ai.mound.setStrokeStyle(2, 0x6fa8d8);
       this.tweens.add({ targets: ai.mound, scaleX: 1.15, duration: 90, yoyo: true, repeat: -1 });
@@ -1863,7 +1866,8 @@ export class TestRangeScene extends Phaser.Scene {
     enemy.setArt(enemySprite('mole', 'awake', ai.phase));
     enemy.bossPhase = ai.phase;
     if (burrowed && ai.phase >= 2 && boss.minions.size < MOLE_MAX_WORMS) {
-      boss.minions.add(this.spawnFrom({ type: 'coffeeWorm', from: 'right', delayMs: 0 }, false));
+      // 從左邊來:從右邊會被夾在畫面右緣,直接冒在躲到右邊的玩家身上。
+      boss.minions.add(this.spawnFrom({ type: 'coffeeWorm', from: 'left', delayMs: 0 }, false));
     }
   }
 
@@ -1931,7 +1935,7 @@ export class TestRangeScene extends Phaser.Scene {
       const plus = this.add
         .text(enemy.x, enemy.body.y - enemy.def.h / 2 - 6, '+', { fontSize: '26px', color: '#8fe08f', stroke: '#2a4a2a', strokeThickness: 5 })
         .setOrigin(0.5, 1)
-        .setDepth(6);
+        .setDepth(DARK_DEPTH + 1);
       this.tweens.add({ targets: plus, y: plus.y - 24, alpha: 0, duration: 500, onComplete: () => plus.destroy() });
     }
     ai.lastHp = enemy.hp;
@@ -2611,12 +2615,12 @@ export class TestRangeScene extends Phaser.Scene {
     this.cameras.main.shake(300, 0.008);
   }
 
-  /** 小頭目出招前頭上冒一個「!」。 */
+  /** 小頭目出招前頭上冒一個「!」(畫在黑暗上面,洞窟裡也看得到)。 */
   private tell(e: EnemyEntity): void {
     const mark = this.add
       .text(e.x, e.body.y - e.def.h / 2 - 12, '!', { fontSize: '30px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 5 })
       .setOrigin(0.5, 1)
-      .setDepth(6);
+      .setDepth(DARK_DEPTH + 1);
     this.tweens.add({ targets: mark, y: mark.y - 10, alpha: 0, delay: TELL_MS - 150, duration: 150, onComplete: () => mark.destroy() });
   }
 
