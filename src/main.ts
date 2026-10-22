@@ -85,6 +85,8 @@ export interface GkDebug {
   art?: { loaded: number; missing: string[]; disabled: boolean };
   /** 通關結算的文字列。 */
   summary?: string[];
+  /** 結算畫面是不是破關結局(打倒夢貘)。 */
+  ending?: boolean;
   /** 選武器畫面:正在選的玩家與選項文字。 */
   loadoutFor?: 'A' | 'B';
   loadoutOptions?: string[];
@@ -134,6 +136,8 @@ export interface GkDebug {
   wind?: { strength: number; gust: boolean; pushes: number };
   /** 世界 9:黑暗多濃(0–1)、這一格有幾個光源、火螢女王閃光後的全黑中。 */
   darkness?: { alpha: number; lights: number; blackout: boolean };
+  /** 世界 10:收集到的星星與總數、孔雀開屏後左右顛倒中、夢貘正在吸、每位玩家被麻糬黏住變慢中。 */
+  w10?: { stars: number; starsTotal: number; reversed: boolean; inhaling: boolean; slowed: boolean[]; mochiHits: number; pulls: number };
   /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
   desert?: { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number };
   /** 測試用:在 x 掉一塊沙磚。 */

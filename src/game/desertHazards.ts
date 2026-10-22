@@ -43,7 +43,7 @@ const DROPS: Record<DropKind, { key: string; w: number; h: number; color: number
   lightning: { key: 'b-lightning', w: 28, h: 56, color: 0xffe070, solid: false, puff: 0xfff0a0 },
 };
 /** 沙浪(沙塵)、河狸的水波、雪浪、河馬的震波、火龍沿地面燒過來的火。 */
-export type WaveKind = 'sand' | 'water' | 'snow' | 'shock' | 'fire' | 'stomp';
+export type WaveKind = 'sand' | 'water' | 'snow' | 'shock' | 'fire' | 'stomp' | 'moon';
 const WAVE_ART: Record<WaveKind, { key: string; color: number }> = {
   sand: { key: 'b-sand-dust', color: SAND },
   water: { key: 'b-water-wave', color: 0x8fd0f0 },
@@ -52,6 +52,8 @@ const WAVE_ART: Record<WaveKind, { key: string; color: number }> = {
   fire: { key: '', color: 0xff7a30 },
   // 大象跺腳、獅子王落地的震波(世界 7 的圖)。
   stomp: { key: 'b-stomp-wave', color: 0xe0d0c0 },
+  // 月兔木槌敲地的震波(世界 10 的圖)。
+  moon: { key: 'b-w10-shockwave', color: 0xfff0c0 },
 };
 const CRUMBLE_MS = 300;
 const PLATE_PRESS_PX = 3;

@@ -6,7 +6,7 @@ const TERRAIN_GRACE_MS = 120;
 const SHOT_OUTLINE = 0x3a2a5a;
 
 /** 魔物子彈的種類:貓頭鷹羽毛、沙蛇咖啡(章魚墨汁)、駱駝口水、沙球/沙塊、泡泡、松鼠的橡實。 */
-export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava' | 'mango' | 'sweep' | 'jet' | 'roar' | 'rock' | 'bamboo' | 'stone' | 'waterBubble' | 'spark';
+export type ShotKind = 'feather' | 'coffee' | 'spit' | 'sand' | 'bubble' | 'acorn' | 'snow' | 'ice' | 'steam' | 'lava' | 'mango' | 'sweep' | 'jet' | 'roar' | 'rock' | 'bamboo' | 'stone' | 'waterBubble' | 'spark' | 'mochi' | 'dart' | 'mist';
 
 /** 奶油色、咖啡色、淡藍、沙黃,都加深紫外框,在亮暗背景都看得到。 */
 const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
@@ -32,15 +32,22 @@ const SHOT_LOOK: Record<ShotKind, { w: number; h: number; color: number }> = {
   stone: { w: 20, h: 18, color: 0x7a6a6a },
   waterBubble: { w: 16, h: 16, color: 0xa8e8ff },
   spark: { w: 14, h: 14, color: 0xfff080 },
+  // 月兔的麻糬(黏到會變慢)、孔雀的羽毛飛鏢、夢貘的惡夢雲。
+  mochi: { w: 20, h: 16, color: 0xfff8f0 },
+  dart: { w: 32, h: 10, color: 0x3aa08a },
+  mist: { w: 38, h: 26, color: 0x8a6ac0 },
 };
 
 /** 有美術圖的子彈(載入了就用美術的圖,沒有就用上面程式畫的)。 */
-const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball', mango: 'b-mango', jet: 'b-water-jet', rock: 'b-w8-rock', bamboo: 'b-bamboo', stone: 'b-w9-rock', waterBubble: 'b-w9-bubble', spark: 'b-firefly' };
+const SHOT_ART: Partial<Record<ShotKind, string>> = { spit: 'b-spit', bubble: 'b-bubble', acorn: 'b-acorn', steam: 'b-steam', lava: 'b-lava-ball', mango: 'b-mango', jet: 'b-water-jet', rock: 'b-w8-rock', bamboo: 'b-bamboo', stone: 'b-w9-rock', waterBubble: 'b-w9-bubble', spark: 'b-firefly', mochi: 'b-mochi', dart: 'b-w10-feather', mist: 'b-dream-mist' };
+/** 有方向的子彈圖(畫成朝左),往右飛時左右翻過來。 */
+const FLIP_RIGHT: ReadonlySet<ShotKind> = new Set(['dart', 'mist']);
 
 const textureKey = (kind: ShotKind): string => `gk-shot-${kind}`;
 
 interface Shot {
   rect: Phaser.GameObjects.Image;
+  kind: ShotKind;
   bornAt: number;
   lifeMs: number;
 }
@@ -71,10 +78,11 @@ export class EnemyShotSystem {
     });
   }
 
-  /** onHit 回傳 true 表示打中(羽毛消失),false 表示穿過(例如玩家睡著)。 */
-  addVictim(zone: Phaser.GameObjects.Zone, onHit: () => boolean): void {
+  /** onHit 回傳 true 表示打中(羽毛消失),false 表示穿過(例如玩家睡著);kind 是打中的子彈種類(麻糬不扣愛心、會變慢)。 */
+  addVictim(zone: Phaser.GameObjects.Zone, onHit: (kind: ShotKind) => boolean): void {
     this.scene.physics.add.overlap(zone, this.group, (_z, s) => {
-      if (onHit()) this.removeObj(s);
+      const shot = this.shots.find((x) => x.rect === s);
+      if (shot && onHit(shot.kind)) this.remove(shot);
     });
   }
 
@@ -87,12 +95,13 @@ export class EnemyShotSystem {
     const key = art && this.scene.textures.exists(art) ? art : textureKey(kind);
     // 圓的子彈(泡泡、口水、橡實)不用轉向。
     const rect = this.scene.add.image(x, y, key).setRotation(key === art ? 0 : Math.atan2(vy, vx)).setDepth(4);
+    if (key === art && FLIP_RIGHT.has(kind) && vx > 0) rect.setFlipX(true);
     this.group.add(rect);
     const body = rect.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(vx, vy);
     if (gravity > 0) body.setAllowGravity(true).setGravityY(gravity);
     if (ax !== 0) body.setAccelerationX(ax);
-    this.shots.push({ rect, bornAt: this.scene.time.now, lifeMs });
+    this.shots.push({ rect, kind, bornAt: this.scene.time.now, lifeMs });
   }
 
   update(): void {
@@ -106,11 +115,6 @@ export class EnemyShotSystem {
 
   clear(): void {
     for (const s of [...this.shots]) this.remove(s);
-  }
-
-  private removeObj(obj: unknown): void {
-    const s = this.shots.find((x) => x.rect === obj);
-    if (s) this.remove(s);
   }
 
   private remove(s: Shot): void {

@@ -113,6 +113,18 @@ const BASE_SPRITES = {
   'w9-s4-far': { file: 'backgrounds/w9-s4-far.png', w: 1440, h: 540 },
   'w9-s4-mid': { file: 'backgrounds/w9-s4-mid.png', w: 1440, h: 540 },
   'w9-s4-near': { file: 'backgrounds/w9-s4-near.png', w: 1440, h: 540 },
+  'w10-s1-far': { file: 'backgrounds/w10-s1-far.png', w: 1440, h: 540 },
+  'w10-s1-mid': { file: 'backgrounds/w10-s1-mid.png', w: 1440, h: 540 },
+  'w10-s1-near': { file: 'backgrounds/w10-s1-near.png', w: 1440, h: 540 },
+  'w10-s2-far': { file: 'backgrounds/w10-s2-far.png', w: 1440, h: 540 },
+  'w10-s2-mid': { file: 'backgrounds/w10-s2-mid.png', w: 1440, h: 540 },
+  'w10-s2-near': { file: 'backgrounds/w10-s2-near.png', w: 1440, h: 540 },
+  'w10-s3-far': { file: 'backgrounds/w10-s3-far.png', w: 1440, h: 540 },
+  'w10-s3-mid': { file: 'backgrounds/w10-s3-mid.png', w: 1440, h: 540 },
+  'w10-s3-near': { file: 'backgrounds/w10-s3-near.png', w: 1440, h: 540 },
+  'w10-s4-far': { file: 'backgrounds/w10-s4-far.png', w: 1440, h: 540 },
+  'w10-s4-mid': { file: 'backgrounds/w10-s4-mid.png', w: 1440, h: 540 },
+  'w10-s4-near': { file: 'backgrounds/w10-s4-near.png', w: 1440, h: 540 },
   guard: { file: 'characters/default-guard.png', w: 48, h: 55 },
   'guard-walk-1': { file: 'characters/default-guard-walk-1.png', w: 48, h: 55 },
   'guard-walk-2': { file: 'characters/default-guard-walk-2.png', w: 48, h: 55 },
@@ -330,6 +342,29 @@ const BASE_SPRITES = {
   'firefly-sleep': { file: 'bullets/w9-firefly.png', w: 18, h: 16 },
   'b-w9-rock': { file: 'bullets/w9-rock.png', w: 24, h: 22 },
   'b-w9-bubble': { file: 'bullets/w9-water-bubble.png', w: 18, h: 18 },
+  'pillow-soldier': { file: 'enemies/w10-pillow-soldier.png', w: 44, h: 60 },
+  'pillow-soldier-sleep': { file: 'enemies/w10-pillow-soldier-sleep.png', w: 45, h: 60 },
+  teapot: { file: 'enemies/w10-coffee-teapot.png', w: 48, h: 56 },
+  'teapot-sleep': { file: 'enemies/w10-coffee-teapot-sleep.png', w: 47, h: 56 },
+  'noisy-star': { file: 'enemies/w10-noisy-star.png', w: 41, h: 56 },
+  'noisy-star-sleep': { file: 'enemies/w10-noisy-star-sleep.png', w: 41, h: 56 },
+  // 大鐘沒有臉,睡著版和醒著版同一張(睡著照常飄 Zzz)。
+  'clock-guard': { file: 'enemies/w10-clock-guard.png', w: 42, h: 80 },
+  'clock-guard-sleep': { file: 'enemies/w10-clock-guard-sleep.png', w: 42, h: 80 },
+  rabbit: { file: 'enemies/w10-boss1-moon-rabbit.png', w: 144, h: 150 },
+  'rabbit-sleep': { file: 'enemies/w10-boss1-moon-rabbit-sleep.png', w: 144, h: 150 },
+  peacock: { file: 'enemies/w10-boss2-peacock.png', w: 134, h: 150 },
+  'peacock-sleep': { file: 'enemies/w10-boss2-peacock-sleep.png', w: 134, h: 150 },
+  tapir: { file: 'enemies/w10-dream-tapir-boss.png', w: 228, h: 220 },
+  'tapir-2': { file: 'enemies/w10-dream-tapir-boss-phase2.png', w: 230, h: 219 },
+  'tapir-3': { file: 'enemies/w10-dream-tapir-boss-phase3.png', w: 228, h: 220 },
+  'tapir-sleep': { file: 'enemies/w10-dream-tapir-boss-sleep.png', w: 230, h: 220 },
+  'moon-platform': { file: 'items/w10-moon-platform.png', w: 96, h: 28 },
+  star: { file: 'items/w10-star.png', w: 24, h: 24 },
+  'b-mochi': { file: 'bullets/w10-mochi.png', w: 24, h: 18 },
+  'b-w10-shockwave': { file: 'bullets/w10-shockwave.png', w: 48, h: 16 },
+  'b-w10-feather': { file: 'bullets/w10-feather.png', w: 36, h: 14 },
+  'b-dream-mist': { file: 'bullets/w10-dream-mist.png', w: 40, h: 28 },
   quicksand: { file: 'items/w2-quicksand.png', w: 96, h: 24 },
   'pressure-plate': { file: 'items/w2-pressure-plate.png', w: 40, h: 12 },
   'falling-block': { file: 'items/w2-falling-block.png', w: 40, h: 39 },
@@ -449,6 +484,9 @@ export const ENEMY_ART_SCALE: Partial<Record<EnemyType, number>> = {
   queen: MINI_BOSS_ART_SCALE,
   axolotl: MINI_BOSS_ART_SCALE,
   mole: 0.75,
+  rabbit: MINI_BOSS_ART_SCALE,
+  peacock: MINI_BOSS_ART_SCALE,
+  tapir: 0.75,
 };
 
 /** 魔物的固定染色(目前沒有;保留給之後區分同一張圖的變種)。 */
@@ -463,7 +501,7 @@ export const ART_FACES_RIGHT: ReadonlySet<EnemyType> = new Set(['sphinx', 'fenne
 /** 魔物圖的 key(之前有程式畫的暫代造型,美術全部畫好後只剩 SpriteKey)。 */
 export type ArtKey = SpriteKey;
 
-type PhasedBoss = 'nightOwl' | 'sphinx' | 'nessie' | 'yeti' | 'dragon' | 'gorilla' | 'lion' | 'thunderbird' | 'mole';
+type PhasedBoss = 'nightOwl' | 'sphinx' | 'nessie' | 'yeti' | 'dragon' | 'gorilla' | 'lion' | 'thunderbird' | 'mole' | 'tapir';
 
 const ENEMY_AWAKE: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   alarmBug: 'clockbug',
@@ -522,6 +560,12 @@ const ENEMY_AWAKE: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   firefly: 'firefly',
   queen: 'queen',
   axolotl: 'axolotl',
+  pillowSoldier: 'pillow-soldier',
+  teapot: 'teapot',
+  noisyStar: 'noisy-star',
+  clockGuard: 'clock-guard',
+  rabbit: 'rabbit',
+  peacock: 'peacock',
 };
 const ENEMY_SLEEP: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   alarmBug: 'clockbug-sleep',
@@ -580,6 +624,12 @@ const ENEMY_SLEEP: Record<Exclude<EnemyType, PhasedBoss>, ArtKey> = {
   firefly: 'firefly-sleep',
   queen: 'queen-sleep',
   axolotl: 'axolotl-sleep',
+  pillowSoldier: 'pillow-soldier-sleep',
+  teapot: 'teapot-sleep',
+  noisyStar: 'noisy-star-sleep',
+  clockGuard: 'clock-guard-sleep',
+  rabbit: 'rabbit-sleep',
+  peacock: 'peacock-sleep',
 };
 const BOSS_PHASES: Record<PhasedBoss, { 1: SpriteKey; 2: SpriteKey; 3: SpriteKey; sleep: SpriteKey }> = {
   nightOwl: { 1: 'owl', 2: 'owl-2', 3: 'owl-3', sleep: 'owl-sleep' },
@@ -591,10 +641,11 @@ const BOSS_PHASES: Record<PhasedBoss, { 1: SpriteKey; 2: SpriteKey; 3: SpriteKey
   lion: { 1: 'lion', 2: 'lion-2', 3: 'lion-3', sleep: 'lion-sleep' },
   thunderbird: { 1: 'thunderbird', 2: 'thunderbird-2', 3: 'thunderbird-3', sleep: 'thunderbird-sleep' },
   mole: { 1: 'mole', 2: 'mole-2', 3: 'mole-3', sleep: 'mole-sleep' },
+  tapir: { 1: 'tapir', 2: 'tapir-2', 3: 'tapir-3', sleep: 'tapir-sleep' },
 };
 
 export function enemySprite(type: EnemyType, state: 'awake' | 'sleep', phase: 1 | 2 | 3 = 1): ArtKey {
-  if (type === 'nightOwl' || type === 'sphinx' || type === 'nessie' || type === 'yeti' || type === 'dragon' || type === 'gorilla' || type === 'lion' || type === 'thunderbird' || type === 'mole') return state === 'sleep' ? BOSS_PHASES[type].sleep : BOSS_PHASES[type][phase];
+  if (type === 'nightOwl' || type === 'sphinx' || type === 'nessie' || type === 'yeti' || type === 'dragon' || type === 'gorilla' || type === 'lion' || type === 'thunderbird' || type === 'mole' || type === 'tapir') return state === 'sleep' ? BOSS_PHASES[type].sleep : BOSS_PHASES[type][phase];
   return state === 'sleep' ? ENEMY_SLEEP[type] : ENEMY_AWAKE[type];
 }
 

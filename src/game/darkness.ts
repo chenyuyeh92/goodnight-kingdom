@@ -6,8 +6,8 @@ export const DARK_ALPHA = 0.9;
 export const BLACKOUT_ALPHA = 0.97;
 /** 走進、走出黑暗區時慢慢變暗、變亮(每秒變化多少)。 */
 const FADE_PER_S = 1.5;
-/** 各種光的半徑:玩家身邊、發光水晶、會發光的魔物、巨鼴鼠的頭燈、六角恐龍(粉紅色的身體在暗處微微發光,看得到牠在哪)。 */
-export const LIGHT_RADIUS = { player: 170, crystal: 115, queen: 130, firefly: 95, moth: 70, headlamp: 150, axolotl: 110 } as const;
+/** 各種光的半徑:玩家身邊、發光水晶、會發光的魔物、巨鼴鼠的頭燈、六角恐龍(粉紅色的身體在暗處微微發光,看得到牠在哪)、吵鬧小星星。 */
+export const LIGHT_RADIUS = { player: 170, crystal: 115, queen: 130, firefly: 95, moth: 70, headlamp: 150, axolotl: 110, noisyStar: 80 } as const;
 /** 火螢女王閃光後一陣子,玩家身邊只剩這麼大。 */
 export const BLACKOUT_PLAYER_RADIUS = 95;
 

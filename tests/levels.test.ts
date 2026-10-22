@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { GROUND_Y, parseLevelId } from '../src/levels/levelDef';
 import { LEVELS } from '../src/levels';
 import { ENEMY_DEFS } from '../src/game/enemies';
+import { STAND_HITBOX } from '../src/game/playerMotor';
 
 test('parseLevelId', () => {
   expect(parseLevelId('range')).toBe('range');
@@ -119,7 +120,7 @@ test('森林:從左邊來的零星魔物不會生在樹洞裡', () => {
   }
 });
 
-describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3', 'w9-1', 'w9-2', 'w9-3'] as const)('關卡共通規則:%s', (id) => {
+describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3', 'w9-1', 'w9-2', 'w9-3', 'w10-1', 'w10-2', 'w10-3'] as const)('關卡共通規則:%s', (id) => {
   const L = LEVELS[id];
 
   test('有小頭目或關主,鎖定畫面剛好到世界盡頭', () => {
@@ -644,4 +645,108 @@ test('世界 9 的小頭目是螢火蟲女王、六角恐龍,關主是巨鼴鼠;
   expect(LEVELS['w9-1'].hints!.map((h) => h.kind)).toContain('dark');
   expect((LEVELS['w9-3'].water?.shallow ?? []).length).toBeGreaterThan(0);
   expect(LEVELS['w9-3'].scenes.map((s) => s.scene)).toEqual(['w9-s3', 'w9-s4']);
+});
+
+describe.each(['w10-1', 'w10-2', 'w10-3'] as const)('世界 10 城堡:%s', (id) => {
+  const L = LEVELS[id];
+  const windows = [...L.arenas.map((a) => a.lockScrollX), L.boss!.lockScrollX];
+  const outsideWindows = (x: number, w: number): boolean => windows.every((v) => x + w <= v || x >= v + VIEW_W);
+
+  test('屬於世界 10,平台用月亮平台,有 10 顆星星', () => {
+    expect(L.world).toBe(10);
+    expect(L.platformArt).toBe('moon-platform');
+    expect(L.stars ?? []).toHaveLength(10);
+    for (const s of L.scenes) expect(s.scene.startsWith('w10-')).toBe(true);
+  });
+
+  test('借用的圖:有強風就載入風線、有冰柱就載入冰柱', () => {
+    if ((L.winds ?? []).length > 0) expect(L.borrowArt).toContain('wind-streak');
+    if ((L.icicles ?? []).length > 0) expect(L.borrowArt).toContain('icicle');
+  });
+
+  test('每顆星星拿得到:地上走過去碰得到,或在平台正上方(站上平台就碰得到)', () => {
+    const plats = L.terrain.filter((r) => r.h <= 20);
+    for (const s of L.stars ?? []) {
+      const onGround = s.y >= GROUND_Y - STAND_HITBOX.h;
+      const plat = plats.find((r) => s.x >= r.x && s.x <= r.x + r.w && s.y <= r.y && s.y >= r.y - STAND_HITBOX.h);
+      expect(onGround || plat !== undefined, `星星 ${s.x}`).toBe(true);
+      if (plat && plat.y < 300) expectReachable({ x: s.x, bottom: plat.y }, L);
+      expect(s.x).toBeLessThan(L.boss!.lockScrollX);
+    }
+  });
+
+  test('強風、淺水、荊棘、冰柱不在戰鬥區與關主區;冰柱、淺水不在檢查點', () => {
+    for (const z of L.winds ?? []) expect(outsideWindows(z.x, z.w), `強風 ${z.x}`).toBe(true);
+    for (const z of L.water?.shallow ?? []) expect(outsideWindows(z.x, z.w), `淺水 ${z.x}`).toBe(true);
+    for (const t of L.thorns) expect(outsideWindows(t.x, t.w), `荊棘 ${t.x}`).toBe(true);
+    for (const x of L.icicles ?? []) {
+      expect(outsideWindows(x - 100, 200), `冰柱 ${x}`).toBe(true);
+      for (const cp of L.checkpoints) expect(Math.abs(x - cp) > 120 && Math.abs(x - (cp + 40)) > 120, `冰柱 ${x} 檢查點 ${cp}`).toBe(true);
+    }
+    for (const cp of L.checkpoints) for (const s of L.water?.shallow ?? []) expect(cp + 40 < s.x - 20 || cp > s.x + s.w + 20, `檢查點 ${cp} 淺水 ${s.x}`).toBe(true);
+  });
+
+  test('城牆缺口都跳得過,強風離缺口遠一點;檢查點不在缺口上', () => {
+    const gaps = L.water?.gaps ?? [];
+    for (const g of gaps) {
+      const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= g.x && r.x + r.w <= g.x + g.w).sort((a, b) => a.x - b.x);
+      let from = g.x;
+      for (const p of plats) {
+        expect(p.x - from, `缺口 ${g.x}`).toBeLessThanOrEqual(110);
+        from = p.x + p.w;
+      }
+      expect(g.x + g.w - from, `缺口 ${g.x}`).toBeLessThanOrEqual(110);
+      for (const z of L.winds ?? []) expect(z.x + z.w <= g.x - 150 || z.x >= g.x + g.w + 150).toBe(true);
+      for (const cp of L.checkpoints) expect(cp + 40 < g.x - 20 || cp > g.x + g.w + 20).toBe(true);
+      expect(outsideWindows(g.x, g.w)).toBe(true);
+    }
+    if (gaps.length > 0) expect(L.gapStyle).toBe('cloud');
+  });
+
+  test('黑暗的大廳裡一路都有燭台(相隔不超過 460)', () => {
+    const lights = [...(L.crystals ?? [])].sort((a, b) => a - b);
+    for (const z of L.darkness ?? []) {
+      expect(L.lightStyle).toBe('candle');
+      const inside = lights.filter((c) => c >= z.x && c <= z.x + z.w);
+      expect(inside[0] - z.x).toBeLessThanOrEqual(460);
+      for (let i = 1; i < inside.length; i++) expect(inside[i] - inside[i - 1]).toBeLessThanOrEqual(460);
+      expect(z.x + z.w - inside[inside.length - 1]).toBeLessThanOrEqual(460);
+    }
+  });
+
+  test('關主區有兩塊平台:會走的小頭目從底下經過;夢貘站著不動,平台不在牠身上(長到最大也碰不到)', () => {
+    const lock = L.boss!.lockScrollX;
+    const plats = L.terrain.filter((r) => r.x >= lock && r.x + r.w <= lock + VIEW_W);
+    expect(plats.length).toBeGreaterThanOrEqual(2);
+    const boss = ENEMY_DEFS[L.boss!.type];
+    for (const p of plats) {
+      if (L.boss!.type === 'tapir') expect(p.x + p.w).toBeLessThan(L.boss!.spawnX - (boss.w / 2) * 1.25 - 40);
+      else expect(p.y + p.h).toBeLessThanOrEqual(GROUND_Y - boss.h);
+    }
+  });
+
+  test('高處寶箱跳得上去', () => {
+    for (const c of L.chests.filter((c) => c.bottom < 300)) expectReachable(c, L);
+  });
+});
+
+test('世界 10:小頭目月兔、孔雀,最終魔王夢貘;10-1 有淺水、荊棘、強風;10-2 有缺口、冰柱、強風;10-3 有黑暗與冰柱', () => {
+  expect(LEVELS['w10-1'].boss!.type).toBe('rabbit');
+  expect(LEVELS['w10-2'].boss!.type).toBe('peacock');
+  expect(LEVELS['w10-3'].boss!.type).toBe('tapir');
+  const g = LEVELS['w10-1'];
+  expect((g.water?.shallow ?? []).length).toBeGreaterThan(0);
+  expect(g.thorns.length).toBeGreaterThan(0);
+  expect((g.winds ?? []).length).toBeGreaterThan(0);
+  expect(g.hints!.map((h) => h.kind)).toContain('star');
+  const w = LEVELS['w10-2'];
+  expect((w.water?.gaps ?? []).length).toBeGreaterThan(0);
+  expect((w.icicles ?? []).length).toBeGreaterThan(0);
+  expect((w.winds ?? []).length).toBeGreaterThan(0);
+  const h = LEVELS['w10-3'];
+  expect((h.darkness ?? []).length).toBeGreaterThan(0);
+  expect((h.icicles ?? []).length).toBeGreaterThan(0);
+  expect(h.scenes.map((s) => s.scene)).toEqual(['w10-s3', 'w10-s4']);
+  // 王座有月光,不暗。
+  for (const z of h.darkness ?? []) expect(z.x + z.w).toBeLessThanOrEqual(h.boss!.lockScrollX);
 });

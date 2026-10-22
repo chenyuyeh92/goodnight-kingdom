@@ -30,6 +30,8 @@ export class EnemyEntity {
   bossPhase: 1 | 2 | 3 = 1;
   /** 被打閃白光後恢復成的顏色(水怪第三階段帶紅色);沒有時用 ENEMY_ART_TINT。 */
   baseTint: number | undefined = undefined;
+  /** 圖再放大幾倍(夢貘每個階段越來越大)。 */
+  artScaleMul = 1;
   private shield: Phaser.GameObjects.Rectangle | null;
   /** 美術圖;沒載入時為 null,改顯示色塊。 */
   private readonly art: Phaser.GameObjects.Image | null;
@@ -149,7 +151,7 @@ export class EnemyEntity {
     } else {
       this.setArt(baseArt);
     }
-    const base = ENEMY_ART_SCALE[this.def.type] ?? 1;
+    const base = (ENEMY_ART_SCALE[this.def.type] ?? 1) * this.artScaleMul;
     const bottom = this.body.y + this.def.h / 2;
     if (pose.spin) {
       this.art.setOrigin(0.5, 0.5).setPosition(this.body.x, bottom - (this.art.height * base) / 2);

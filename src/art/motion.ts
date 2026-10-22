@@ -51,7 +51,7 @@ function airborne(vy: number): Pose {
 export function enemyPose(type: EnemyType, phase: EnemyPhase | 'boss', tMs: number, vx: number, vy: number, grounded: boolean, facing: 1 | -1 = -1): Pose {
   if (type === 'nightBat') return flap(tMs);
   // 禿鷹翅膀大,拍得比蝙蝠慢。
-  if (type === 'vulture' || type === 'puffin' || type === 'volcanoBird' || type === 'parrot' || type === 'hornbill' || type === 'eagle' || type === 'moth') return flap(tMs, 300, 0.1);
+  if (type === 'vulture' || type === 'puffin' || type === 'volcanoBird' || type === 'parrot' || type === 'hornbill' || type === 'eagle' || type === 'moth' || type === 'noisyStar') return flap(tMs, 300, 0.1);
   // 企鵝肚子貼地滑:整隻躺平(往滑的方向)。
   if (type === 'penguin' && phase === 'dash') return { ...IDLE, angle: facing < 0 ? -80 : 80, spin: true };
   // 河豚膨脹:整隻變大。

@@ -11,8 +11,9 @@ import type { SpriteKey } from './sprites';
  * 世界 7:金合歡草原白天、水塘黃昏、星空草原晚上、榮耀岩深夜。
  * 世界 8:高山草甸白天、雲海黃昏、吊橋山崖晚上、雷雲山頂深夜。
  * 世界 9:礦坑入口白天、水晶洞黃昏、地下河晚上、鼴鼠巢穴深夜。
+ * 世界 10:城下花園白天、城牆黃昏、城堡大廳晚上、月光王座深夜。
  */
-export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4' | 'w4-s1' | 'w4-s2' | 'w4-s3' | 'w4-s4' | 'w5-s1' | 'w5-s2' | 'w5-s3' | 'w5-s4' | 'w6-s1' | 'w6-s2' | 'w6-s3' | 'w6-s4' | 'w7-s1' | 'w7-s2' | 'w7-s3' | 'w7-s4' | 'w8-s1' | 'w8-s2' | 'w8-s3' | 'w8-s4' | 'w9-s1' | 'w9-s2' | 'w9-s3' | 'w9-s4';
+export type SceneId = 'w1-s1' | 'w1-s2' | 'w1-s3' | 'w1-s4' | 'w2-s1' | 'w2-s2' | 'w2-s3' | 'w2-s4' | 'w3-s1' | 'w3-s2' | 'w3-s3' | 'w3-s4' | 'w4-s1' | 'w4-s2' | 'w4-s3' | 'w4-s4' | 'w5-s1' | 'w5-s2' | 'w5-s3' | 'w5-s4' | 'w6-s1' | 'w6-s2' | 'w6-s3' | 'w6-s4' | 'w7-s1' | 'w7-s2' | 'w7-s3' | 'w7-s4' | 'w8-s1' | 'w8-s2' | 'w8-s3' | 'w8-s4' | 'w9-s1' | 'w9-s2' | 'w9-s3' | 'w9-s4' | 'w10-s1' | 'w10-s2' | 'w10-s3' | 'w10-s4';
 
 export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, SpriteKey]> = {
   'w1-s1': ['w1-s1-far', 'w1-s1-mid', 'w1-s1-near'],
@@ -51,6 +52,10 @@ export const SCENE_LAYERS: Record<SceneId, readonly [SpriteKey, SpriteKey, Sprit
   'w9-s2': ['w9-s2-far', 'w9-s2-mid', 'w9-s2-near'],
   'w9-s3': ['w9-s3-far', 'w9-s3-mid', 'w9-s3-near'],
   'w9-s4': ['w9-s4-far', 'w9-s4-mid', 'w9-s4-near'],
+  'w10-s1': ['w10-s1-far', 'w10-s1-mid', 'w10-s1-near'],
+  'w10-s2': ['w10-s2-far', 'w10-s2-mid', 'w10-s2-near'],
+  'w10-s3': ['w10-s3-far', 'w10-s3-mid', 'w10-s3-near'],
+  'w10-s4': ['w10-s4-far', 'w10-s4-mid', 'w10-s4-near'],
 };
 
 /** 場景的時段,決定配樂。 */
@@ -91,6 +96,10 @@ export const SCENE_TIME: Record<SceneId, 'day' | 'dusk' | 'night'> = {
   'w9-s2': 'dusk',
   'w9-s3': 'night',
   'w9-s4': 'night',
+  'w10-s1': 'day',
+  'w10-s2': 'dusk',
+  'w10-s3': 'night',
+  'w10-s4': 'night',
 };
 
 /** 地面與平台的配色,配合場景的時段(白天草地、黃昏泥土、夜晚深紫)。 */
@@ -145,6 +154,11 @@ export const SCENE_PALETTE: Record<SceneId, TerrainPalette> = {
   'w9-s2': { ground: 0x4a3a5a, rim: 0xc0a0f0, platform: 0x6a5a7a },
   'w9-s3': { ground: 0x2a2a3a, rim: 0x80c0d0, platform: 0x5a4a4a },
   'w9-s4': { ground: 0x2a1e1e, rim: 0xc09060, platform: 0x4a3a3a },
+  // 城堡:花園石板路、黃昏城牆、大廳地毯、王座深藍。
+  'w10-s1': { ground: 0x8a8aa0, rim: 0xf0e8d0, platform: 0xd8d0e8 },
+  'w10-s2': { ground: 0x7a6a7a, rim: 0xffd0a0, platform: 0xc8b8c8 },
+  'w10-s3': { ground: 0x4a2a4a, rim: 0xe0b060, platform: 0x8a6a8a },
+  'w10-s4': { ground: 0x24224a, rim: 0xfff0a0, platform: 0x5a5a8a },
 };
 
 /** 三層的捲動速度(相對鏡頭)。 */

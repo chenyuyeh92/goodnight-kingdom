@@ -51,6 +51,9 @@ import { THUNDER_HOVER_Y, initialThunderBrain, stepThunder, type ThunderBrain } 
 import { BLACKOUT_ALPHA, BLACKOUT_PLAYER_RADIUS, DARK_ALPHA, LIGHT_RADIUS, fadeDark, inDark } from '../game/darkness';
 import { QUEEN_HOVER_Y, initialQueenBrain, stepQueen, type QueenBrain } from '../game/queen';
 import { initialAxolotlBrain, stepAxolotl, type AxolotlBrain } from '../game/axolotl';
+import { MOCHI_GRAVITY, initialRabbitBrain, stepRabbit, type RabbitBrain } from '../game/rabbit';
+import { REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain } from '../game/peacock';
+import { INHALE_PULL, TAPIR_SCALE, initialTapirBrain, stepTapir, type TapirBrain } from '../game/tapir';
 import { owlPhase } from '../game/owl';
 import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
@@ -122,7 +125,7 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王', thunderbird: '雷鳥', mole: '巨鼴鼠' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王', thunderbird: '雷鳥', mole: '巨鼴鼠', tapir: '夢貘' };
 /** 冰柱:玩家走到左右這麼近就掉下來。 */
 const ICICLE_TRIGGER_X = 100;
 /** 熔岩圖流動一格(96 px)要多久。 */
@@ -141,6 +144,13 @@ const BUBBLE_LIFE_MS = 6000;
 /** 巨鼴鼠的土堆顏色、最多同時幾隻咖啡蚯蚓。 */
 const MOLE_DIRT = 0x5a3a2a;
 const MOLE_MAX_WORMS = 3;
+/** 世界 10:黏到麻糬變慢多久、變多慢;惡夢雲與羽毛飛鏢飛得慢,活久一點;程式畫的星星大小;夢貘吸氣的線多久冒一條。 */
+const MOCHI_SLOW_MS = 2000;
+const MOCHI_SLOW = 0.5;
+const MIST_LIFE_MS = 12000;
+const DART_LIFE_MS = 7000;
+const STAR_R = 12;
+const INHALE_FX_MS = 90;
 /** 巨鼴鼠的土堆比身體寬一點(冒出來會打到的範圍都看得到)。 */
 const MOLE_MOUND_RATIO = 1.4;
 /** 雲海(世界 8 的河溝)的顏色。 */
@@ -285,10 +295,13 @@ type BossAi =
   | { kind: 'panda'; brain: PandaBrain }
   | { kind: 'thunderbird'; brain: ThunderBrain }
   | { kind: 'queen'; brain: QueenBrain }
-  | { kind: 'axolotl'; brain: AxolotlBrain; lastHp: number };
+  | { kind: 'axolotl'; brain: AxolotlBrain; lastHp: number }
+  | { kind: 'rabbit'; brain: RabbitBrain }
+  | { kind: 'peacock'; brain: PeacockBrain }
+  | { kind: 'tapir'; brain: TapirBrain };
 
 /** 由 updateBoss 控制移動的魔物(不跑 stepEnemy)。 */
-const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla', 'giraffe', 'elephant', 'lion', 'goat', 'panda', 'thunderbird', 'queen', 'axolotl', 'mole']);
+const SCRIPTED_BOSSES: ReadonlySet<EnemyType> = new Set(['nightOwl', 'squirrel', 'beaver', 'camel', 'fennec', 'sphinx', 'hermitCrab', 'eel', 'nessie', 'polarBear', 'narwhal', 'yeti', 'hippo', 'snail', 'dragon', 'sloth', 'jaguar', 'gorilla', 'giraffe', 'elephant', 'lion', 'goat', 'panda', 'thunderbird', 'queen', 'axolotl', 'mole', 'rabbit', 'peacock', 'tapir']);
 
 function initialAi(type: BossType): BossAi {
   switch (type) {
@@ -349,12 +362,18 @@ function initialAi(type: BossType): BossAi {
     // 巨鼴鼠用耳廓狐的行為(鑽進地底、從玩家腳下冒出來),再加上三個階段。
     case 'mole':
       return { kind: 'fennec', brain: initialFennecBrain(), mound: null, phase: 1 };
+    case 'rabbit':
+      return { kind: 'rabbit', brain: initialRabbitBrain() };
+    case 'peacock':
+      return { kind: 'peacock', brain: initialPeacockBrain() };
+    case 'tapir':
+      return { kind: 'tapir', brain: initialTapirBrain() };
   }
 }
 
 /** 有三階段的關主回傳目前階段,其他回傳 1。 */
 function aiPhase(ai: BossAi): 1 | 2 | 3 {
-  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' || ai.kind === 'lion' || ai.kind === 'thunderbird' ? ai.brain.phase : ai.kind === 'fennec' ? ai.phase : 1;
+  return ai.kind === 'owl' || ai.kind === 'sphinx' || ai.kind === 'nessie' || ai.kind === 'yeti' || ai.kind === 'dragon' || ai.kind === 'lion' || ai.kind === 'thunderbird' || ai.kind === 'tapir' ? ai.brain.phase : ai.kind === 'fennec' ? ai.phase : 1;
 }
 
 function aiMode(ai: BossAi): string {
@@ -398,6 +417,8 @@ export interface TestRangeData {
   touch?: boolean;
   /** 已經開過的寶箱編號,重來後維持打開,避免反覆刷寶箱。 */
   openedChests?: number[];
+  /** 已經收集的星星編號(世界 10),重來後不再出現。 */
+  collectedStars?: number[];
   /** 這次遊玩的統計,重來時帶著走。 */
   stats?: RunStats;
   getTuning?: () => Tuning;
@@ -516,6 +537,16 @@ export class TestRangeScene extends Phaser.Scene {
   private darkAlpha = 0;
   private blackoutMs = 0;
   private lightCount = 0;
+  /** 世界 10:星星(收集了沒)、孔雀開屏後左右顛倒剩多久、夢貘正在吸、每位玩家黏到麻糬變慢剩多久。 */
+  private stars: { x: number; y: number; view: Phaser.GameObjects.Image | Phaser.GameObjects.Star; got: boolean }[] = [];
+  private starHud: Phaser.GameObjects.Text | null = null;
+  private reverseMs = 0;
+  private reverseText!: Phaser.GameObjects.Text;
+  private inhaling = false;
+  private inhaleFxMs = 0;
+  private slowMs: number[] = [];
+  private mochiHits = 0;
+  private pulls = 0;
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -563,7 +594,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (artStatus.disabled) return;
     const base = import.meta.env.BASE_URL;
     // 之前載入失敗的背景不再重抓(重來時不會一直卡在載入)。
-    const wanted = [...sceneKeys(this.level.scenes.map((s) => s.scene)), ...worldSpriteKeys(this.level.world)];
+    const wanted = [...sceneKeys(this.level.scenes.map((s) => s.scene)), ...worldSpriteKeys(this.level.world), ...(this.level.borrowArt ?? [])];
     const keys = wanted.filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
     if (keys.length === 0) return;
     const label = this.add.text(480, 270, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
@@ -711,7 +742,17 @@ export class TestRangeScene extends Phaser.Scene {
     this.lightCount = 0;
     this.lightPool = [];
     this.darkRt = null;
-    for (const x of this.level.crystals ?? []) this.drawCrystal(x);
+    for (const x of this.level.crystals ?? []) {
+      if (this.level.lightStyle === 'candle') this.drawCandle(x);
+      else this.drawCrystal(x);
+    }
+    this.reverseMs = 0;
+    this.inhaling = false;
+    this.inhaleFxMs = 0;
+    this.slowMs = this.players.map(() => 0);
+    this.mochiHits = 0;
+    this.pulls = 0;
+    this.createStars();
     if (this.level.darkness?.length) {
       this.makeLightTexture();
       this.darkRt = this.add.renderTexture(0, 0, VIEW_W, WORLD_H).setOrigin(0, 0).setScrollFactor(0).setDepth(DARK_DEPTH).setVisible(false);
@@ -778,13 +819,15 @@ export class TestRangeScene extends Phaser.Scene {
     this.projectiles.addTargets(this.targetGroup);
 
     this.shots = new EnemyShotSystem(this, this.terrain);
-    for (const p of this.players) {
-      this.shots.addVictim(p.zone, () => {
+    this.players.forEach((p, i) => {
+      this.shots.addVictim(p.zone, (kind) => {
         if (p.health.down) return false;
-        this.hurtPlayer(p, false);
+        // 月兔的麻糬不扣愛心,黏到會變慢一下。
+        if (kind === 'mochi') this.stickMochi(p, i);
+        else this.hurtPlayer(p, false);
         return true;
       });
-    }
+    });
 
     this.add
       .text(16, 12, controlHint(this.mode, this.initData.touch), {
@@ -841,6 +884,21 @@ export class TestRangeScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
+    this.reverseText = this.add
+      .text(VIEW_W / 2, 140, '左右顛倒!', { fontSize: '28px', color: '#7ae0d0', ...HUD_STROKE })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(10)
+      .setVisible(false);
+    this.starHud = null;
+    if (this.stars.length > 0) {
+      if (this.textures.exists('star')) this.add.image(VIEW_W - 92, 24, 'star').setScrollFactor(0).setDepth(10);
+      this.starHud = this.add
+        .text(VIEW_W - 74, 24, '', { fontSize: '20px', color: '#ffe08a', ...HUD_STROKE })
+        .setOrigin(0, 0.5)
+        .setScrollFactor(0)
+        .setDepth(10);
+    }
 
     this.keyboard = new KeyboardSource(window, document);
     this.touchControls = this.initData.touch ? mountTouchControls(document.body) : null;
@@ -861,7 +919,9 @@ export class TestRangeScene extends Phaser.Scene {
     const dtMs = Math.min(delta, MAX_DT_MS);
     // 卡頓時物理也只前進 MAX_DT_MS,不會一次衝過頭(例如蝙蝠俯衝低到打到蹲著的人)。
     this.physics.world.update(time, dtMs);
-    const intents = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent());
+    const raw = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent());
+    // 孔雀開屏後一陣子左右顛倒。
+    const intents = this.reverseMs > 0 ? raw.map((i) => reverseIntent(i)) : raw;
 
     const playerTuning = this.level.underwater ? waterTuning(t) : t;
     this.players.forEach((p, i) => {
@@ -871,6 +931,8 @@ export class TestRangeScene extends Phaser.Scene {
       this.applyIce(p, prevVx, dtMs);
       this.applyVine(p, i, intents[i], dtMs);
       this.applyWind(p);
+      this.applyInhale(p);
+      this.applyMochi(p, i);
       if (p.jumped) audio.sfx('jump');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
@@ -888,6 +950,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.updateVines(dtMs);
     this.updateStampede(dtMs);
     this.updateWind(dtMs);
+    this.updateW10(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -1094,7 +1157,7 @@ export class TestRangeScene extends Phaser.Scene {
     for (const e of this.enemies) {
       if (e.emerging) continue;
       const t = e.def.type;
-      if (t === 'moth' || t === 'firefly' || t === 'queen' || t === 'axolotl') lights.push({ x: e.x, y: e.body.y, r: LIGHT_RADIUS[t] });
+      if (t === 'moth' || t === 'firefly' || t === 'queen' || t === 'axolotl' || t === 'noisyStar') lights.push({ x: e.x, y: e.body.y, r: LIGHT_RADIUS[t] });
       // 巨鼴鼠的頭燈:照著前面。
       if (t === 'mole') lights.push({ x: e.x + e.brain.facing * 40, y: e.body.y - e.def.h / 4, r: LIGHT_RADIUS.headlamp });
     }
@@ -1108,6 +1171,95 @@ export class TestRangeScene extends Phaser.Scene {
     rt.fill(DARK_COLOR, this.darkAlpha);
     if (used.length > 0) rt.erase(used);
     rt.render();
+  }
+
+  /** 燭台(世界 10 的城堡大廳):金色燭台上一根蠟燭,火焰一閃一閃。 */
+  private drawCandle(x: number): void {
+    const g = this.add.graphics().setDepth(-1);
+    g.fillStyle(COLOR.outline).fillRoundedRect(x - 14, GROUND_Y - 8, 28, 8, 3).fillRect(x - 4, GROUND_Y - 44, 8, 38).fillRoundedRect(x - 12, GROUND_Y - 48, 24, 7, 3);
+    g.fillStyle(0xe0b050).fillRoundedRect(x - 12, GROUND_Y - 6, 24, 5, 2).fillRect(x - 2, GROUND_Y - 42, 4, 36).fillRoundedRect(x - 10, GROUND_Y - 46, 20, 4, 2);
+    g.fillStyle(0xfff4e0).fillRect(x - 4, GROUND_Y - 66, 8, 20);
+    const flame = this.add.ellipse(x, GROUND_Y - 72, 9, 14, 0xffc040).setDepth(-1);
+    this.tweens.add({ targets: flame, scaleY: { from: 1, to: 0.8 }, alpha: { from: 1, to: 0.8 }, duration: 260, yoyo: true, repeat: -1 });
+  }
+
+  /** 世界 10 的星星:碰到就收集;重來後已經拿過的不再出現。 */
+  private createStars(): void {
+    const got = new Set(this.initData.collectedStars ?? []);
+    this.stars = (this.level.stars ?? []).map((s, i) => {
+      const view = this.textures.exists('star')
+        ? this.add.image(s.x, s.y, 'star')
+        : this.add.star(s.x, s.y, 5, STAR_R / 2, STAR_R, 0xffe070).setStrokeStyle(2, COLOR.outline);
+      view.setDepth(3);
+      this.tweens.add({ targets: view, y: s.y - 6, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const taken = got.has(i);
+      view.setVisible(!taken);
+      return { x: s.x, y: s.y, view, got: taken };
+    });
+  }
+
+  private collectedStarIndexes(): number[] {
+    return this.stars.flatMap((s, i) => (s.got ? [i] : []));
+  }
+
+  /** 世界 10:收集星星、左右顛倒與麻糬變慢的計時、夢貘吸氣的線。 */
+  private updateW10(dtMs: number): void {
+    const dt = Math.min(dtMs, MAX_DT_MS);
+    for (const p of this.players) {
+      if (p.health.down) continue;
+      const b = p.body();
+      for (const s of this.stars) {
+        if (s.got || s.x < b.left - STAR_R || s.x > b.right + STAR_R || s.y < b.top - STAR_R || s.y > b.bottom + STAR_R) continue;
+        s.got = true;
+        audio.sfx('item');
+        this.tweens.killTweensOf(s.view);
+        this.tweens.add({ targets: s.view, y: s.view.y - 30, scale: 1.8, alpha: 0, duration: 350, onComplete: () => s.view.setVisible(false) });
+      }
+    }
+    this.starHud?.setText(`${this.stars.filter((s) => s.got).length} / ${this.stars.length}`);
+    if (this.physics.world.isPaused) return;
+    this.reverseMs = Math.max(0, this.reverseMs - dt);
+    this.reverseText.setVisible(this.reverseMs > 0);
+    this.slowMs = this.slowMs.map((ms) => Math.max(0, ms - dt));
+    const boss = this.boss?.enemy;
+    if (!this.inhaling || !boss) return;
+    // 夢貘吸氣:風線從畫面另一邊往鼻子飛過去。
+    this.inhaleFxMs -= dt;
+    if (this.inhaleFxMs > 0) return;
+    this.inhaleFxMs = INHALE_FX_MS;
+    const mouthX = boss.x + boss.brain.facing * (boss.def.w / 2);
+    const fromX = mouthX + boss.brain.facing * (300 + Math.random() * 300);
+    const y = GROUND_Y - 20 - Math.random() * 160;
+    const line = this.add.rectangle(fromX, y, 40, 4, 0xe0d0ff, 0.8).setDepth(6);
+    this.tweens.add({ targets: line, x: mouthX, y: boss.body.y, alpha: 0.2, duration: 450, onComplete: () => line.destroy() });
+  }
+
+  /** 夢貘吸氣時把醒著的玩家往牠那邊拉(往反方向跑還跑得掉)。 */
+  private applyInhale(p: PlayerEntity): void {
+    const boss = this.boss?.enemy;
+    if (!this.inhaling || !boss || p.health.down) return;
+    const pb = p.body();
+    pb.setVelocityX(pb.velocity.x + Math.sign(boss.x - p.x) * INHALE_PULL);
+    this.pulls += 1;
+  }
+
+  /** 黏到麻糬:走得慢一點。 */
+  private applyMochi(p: PlayerEntity, i: number): void {
+    if (!(this.slowMs[i] > 0) || p.health.down) return;
+    const pb = p.body();
+    pb.setVelocityX(pb.velocity.x * MOCHI_SLOW);
+  }
+
+  private stickMochi(p: PlayerEntity, i: number): void {
+    if (this.bossDefeated) return;
+    this.slowMs[i] = MOCHI_SLOW_MS;
+    this.mochiHits += 1;
+    audio.sfx('hurt');
+    const label = this.add
+      .text(p.x, p.feetY - 70, '黏住了!', { fontSize: '18px', color: '#fff8f0', stroke: '#3a2a5a', strokeThickness: 4 })
+      .setOrigin(0.5, 1)
+      .setDepth(DARK_DEPTH + 1);
+    this.tweens.add({ targets: label, y: label.y - 24, alpha: 0, duration: 700, onComplete: () => label.destroy() });
   }
 
   /** 風區現在的風有多強(0–1)。 */
@@ -1437,6 +1589,7 @@ export class TestRangeScene extends Phaser.Scene {
         restarts: this.restarts + 1,
         loadouts: this.players.map((p) => p.loadout),
         openedChests: this.openedChestIndexes(),
+        collectedStars: this.collectedStarIndexes(),
         arenasCleared: this.encounters.nextArena,
         stats: { ...this.stats, defeated: this.stats.defeated + this.enemiesDefeated },
       });
@@ -1709,6 +1862,9 @@ export class TestRangeScene extends Phaser.Scene {
       else if (ai.kind === 'thunderbird') this.updateThunder(boss, ai, dtMs);
       else if (ai.kind === 'queen') this.updateQueen(boss, ai, dtMs);
       else if (ai.kind === 'axolotl') this.updateAxolotl(boss, ai, dtMs);
+      else if (ai.kind === 'rabbit') this.updateRabbit(boss, ai, dtMs);
+      else if (ai.kind === 'peacock') this.updatePeacock(boss, ai, dtMs);
+      else if (ai.kind === 'tapir') this.updateTapir(boss, ai, dtMs);
       else this.updateBeaver(boss, ai, dtMs);
       this.keepInArena(boss.enemy);
     }
@@ -1939,6 +2095,80 @@ export class TestRangeScene extends Phaser.Scene {
       this.tweens.add({ targets: plus, y: plus.y - 24, alpha: 0, duration: 500, onComplete: () => plus.destroy() });
     }
     ai.lastHp = enemy.hp;
+  }
+
+  /** 失眠月兔:木槌敲地往左右送出震波(跳過)、丟麻糬(黏到會變慢,不扣愛心)。 */
+  private updateRabbit(boss: Boss, ai: Extract<BossAi, { kind: 'rabbit' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const was = ai.brain.mode;
+    const handX = enemy.x + ai.brain.facing * (enemy.def.w / 2 - 10);
+    const handY = enemy.body.y - enemy.def.h / 4;
+    const step = stepRabbit(ai.brain, {
+      x: enemy.x,
+      hpRatio: enemy.hp / boss.maxHp,
+      targetX: nearest ? nearest.x : null,
+      targetY: nearest ? nearest.feetY - 24 : null,
+      handX,
+      handY,
+      dtMs,
+    });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const w of step.waves) this.desert.sendWave(enemy.x + w.dir * (enemy.def.w / 2), w.dir, w.delayMs, 'moon');
+    if (step.waves.length > 0) {
+      audio.sfx('bossPhase');
+      this.cameras.main.shake(220, 0.007);
+    }
+    for (const m of step.mochi) this.shots.fire(handX, handY, m.vx, m.vy, 'mochi', MOCHI_GRAVITY);
+  }
+
+  /** 熬夜孔雀:開屏讓玩家左右顛倒一陣子、射有高有低的羽毛飛鏢。 */
+  private updatePeacock(boss: Boss, ai: Extract<BossAi, { kind: 'peacock' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const was = ai.brain.mode;
+    const step = stepPeacock(ai.brain, { x: enemy.x, hpRatio: enemy.hp / boss.maxHp, targetX: nearest ? nearest.x : null, dtMs });
+    ai.brain = step.brain;
+    enemy.brain = { ...enemy.brain, facing: step.brain.facing, phase: step.vx !== 0 ? 'walk' : 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    for (const d of step.darts) this.shots.fire(enemy.x + d.dir * (enemy.def.w / 2), d.y, d.dir * d.speed, 0, 'dart', 0, DART_LIFE_MS);
+    if (step.fan) {
+      // 開屏:尾羽一圈光散開,畫面閃一下。
+      this.reverseMs = REVERSE_MS;
+      audio.sfx('bossPhase');
+      const glow = this.add.ellipse(enemy.x, enemy.body.y, enemy.def.w * 1.6, enemy.def.h * 1.3, 0x3ab0a0, 0.55).setDepth(2);
+      this.tweens.add({ targets: glow, scale: 2.2, alpha: 0, duration: 600, onComplete: () => glow.destroy() });
+      const flash = this.add.rectangle(VIEW_W / 2, WORLD_H / 2, VIEW_W, WORLD_H, 0x7ae0d0, 0.35).setScrollFactor(0).setDepth(9);
+      this.tweens.add({ targets: flash, alpha: 0, duration: 300, onComplete: () => flash.destroy() });
+    }
+  }
+
+  /** 偷走睡意的夢貘(最終魔王):吐惡夢雲、用鼻子把玩家吸過去、叫手下;三個階段越來越大。 */
+  private updateTapir(boss: Boss, ai: Extract<BossAi, { kind: 'tapir' }>, dtMs: number): void {
+    const { enemy } = boss;
+    const nearest = this.nearestAwake(enemy.x);
+    const was = ai.brain.mode;
+    const step = stepTapir(ai.brain, { hpRatio: enemy.hp / boss.maxHp, targetX: nearest ? nearest.x : null, minionsAlive: boss.minions.size, dtMs });
+    ai.brain = step.brain;
+    boss.invulnerable = step.invulnerable;
+    enemy.setArt(enemySprite('tapir', 'awake', ai.brain.phase));
+    enemy.bossPhase = ai.brain.phase;
+    enemy.artScaleMul = TAPIR_SCALE[ai.brain.phase];
+    this.angryTint(boss, step.brain.mode === 'angry', step.enteredPhase);
+    const facing: 1 | -1 = nearest && nearest.x > enemy.x ? 1 : -1;
+    enemy.brain = { ...enemy.brain, facing, phase: 'idle' };
+    enemy.physicsBody().setVelocityX(step.vx);
+    if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
+    const mouthX = enemy.x + facing * (enemy.def.w / 2);
+    for (const m of step.mist) this.shots.fire(mouthX, m.y, facing * m.speed, 0, 'mist', 0, MIST_LIFE_MS);
+    if (!this.inhaling && step.inhaling) audio.sfx('bossPhase');
+    this.inhaling = step.inhaling;
+    for (const type of step.summon) boss.minions.add(this.spawnFrom({ type, from: 'left', delayMs: 0 }, false));
+    if (step.enteredPhase) this.announcePhase(boss);
   }
 
   /** 失眠寄居蟹:走一走,輪流縮進殼裡滑過來(打不動)與吐慢慢飄的泡泡。 */
@@ -2800,6 +3030,8 @@ export class TestRangeScene extends Phaser.Scene {
     if (boss.ai.kind === 'fennec') boss.ai.mound?.destroy();
     this.clearHerds();
     this.bossGust = false;
+    this.inhaling = false;
+    this.reverseMs = 0;
     audio.music(null);
     audio.sfx('bossDown');
     const { x, y } = boss.enemy.body;
@@ -2828,6 +3060,7 @@ export class TestRangeScene extends Phaser.Scene {
       defeated: this.stats.defeated + this.enemiesDefeated,
       chestsFound: this.openedChestIndexes().length,
       restarts: this.restarts,
+      ...(this.stars.length > 0 ? { starsFound: this.collectedStarIndexes().length, starsTotal: this.stars.length } : {}),
     };
     const endedAt = Date.now();
     if (isStoryLevel(this.level.id)) this.save.markCleared(this.level.id, endedAt - stats.startedAt);
@@ -2838,6 +3071,8 @@ export class TestRangeScene extends Phaser.Scene {
       levelName: `${levelNumber(this.level.id)} ${this.level.name}`,
       next: nextLevel(this.level.id),
       summary: summaryLines(stats, endedAt),
+      // 打倒最終魔王夢貘就是破關,結算畫面變成結局。
+      ending: this.level.boss?.type === 'tapir',
     };
     this.scene.start('LevelComplete', data);
   }
@@ -3001,6 +3236,15 @@ export class TestRangeScene extends Phaser.Scene {
       stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
       wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
       darkness: { alpha: this.darkAlpha, lights: this.lightCount, blackout: this.blackoutMs > 0 },
+      w10: {
+        stars: this.collectedStarIndexes().length,
+        starsTotal: this.stars.length,
+        reversed: this.reverseMs > 0,
+        inhaling: this.inhaling,
+        slowed: this.slowMs.map((ms) => ms > 0),
+        mochiHits: this.mochiHits,
+        pulls: this.pulls,
+      },
       desert: this.desert.debug(),
       dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,
       enemyShots: this.shots.count(),

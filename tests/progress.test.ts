@@ -25,7 +25,8 @@ test('下一關:1-3 通關後接 2-1、2-3 接 3-1,最後一關沒有下一關',
   expect(nextLevel('w6-3')).toBe('w7-1');
   expect(nextLevel('w7-3')).toBe('w8-1');
   expect(nextLevel('w8-3')).toBe('w9-1');
-  expect(nextLevel('w9-3')).toBeNull();
+  expect(nextLevel('w9-3')).toBe('w10-1');
+  expect(nextLevel('w10-3')).toBeNull();
   expect(nextLevel('range')).toBeNull();
 });
 

@@ -27,6 +27,9 @@ import { CLIFF_BRIDGE } from './cliffBridge';
 import { MINE_ENTRANCE } from './mineEntrance';
 import { CRYSTAL_CAVE } from './crystalCave';
 import { UNDERGROUND_RIVER } from './undergroundRiver';
+import { CASTLE_GARDEN } from './castleGarden';
+import { CASTLE_WALL } from './castleWall';
+import { CASTLE_HALL } from './castleHall';
 
 export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   range: RANGE,
@@ -57,4 +60,7 @@ export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   'w9-1': MINE_ENTRANCE,
   'w9-2': CRYSTAL_CAVE,
   'w9-3': UNDERGROUND_RIVER,
+  'w10-1': CASTLE_GARDEN,
+  'w10-2': CASTLE_WALL,
+  'w10-3': CASTLE_HALL,
 };
