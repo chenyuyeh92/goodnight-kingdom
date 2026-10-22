@@ -39,6 +39,9 @@ def main() -> None:
             continue
         sizes[png.stem] = Image.open(png).size
         groups.setdefault(base, {}).setdefault(kind, []).append(png.stem)
+    for base, kind in wanted.items():
+        if (ENEMIES / f'{base}.png').exists() and kind not in groups.get(base, {}):
+            raise SystemExit(f'文件寫 {base} 用 {kind},但找不到 {base}-{kind}-1..4.png')
     lines = [
         '// 由 tools/gen_anim_sprites.py 產生,不要手改(美術更新動畫格後重跑)。',
         '',

@@ -34,8 +34,8 @@ test('?noart=1 不載入圖片,用色塊照樣玩到通關', async ({ page }) =>
 test('有圖片載入失敗時照樣能玩,記下缺的圖', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.route('**/assets/enemies/night-owl-boss*.png', (r) => r.abort());
-  await page.route('**/assets/characters/*.png', (r) => r.abort());
+  await page.route('**/web/enemies/night-owl-boss*.webp', (r) => r.abort());
+  await page.route('**/web/characters/*.webp', (r) => r.abort());
   await page.goto('./?mode=single&test=1');
   await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 20000 });
   expect((await gk(page)).art!.missing).toContain('owl');

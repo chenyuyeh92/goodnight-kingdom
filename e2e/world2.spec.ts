@@ -149,7 +149,8 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     await page.evaluate(() => window.__GK__!.hurtBoss!(30));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     await page.waitForTimeout(300);
-    expect((await page.evaluate(() => window.__GK__!.enemies!)).find((e) => e.type === 'sphinx')!.artKey).toBe('sphinx-2');
+    // 第二階段的圖(或它的動畫格)。
+    expect((await page.evaluate(() => window.__GK__!.enemies!)).find((e) => e.type === 'sphinx')!.artKey).toMatch(/^(sphinx-2|w2-sphinx-boss-phase2-)/);
     await page.waitForFunction(() => (window.__GK__!.desert!.blocks ?? 0) > 0 || (window.__GK__!.enemyShots ?? 0) > 0 || (window.__GK__!.desert!.waves ?? 0) > 0, undefined, { timeout: 8000 });
   });
 
