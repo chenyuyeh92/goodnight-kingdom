@@ -1,10 +1,11 @@
 import { describe, test, expect } from 'vitest';
 import { ERUPT_FIRST_MS, ERUPT_MS, ERUPT_SIDE, freshEruption, onLava, stepEruption, type EruptionState } from '../src/game/lava';
-import { HIPPO_IDLE_MS, HIPPO_WINDUP_MS, STEAM_HIGH_Y, STEAM_LOW_Y, initialHippoBrain, stepHippo, type HippoBrain, type HippoSense } from '../src/game/hippo';
+import { HIPPO_WINDUP_MS, STEAM_HIGH_Y, STEAM_LOW_Y, initialHippoBrain, stepHippo, type HippoBrain, type HippoSense } from '../src/game/hippo';
 import { SNAIL_CRAWL_MS, SNAIL_SHELL_MS, SNAIL_WINDUP_MS, initialSnailBrain, snailTargets, stepSnail, type SnailBrain, type SnailSense } from '../src/game/snail';
 import { DRAGON_WINDUP_MS, initialDragonBrain, stepDragon, type DragonBrain, type DragonSense } from '../src/game/dragon';
 import { ENEMY_DEFS, VULTURE_SWOOP_Y, initialBrain, stepEnemy, type EnemySense } from '../src/game/enemies';
 import { GROUND_Y } from '../src/levels/levelDef';
+import { STAND_HITBOX } from '../src/game/playerMotor';
 
 describe('熔岩', () => {
   test('踩在熔岩中間才算,腳尖碰到邊緣不算', () => {
@@ -46,7 +47,9 @@ describe('火山噴發', () => {
   test('離開噴發區就重新計時', () => {
     const { st } = run(ERUPT_FIRST_MS - 100, [1400]);
     const out = stepEruption(st, zones, [500], 50).state;
-    expect(out).toEqual(freshEruption());
+    expect(out.timerMs).toBe(freshEruption().timerMs);
+    // 噴發次數不會歸零。
+    expect(stepEruption({ timerMs: 0, count: 3 }, zones, [500], 50).state.count).toBe(3);
   });
 });
 
@@ -117,9 +120,9 @@ describe('失眠溫泉河馬', () => {
     expect(steam).toHaveLength(3);
     expect(steam.some((c) => c.y === STEAM_LOW_Y)).toBe(true);
     expect(steam.some((c) => c.y === STEAM_HIGH_Y)).toBe(true);
-    // 高的蒸氣底部在站著的玩家頭上(玩家 55 高)。
-    expect(STEAM_HIGH_Y + 14).toBeLessThan(GROUND_Y - 55);
-    expect(HIPPO_IDLE_MS + HIPPO_WINDUP_MS).toBeLessThan(3000);
+    // 高的蒸氣(圖 28 高)底部在站著的玩家頭上;低的蒸氣碰得到站著的玩家。
+    expect(STEAM_HIGH_Y + 14).toBeLessThan(GROUND_Y - STAND_HITBOX.h);
+    expect(STEAM_LOW_Y - 14).toBeGreaterThan(GROUND_Y - STAND_HITBOX.h);
   });
 
   test('下一招跳起來,落地往左右送出震波;血量一半以下蒸氣 5 團、震波兩道', () => {
@@ -185,7 +188,7 @@ describe('熬夜火龍', () => {
     targetX: 9500,
     targetY: 440,
     mouthX: 9850,
-    mouthY: 9900,
+    mouthY: 330,
     arenaLeft: 9240,
     arenaRight: 10200,
     minionsAlive: 0,

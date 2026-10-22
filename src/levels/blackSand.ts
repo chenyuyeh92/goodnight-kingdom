@@ -40,7 +40,7 @@ export const BLACK_SAND: LevelDef = {
     { x: 8350, w: 100 },
   ],
   eruptions: [
-    { x: 7700, w: 900 },
+    { x: 8300, w: 600 },
   ],
   thorns: [],
   checkpoints: [150, 2100, 4060, 5800, 8100, 9100],
@@ -52,7 +52,7 @@ export const BLACK_SAND: LevelDef = {
   targets: [],
   hints: [
     { x: 950, kind: 'lava' },
-    { x: 7600, kind: 'eruption' },
+    { x: 8200, kind: 'eruption' },
   ],
   trickles: [
     // 1 沙灘入口

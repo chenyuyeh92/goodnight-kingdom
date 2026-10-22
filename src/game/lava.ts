@@ -16,6 +16,7 @@ export function onLava(x: number, lava: readonly Span[]): boolean {
 
 export interface EruptionState {
   timerMs: number;
+  /** 這一局總共噴發幾次。 */
   count: number;
 }
 
@@ -37,7 +38,8 @@ export function stepEruption(st: EruptionState, zones: readonly Span[], playerXs
       break;
     }
   }
-  if (!zone) return { state: freshEruption(), rocks: [] };
+  // 噴發次數一直累加(除錯顯示用),只有計時重來。
+  if (!zone) return { state: { ...freshEruption(), count: st.count }, rocks: [] };
   const timerMs = st.timerMs + Math.min(dtMs, MAX_DT_MS);
   if (timerMs < ERUPT_MS) return { state: { ...st, timerMs }, rocks: [] };
   const z = zone;

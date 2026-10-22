@@ -387,6 +387,20 @@ describe.each(['w5-1', 'w5-2', 'w5-3'] as const)('世界 5 火山:%s', (id) => {
     }
   });
 
+  test('熔岩上方沒有擋頭的平台(從地面起跳會撞到頭、跳不過去);熔岩裡踩的岩石平台除外', () => {
+    for (const s of lava) {
+      for (const r of L.terrain.filter((r) => r.h <= 20)) {
+        const stepping = r.x >= s.x && r.x + r.w <= s.x + s.w;
+        const over = r.x < s.x + s.w + 80 && r.x + r.w > s.x - 80;
+        expect(stepping || !over || r.y <= 300, `熔岩 ${s.x} 平台 ${r.x}`).toBe(true);
+      }
+    }
+  });
+
+  test('檢查點不在噴發區附近(重來時不會一出來就被石頭砸)', () => {
+    for (const z of L.eruptions ?? []) for (const cp of L.checkpoints) expect(cp + 40 < z.x - 150 || cp > z.x + z.w + 150, `噴發區 ${z.x} 檢查點 ${cp}`).toBe(true);
+  });
+
   test('檢查點(雙人時 B 在右邊 40)、地上的寶箱不在熔岩上', () => {
     for (const cp of L.checkpoints) expect(onLava(cp, 20) || onLava(cp + 40, 20), `檢查點 ${cp}`).toBe(false);
     for (const c of L.chests.filter((c) => c.bottom === GROUND_Y)) expect(onLava(c.x, 30), `寶箱 ${c.x}`).toBe(false);

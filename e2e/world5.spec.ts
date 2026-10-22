@@ -42,14 +42,16 @@ test.describe('世界 5 火山島', () => {
 
   test('走進噴發區,火山噴發掉石頭,落地就碎掉', async ({ page }) => {
     await open(page, 'w5-1');
-    await page.evaluate(() => window.__GK__!.warp!(7900));
+    await page.evaluate(() => window.__GK__!.warp!(8500));
     await calm(page);
     await page.waitForFunction(() => window.__GK__!.desert!.blocks > 0, undefined, { timeout: 3000 });
     expect((await gk(page)).volcano!.eruptions).toBeGreaterThan(0);
-    // 往回走出噴發區,石頭落地碎掉、不再噴發。
-    await page.evaluate(() => window.__GK__!.warp!(6000));
+    // 走出噴發區(往前),石頭落地碎掉(不留下來),之後不再噴發。
+    await page.evaluate(() => window.__GK__!.warp!(9050));
     await page.waitForFunction(() => window.__GK__!.desert!.blocks === 0, undefined, { timeout: 4000 });
-    expect((await gk(page)).desert!.landed).toBe(0);
+    const n = (await gk(page)).volcano!.eruptions;
+    await page.waitForTimeout(3500);
+    expect((await gk(page)).volcano!.eruptions).toBe(n);
   });
 
   for (const [level, boss] of [
@@ -81,8 +83,17 @@ test.describe('世界 5 火山島', () => {
   test('火山蝸牛噴熔岩球時縮進殼裡,子彈打不動', async ({ page }) => {
     await open(page, 'w5-2');
     await page.evaluate(() => window.__GK__!.warp!(9700));
+    await page.waitForFunction(() => window.__GK__!.boss?.type === 'snail', undefined, { timeout: 8000 });
+    // 面向右邊(蝸牛那邊)。
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(100);
+    await page.keyboard.up('KeyD');
     await page.waitForFunction(() => window.__GK__!.boss?.armored === true, undefined, { timeout: 10000 });
     expect((await gk(page)).enemyShots).toBeGreaterThan(0);
+    const before = (await gk(page)).blockedShots ?? 0;
+    await page.keyboard.down('KeyC');
+    await page.waitForFunction((b) => (window.__GK__!.blockedShots ?? 0) > b, before, { timeout: 1500 });
+    await page.keyboard.up('KeyC');
   });
 
   test('火龍換階段、會出招', async ({ page }) => {

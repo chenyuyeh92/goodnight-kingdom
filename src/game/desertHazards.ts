@@ -149,8 +149,13 @@ export class DesertHazards {
   sendWave(x: number, dir: 1 | -1, delayMs = 0, kind: WaveKind = 'sand'): void {
     const art = WAVE_ART[kind];
     const y = GROUND_Y - WAVE_H / 2;
-    const view = this.scene.textures.exists(art.key)
-      ? this.scene.add.image(x, y, art.key).setDisplaySize(WAVE_W + 8, WAVE_H + 6).setFlipX(dir > 0)
+    // 寬度一樣,高度照圖的比例(河馬的震波圖比較扁)。
+    const img = this.scene.textures.exists(art.key) ? this.scene.textures.get(art.key).getSourceImage() : null;
+    const view = img
+      ? this.scene.add
+          .image(x, y, art.key)
+          .setDisplaySize(WAVE_W + 8, ((WAVE_W + 8) * img.height) / img.width)
+          .setFlipX(dir > 0)
       : this.scene.add.ellipse(x, y, WAVE_W, WAVE_H, art.color).setStrokeStyle(3, OUTLINE);
     view.setDepth(4).setVisible(delayMs === 0);
     this.waves.push({ view, baseScaleY: view.scaleY, dir, delayMs, travelled: 0 });
