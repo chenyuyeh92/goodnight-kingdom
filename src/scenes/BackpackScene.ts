@@ -7,6 +7,10 @@ import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { iconOrNothing } from './menuIcons';
 
+const FIRST_ROW_Y = 92;
+const ROW_PITCH = 34;
+const RATES_Y = 445;
+
 /** 每把武器擅長對付什麼(企劃 5.2)。 */
 const BLURB: Record<SpecialWeaponId, string> = {
   sheepGun: '快速連射,掃蕩成群小怪',
@@ -40,23 +44,25 @@ export class BackpackScene extends Phaser.Scene {
     const lines: string[] = [];
     this.add.text(480, 50, '背包', { fontSize: '36px', color: '#f3e9d2' }).setOrigin(0.5);
 
+    // 十把武器一列一把,排到機率文字上面為止。
+    const rowY = (i: number): number => FIRST_ROW_Y + i * ROW_PITCH;
     SPECIAL_WEAPONS.forEach((id, i) => {
       const def = WEAPONS[id];
       const stars = owned[id] ?? 0;
-      const y = 110 + i * 54;
+      const y = rowY(i);
       const line =
         stars > 0
           ? `${def.rarity} ${def.name} ${'★'.repeat(stars)}${'☆'.repeat(MAX_STARS - stars)}  ${BLURB[id]}`
           : `${def.rarity} ???`;
       lines.push(line);
-      this.add.rectangle(480, y, 760, 44, 0x3b3366, stars > 0 ? 1 : 0.5);
-      if (stars > 0) iconOrNothing(this, 130, y, id);
-      this.add.text(160, y, line, { fontSize: '20px', color: stars > 0 ? RARITY_COLOR[def.rarity] : LOCKED_COLOR }).setOrigin(0, 0.5);
+      this.add.rectangle(480, y, 760, ROW_PITCH - 4, 0x3b3366, stars > 0 ? 1 : 0.5);
+      if (stars > 0) iconOrNothing(this, 130, y, id, ROW_PITCH - 6);
+      this.add.text(160, y, line, { fontSize: '18px', color: stars > 0 ? RARITY_COLOR[def.rarity] : LOCKED_COLOR }).setOrigin(0, 0.5);
     });
 
     const rates = `寶箱${chestRatesText()}`;
     lines.push(rates);
-    this.add.text(480, 445, rates, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5);
+    this.add.text(480, RATES_Y, rates, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5);
 
     const back = this.add.rectangle(480, 495, 160, 44, 0x3b3366).setInteractive({ useHandCursor: true });
     this.add.text(480, 495, '返回(Esc)', { fontSize: '20px', color: '#f3e9d2' }).setOrigin(0.5);
@@ -65,7 +71,8 @@ export class BackpackScene extends Phaser.Scene {
       if (e.code === 'Escape') this.leave();
     });
 
-    window.__GK__ = { ready: true, screen: 'backpack', backpackText: lines };
+    const lastRowBottom = rowY(SPECIAL_WEAPONS.length - 1) + (ROW_PITCH - 4) / 2;
+    window.__GK__ = { ready: true, screen: 'backpack', backpackText: lines, backpackLayout: { lastRowBottom, ratesY: RATES_Y } };
   }
 
   private leave(): void {

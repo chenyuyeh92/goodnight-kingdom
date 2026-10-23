@@ -81,3 +81,23 @@ export const BOUNCE_KEEP = 0.75;
 export function bounceOff(v: { vx: number; vy: number }, surface: 'floor' | 'wall'): { vx: number; vy: number } {
   return surface === 'floor' ? { vx: v.vx, vy: -Math.abs(v.vy) * BOUNCE_KEEP } : { vx: -v.vx, vy: v.vy };
 }
+
+/** 流星:落點在前方 160–360(夾在畫面裡),從落點後方 120 的上空斜斜落下(出來的地方也在畫面裡)。 */
+const METEOR_BACK = 120;
+const METEOR_VIEW_MARGIN = 40;
+export function meteorPath(x: number, facing: 1 | -1, scrollX: number, viewW: number, rng: () => number): { fromX: number; toX: number } {
+  const lo = scrollX + METEOR_VIEW_MARGIN;
+  const hi = scrollX + viewW - METEOR_VIEW_MARGIN;
+  const clamp = (v: number): number => Math.min(hi, Math.max(lo, v));
+  const toX = clamp(meteorTargetX(x, facing, rng));
+  return { fromX: clamp(toX - facing * METEOR_BACK), toX };
+}
+
+/** 卡進地形的球:往壓進去最少的那一邊推出來。 */
+export function pushOutSide(
+  ball: { left: number; right: number; top: number; bottom: number },
+  rect: { left: number; right: number; top: number; bottom: number },
+): 'top' | 'bottom' | 'left' | 'right' {
+  const pen = { top: ball.bottom - rect.top, bottom: rect.bottom - ball.top, left: ball.right - rect.left, right: rect.right - ball.left };
+  return (Object.keys(pen) as (keyof typeof pen)[]).reduce((a, b) => (pen[b] < pen[a] ? b : a));
+}

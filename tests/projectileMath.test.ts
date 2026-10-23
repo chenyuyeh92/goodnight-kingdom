@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { boomerangVelocity, pelletVelocities, steerToward, bounceOff, chargeDamage, chargeScale, inBlast, meteorTargetX } from '../src/game/projectileMath';
+import { boomerangVelocity, pelletVelocities, steerToward, bounceOff, chargeDamage, chargeScale, inBlast, meteorPath, meteorTargetX, pushOutSide } from '../src/game/projectileMath';
 
 const speed = (v: { vx: number; vy: number }) => Math.hypot(v.vx, v.vy);
 
@@ -72,4 +72,24 @@ test('爆炸範圍:圓碰到魔物的方框就算(離中心 r 以內)', () => {
 test('毛線球碰地反彈:往下的速度反過來、變小一點;水平不變', () => {
   expect(bounceOff({ vx: 300, vy: 400 }, 'floor')).toEqual({ vx: 300, vy: -300 });
   expect(bounceOff({ vx: 300, vy: -100 }, 'wall')).toEqual({ vx: -300, vy: -100 });
+});
+
+test('流星落點與出來的地方都在畫面裡(靠畫面邊緣也不會落到畫面外)', () => {
+  expect(meteorPath(1500, 1, 1200, 960, () => 0)).toEqual({ fromX: 1540, toX: 1660 });
+  // 朝右靠右邊:落點夾回畫面裡。
+  const r = meteorPath(2100, 1, 1200, 960, () => 0.999);
+  expect(r.toX).toBeLessThanOrEqual(1200 + 960 - 40);
+  expect(r.fromX).toBeGreaterThanOrEqual(1200 + 40);
+  // 朝左靠左邊。
+  const l = meteorPath(1250, -1, 1200, 960, () => 0.5);
+  expect(l.toX).toBeGreaterThanOrEqual(1240);
+  expect(l.fromX).toBeLessThanOrEqual(1200 + 960 - 40);
+});
+
+test('毛線球卡進地形時往壓進去最少的那一邊彈出來', () => {
+  const rect = { left: 100, right: 300, top: 400, bottom: 420 };
+  expect(pushOutSide({ left: 150, right: 166, top: 392, bottom: 408 }, rect)).toBe('top');
+  expect(pushOutSide({ left: 150, right: 166, top: 412, bottom: 428 }, rect)).toBe('bottom');
+  expect(pushOutSide({ left: 92, right: 108, top: 402, bottom: 418 }, rect)).toBe('left');
+  expect(pushOutSide({ left: 292, right: 308, top: 402, bottom: 418 }, rect)).toBe('right');
 });

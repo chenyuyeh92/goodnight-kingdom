@@ -95,6 +95,7 @@ export interface GkDebug {
   /** 選武器畫面:正在選的玩家與選項文字。 */
   /** 背包畫面上的文字列,供測試讀取。 */
   backpackText?: string[];
+  backpackLayout?: { lastRowBottom: number; ratesY: number };
   mode?: PlayMode;
   /** 等於 players[0],保留給第一步的測試。 */
   player?: PlayerDebug;

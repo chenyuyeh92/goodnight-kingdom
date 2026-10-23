@@ -89,6 +89,29 @@ test.describe('四把新武器', () => {
     expect(s.players![0].ammo).toBe(23);
   });
 
+  test('催眠懷錶:集氣中魔物靠近也不會丟掉集好的氣,放開照樣射出', async ({ page }) => {
+    await open(page, 'hypnoWatch');
+    await page.keyboard.down('KeyC');
+    await page.waitForFunction(() => window.__GK__!.players![0].chargeMs > 300, undefined, { timeout: 2000 });
+    await spawnGround(page, 'alarmBug', 2690);
+    await page.waitForTimeout(400);
+    expect((await gk(page)).players![0].chargeMs).toBeGreaterThan(600);
+    await page.keyboard.up('KeyC');
+    await page.waitForFunction(() => (window.__GK__!.shots ?? []).some((s) => s.id === 'hypnoWatch' && s.damage > 10) || (window.__GK__!.enemiesDefeated ?? 0) > 0, undefined, { timeout: 1000 });
+  });
+
+  test('許願流星杖:站在畫面右邊緣朝右,流星還是落在畫面裡爆開', async ({ page }) => {
+    await open(page, 'wishingStar');
+    await page.evaluate(() => window.__GK__!.warp!(3150));
+    await page.waitForTimeout(300);
+    await page.keyboard.press('KeyD');
+    await hold(page, 'KeyC', 60);
+    await page.waitForFunction(() => (window.__GK__!.blasts?.count ?? 0) >= 1, undefined, { timeout: 3000 });
+    const s = await gk(page);
+    expect(s.blasts!.last!.x).toBeLessThanOrEqual(s.cameraX! + 960);
+    expect(s.blasts!.last!.x).toBeGreaterThanOrEqual(s.cameraX!);
+  });
+
   test('許願流星杖:流星落在前方 160–360 爆開,打得到魔物', async ({ page }) => {
     await open(page, 'wishingStar');
     const x0 = (await gk(page)).players![0].x;
@@ -114,5 +137,8 @@ test.describe('四把新武器', () => {
     expect(lines).toHaveLength(10);
     expect(lines.join('\n')).toContain('彈彈毛線球 ★☆☆');
     expect(lines.join('\n')).toContain('許願流星杖 ★★★');
+    // 十列都在畫面裡、不壓到下面的機率文字。
+    const layout = (await gk(page)).backpackLayout!;
+    expect(layout.lastRowBottom).toBeLessThan(layout.ratesY - 12);
   });
 });

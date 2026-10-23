@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import type { Tuning } from '../config/tuning';
 import type { BulletSpawn, PlayerEntity } from './playerEntity';
 import { MAX_DT_MS } from '../config/tuning';
-import { BOOMERANG_OUT_MS, HOMING_TURN_DEG_PER_SEC, bounceOff, boomerangVelocity, chargeDamage, chargeScale, meteorTargetX, pelletVelocities, steerToward } from './projectileMath';
+import { BOOMERANG_OUT_MS, HOMING_TURN_DEG_PER_SEC, bounceOff, boomerangVelocity, chargeDamage, chargeScale, meteorPath, pelletVelocities, pushOutSide, steerToward } from './projectileMath';
+import { GROUND_Y } from '../levels/levelDef';
 import type { WeaponDef } from './weapons';
 import { bulletSprite } from '../art/sprites';
 
@@ -17,9 +18,8 @@ const BOOMERANG_CATCH_DIST = 24;
 const LOB_LIFT: Partial<Record<string, number>> = { bounce: 0.35, lob: 0.7 };
 /** 毛線球彈起來至少這麼快(打到魔物也往上彈)。 */
 const MIN_BOUNCE_VY = 260;
-/** 流星從畫面上方外面、落點後方這麼遠的地方出來,斜斜落到落點。 */
+/** 流星從畫面上方外面出來,斜斜落到地面的落點(穿過平台與礁石,落地或碰到魔物才爆開)。 */
 const METEOR_START_Y = -40;
-const METEOR_BACK = 120;
 /** 流星的圖是往下掉的(星星在下),轉到飛行方向要少轉 90 度。 */
 const METEOR_ART_DEG = -90;
 
@@ -63,19 +63,23 @@ interface Projectile {
 }
 
 const PIERCING = new Set(['pierce', 'boomerang', 'beam', 'charge']);
-const THROUGH_TERRAIN = new Set(['boomerang', 'beam', 'charge']);
+const THROUGH_TERRAIN = new Set(['boomerang', 'beam', 'charge', 'meteor']);
 const EXPLODES = new Set(['lob', 'meteor']);
 
 /** 所有玩家子彈:生成、軌跡、碰撞與壽命。 */
 export class ProjectileSystem {
   private readonly group: Phaser.Physics.Arcade.Group;
   private projectiles: Projectile[] = [];
+  /** 最近一次 update 的畫面範圍(流星的落點夾在畫面裡)。 */
+  private view = { scrollX: 0, viewW: 960 };
 
   constructor(
     private readonly scene: Phaser.Scene,
     terrain: Phaser.Physics.Arcade.StaticGroup,
     private readonly onHit: (target: Phaser.GameObjects.GameObject, hit: ProjectileHit) => HitResult,
     private readonly onBlast: (blast: Blast) => void = () => {},
+    /** 棉花糖、流星碰到這個目標會不會爆開(正在冒出、躲起來、換階段的不算,穿過去)。 */
+    private readonly canBlastOn: (target: Phaser.GameObjects.GameObject) => boolean = () => true,
   ) {
     this.group = scene.physics.add.group({ allowGravity: false });
     scene.physics.add.overlap(this.group, terrain, (b, t) => {
@@ -98,11 +102,11 @@ export class ProjectileSystem {
     let dx = spawn.vx;
     let dy = spawn.vy;
     if (def.kind === 'meteor') {
-      // 流星:落點在前方 160–360,從畫面上方、落點後方斜斜掉下來。
-      const tx = meteorTargetX(owner.x, owner.motor.facing, rng);
-      from = { x: tx - owner.motor.facing * METEOR_BACK, y: METEOR_START_Y };
-      dx = tx - from.x;
-      dy = owner.feetY - from.y;
+      // 流星:落點在前方 160–360 的地面,從畫面上方、落點後方斜斜掉下來。
+      const path = meteorPath(owner.x, owner.motor.facing, this.view.scrollX, this.view.viewW, rng);
+      from = { x: path.fromX, y: METEOR_START_Y };
+      dx = path.toX - from.x;
+      dy = GROUND_Y - from.y;
     } else if (LOB_LIFT[def.kind] !== undefined) {
       const l = Math.hypot(dx, dy) || 1;
       dx /= l;
@@ -135,10 +139,16 @@ export class ProjectileSystem {
   }
 
   update(dtMs: number, scrollX: number, viewW: number, homingTargets: () => { x: number; y: number }[]): void {
+    this.view = { scrollX, viewW };
     const now = this.scene.time.now;
     for (const p of [...this.projectiles]) {
       const age = now - p.bornAt;
       const body = p.shape.body as Phaser.Physics.Arcade.Body;
+      // 棉花糖、流星時間到或落到地面就爆開(不會白白消失)。
+      if (EXPLODES.has(p.def.kind) && (age > p.def.lifeMs || (p.def.kind === 'meteor' && p.shape.y >= GROUND_Y - body.halfHeight))) {
+        this.explode(p);
+        continue;
+      }
       if (age > p.def.lifeMs) {
         this.remove(p);
         continue;
@@ -226,6 +236,7 @@ export class ProjectileSystem {
     if (boomerang && p.blockedOut.has(target) && !returning) return;
     const body = p.shape.body as Phaser.Physics.Arcade.Body;
     const v = body.velocity;
+    if (EXPLODES.has(p.def.kind) && !this.canBlastOn(target)) return;
     const result = EXPLODES.has(p.def.kind)
       ? 'consumed'
       : this.onHit(target, { damage: p.damage, vx: v.x, vy: v.y, x: p.shape.x, y: p.shape.y, color: p.def.color });
@@ -257,20 +268,19 @@ export class ProjectileSystem {
     const body = p.shape.body as Phaser.Physics.Arcade.Body;
     const rect = t.body as Phaser.Physics.Arcade.StaticBody;
     const r = body.halfWidth;
-    const prevBottom = body.prev.y + body.height;
-    const prevTop = body.prev.y;
     const v = { vx: body.velocity.x, vy: body.velocity.y };
-    if (prevBottom <= rect.top + 2 && v.vy > 0) {
+    // 往壓進去最少的那一邊推出來(剛射出就卡在地形裡也一樣)。
+    const side = pushOutSide({ left: body.left, right: body.right, top: body.top, bottom: body.bottom }, rect);
+    if (side === 'top') {
       const out = bounceOff(v, 'floor');
       body.reset(p.shape.x, rect.top - r - 1);
       body.setVelocity(out.vx, Math.min(out.vy, -MIN_BOUNCE_VY));
-    } else if (prevTop >= rect.bottom - 2 && v.vy < 0) {
+    } else if (side === 'bottom') {
       body.reset(p.shape.x, rect.bottom + r + 1);
       body.setVelocity(v.vx, Math.abs(v.vy));
     } else {
-      const out = bounceOff(v, 'wall');
-      body.reset(v.vx > 0 ? rect.left - r - 1 : rect.right + r + 1, p.shape.y);
-      body.setVelocity(out.vx, out.vy);
+      body.reset(side === 'left' ? rect.left - r - 1 : rect.right + r + 1, p.shape.y);
+      body.setVelocity(side === 'left' ? -Math.abs(v.vx) : Math.abs(v.vx), v.vy);
     }
     p.hits.clear();
     this.spendBounce(p);

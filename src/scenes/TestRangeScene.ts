@@ -895,6 +895,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.terrain,
       (target, hit) => this.onProjectileHit(target, hit),
       (blast) => this.onBlast(blast),
+      (target) => this.canBlastOn(target),
     );
     this.projectiles.addTargets(this.enemyGroup);
     this.projectiles.addTargets(this.targetGroup);
@@ -3370,9 +3371,17 @@ export class TestRangeScene extends Phaser.Scene {
     this.cameras.main.shake(80, 0.003);
     let hits = 0;
     for (const enemy of [...this.enemies]) {
+      // 打倒魔王時場上魔物都收掉了,不再算。
+      if (this.bossDefeated || !this.enemies.includes(enemy)) break;
       if (enemy.emerging || enemy.hp <= 0 || this.isInvulnerable(enemy)) continue;
       const box = { x: enemy.body.x - enemy.def.w / 2, y: enemy.body.y - enemy.def.h / 2, w: enemy.def.w, h: enemy.def.h };
       if (!inBlast(b.x, b.y, b.radius, box)) continue;
+      // 縮進殼裡、鼓起來的打不動(刺盾擋不住爆炸,硬殼擋得住)。
+      if (this.isArmored(enemy)) {
+        this.sparkBurst(enemy.body.x, enemy.body.y, BLOCKED_SPARK, 4, 90);
+        audio.sfx('blocked');
+        continue;
+      }
       hits += 1;
       if (enemy !== this.boss?.enemy && enemy.def.tier !== 'boss') {
         enemy.knock(Math.sign(enemy.body.x - b.x || 1) * knockbackSpeed(b.damage));
@@ -3390,6 +3399,12 @@ export class TestRangeScene extends Phaser.Scene {
     }
     if (hits > 0) audio.sfx('hit');
     this.lastBlast = { x: Math.round(b.x), y: Math.round(b.y), hits };
+  }
+
+  private canBlastOn(obj: Phaser.GameObjects.GameObject): boolean {
+    const enemy = this.enemyFor(obj);
+    if (enemy) return !enemy.emerging && enemy.hp > 0 && !this.isInvulnerable(enemy);
+    return this.targets.some((t) => t.rect === obj && t.hp > 0);
   }
 
   private defeatEnemy(enemy: EnemyEntity, impactScale = 1): void {

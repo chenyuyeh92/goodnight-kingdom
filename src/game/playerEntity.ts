@@ -147,6 +147,7 @@ export class PlayerEntity {
     this.jumped = false;
     if (this.health.down) {
       pb.setVelocityX(0);
+      this.charge = initialChargeState();
       return { kind: 'none' };
     }
 
@@ -171,8 +172,8 @@ export class PlayerEntity {
     const shooting = near || (intent.shoot && canFire(this.loadout));
     const weapon = activeWeapon(this.loadout);
     const interval = fireIntervalWithBuffs(weapon.fireIntervalMs ?? t.fireIntervalMs, this.buffs);
-    // 懷錶:按住集氣、放開射出(身邊有魔物時照樣揮枕頭)。
-    if (weapon.kind === 'charge' && !near) {
+    // 懷錶:按住集氣、放開射出;還沒開始集氣時身邊有魔物照樣揮枕頭,集氣中魔物靠近也不會丟掉集好的氣。
+    if (weapon.kind === 'charge' && (!near || this.charge.charging)) {
       this.attack = stepAttack(this.attack, false, false, dtMs, interval).state;
       const c = stepCharge(this.charge, { held: intent.shoot, canFire: canFire(this.loadout), dtMs, intervalMs: interval });
       this.charge = c.state;
