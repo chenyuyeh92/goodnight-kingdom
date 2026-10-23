@@ -4,7 +4,14 @@ import { LEVELS } from '../src/levels';
 import { MOVER_H, SPRING_H, SPRING_W } from '../src/game/gadgets';
 
 /** 地形重排過、放了新機關的關卡(之後的世界重排完再加進來)。 */
-const GADGET_LEVELS: readonly LevelId[] = ['w1-1', 'w1-2', 'forest'];
+const GADGET_LEVELS: readonly LevelId[] = ['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3'];
+/** 世界 3 在水裡:不放新機關,礁石變多。 */
+const REEF_LEVELS: readonly LevelId[] = ['w3-1', 'w3-2', 'w3-3'];
+
+/** 危險的地面:河溝與熔岩(上面的移動平台不蓋到岸邊、底下沒有踏腳的)。 */
+function hazards(L: LevelDef): { x: number; w: number }[] {
+  return [...(L.water?.gaps ?? []), ...(L.lava ?? [])];
+}
 
 /** 一般跳最高約 145:平台之間往上 ≤ 140、水平空隙 ≤ 200;樓梯每階 40–120;彈跳墊往上 ≤ 270。 */
 const RISE = 140;
@@ -57,7 +64,9 @@ function reachable(L: LevelDef): Set<string> {
     changed = false;
     for (const p of all) {
       if (reached.has(p)) continue;
-      const ok = [...reached].some((q) => {
+      // 移動平台:站上一端就會被載到另一端。
+      const partner = p.kind === 'mover' ? all.find((o) => o !== p && o.kind === 'mover' && o.w === p.w && reached.has(o) && (o.x === p.x || o.y === p.y)) : undefined;
+      const ok = !!partner || [...reached].some((q) => {
         if (q === ground) {
           // 從地面:平台底下或旁邊 GAP 以內要有地(不全是河溝)。
           const lo = p.x - GAP;
@@ -126,6 +135,25 @@ describe.each(GADGET_LEVELS)('地形重排與新機關:%s', (id) => {
     }
   });
 
+  test('彈跳墊不在流沙、熔岩、冰上,也不在壓力板與掉沙磚的地方', () => {
+    const spans = [...(L.sand ?? []), ...(L.lava ?? []), ...(L.ice ?? [])];
+    const spots = (L.plates ?? []).flatMap((p) => [p.x, ...p.drops]);
+    for (const sp of L.springs ?? []) {
+      for (const z of spans) expect(sp.x + SPRING_W / 2 < z.x || sp.x - SPRING_W / 2 > z.x + z.w, `spring ${sp.x} 在 ${z.x}`).toBe(true);
+      for (const x of spots) expect(Math.abs(sp.x - x), `spring ${sp.x} 壓力板 ${x}`).toBeGreaterThan(60);
+    }
+  });
+
+  test('新的平台與機關不接住冰柱、沙磚(離掉落點 ≥ 50)', () => {
+    const drops = [...(L.icicles ?? []), ...(L.plates ?? []).flatMap((p) => p.drops)];
+    const things = [
+      ...(L.crumbles ?? []).map((c) => ({ x: c.x, w: c.w })),
+      ...(L.movers ?? []).map((m) => ({ x: Math.min(m.x, m.x + m.dx), w: m.w + Math.abs(m.dx) })),
+      ...(L.springs ?? []).map((sp) => ({ x: sp.x - SPRING_W / 2, w: SPRING_W })),
+    ];
+    for (const t of things) for (const d of drops) expect(d < t.x - 50 || d > t.x + t.w + 50, `${t.x} 接住 ${d}`).toBe(true);
+  });
+
   test('每個平台都到得了(一般跳、彈跳墊、移動平台),高處寶箱也是', () => {
     const r = reachable(L);
     for (const p of plats(L)) expect(r.has(key(p)), `${p.kind} ${p.x},${p.y} 到不了`).toBe(true);
@@ -136,27 +164,60 @@ describe.each(GADGET_LEVELS)('地形重排與新機關:%s', (id) => {
   });
 });
 
-test('河溝上的移動平台:不蓋到岸上、底下沒有荷葉(從岸邊、荷葉起跳不會撞到平台底)', () => {
+test('河溝、熔岩上的移動平台:不蓋到岸上、底下沒有荷葉或岩石(起跳不會撞到平台底)', () => {
   for (const id of GADGET_LEVELS) {
     const L = LEVELS[id];
-    for (const g of L.water?.gaps ?? []) {
+    for (const g of hazards(L)) {
       for (const m of L.movers ?? []) {
         const lo = Math.min(m.x, m.x + m.dx);
         const hi = Math.max(m.x, m.x + m.dx) + m.w;
         if (hi <= g.x || lo >= g.x + g.w) continue;
         expect(lo >= g.x && hi <= g.x + g.w, `${id} mover ${m.x} 蓋到岸上`).toBe(true);
         for (const p of L.water?.pads ?? []) expect(p.x + p.w <= lo || p.x >= hi, `${id} mover ${m.x} 底下有荷葉 ${p.x}`).toBe(true);
+        for (const r of L.terrain.filter((r) => r.y > m.y && r.x < g.x + g.w && r.x + r.w > g.x)) expect(r.x + r.w <= lo || r.x >= hi, `${id} mover ${m.x} 底下有岩石 ${r.x}`).toBe(true);
       }
     }
   }
 });
 
-test('有河溝的關卡:至少一段移動平台在河溝上', () => {
+test('有河溝或熔岩的關卡:至少一段移動平台在河溝或熔岩上', () => {
   for (const id of GADGET_LEVELS) {
     const L = LEVELS[id];
-    const gaps = L.water?.gaps ?? [];
+    const gaps = hazards(L);
     if (gaps.length === 0) continue;
     const over = (L.movers ?? []).some((m) => gaps.some((g) => Math.min(m.x, m.x + m.dx) < g.x + g.w && Math.max(m.x, m.x + m.dx) + m.w > g.x));
     expect(over, id).toBe(true);
   }
+});
+
+describe.each(REEF_LEVELS)('海底礁石變多:%s', (id) => {
+  const L = LEVELS[id];
+  test('礁石至少 20 塊(原本 10),不放新機關', () => {
+    expect(L.terrain.length).toBeGreaterThanOrEqual(20);
+    expect(L.movers ?? []).toHaveLength(0);
+    expect(L.springs ?? []).toHaveLength(0);
+    expect(L.crumbles ?? []).toHaveLength(0);
+  });
+
+  test('每個位置上下都留 70 以上的通道(游得過去)', () => {
+    for (let x = 0; x < L.boss!.lockScrollX; x += 10) {
+      const blocks = L.terrain.filter((r) => x >= r.x && x <= r.x + r.w).map((r) => [r.y, r.y + r.h] as const).sort((a, b) => a[0] - b[0]);
+      let top = 0;
+      let best = 0;
+      for (const [a, b] of blocks) {
+        best = Math.max(best, a - top);
+        top = Math.max(top, b);
+      }
+      best = Math.max(best, GROUND_Y - top);
+      expect(best, `x ${x}`).toBeGreaterThanOrEqual(70);
+    }
+  });
+
+  test('礁石不擋住水流、氣泡柱,不壓到寶箱與檢查點', () => {
+    for (const r of L.terrain) {
+      for (const c of L.currents ?? []) expect(overlaps(r, c), `礁石 ${r.x},${r.y} 擋住水流 ${c.x}`).toBe(false);
+      for (const cp of L.checkpoints) expect(r.x > cp + 80 || r.x + r.w < cp - 20 || r.y + r.h < GROUND_Y - 80, `礁石 ${r.x} 檢查點 ${cp}`).toBe(true);
+      for (const ch of L.chests) expect(overlaps(r, { x: ch.x - 25, y: ch.bottom - 40, w: 50, h: 40 }), `礁石 ${r.x} 寶箱 ${ch.x}`).toBe(false);
+    }
+  });
 });
