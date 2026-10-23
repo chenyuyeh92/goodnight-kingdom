@@ -4,7 +4,10 @@ import { LEVELS } from '../src/levels';
 import { MOVER_H, SPRING_H, SPRING_W } from '../src/game/gadgets';
 
 /** 地形重排過、放了新機關的關卡(之後的世界重排完再加進來)。 */
-const GADGET_LEVELS: readonly LevelId[] = ['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3'];
+const GADGET_LEVELS: readonly LevelId[] = [
+  'w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3',
+  'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3', 'w9-1', 'w9-2', 'w9-3', 'w10-1', 'w10-2', 'w10-3',
+];
 /** 世界 3 在水裡:不放新機關,礁石變多。 */
 const REEF_LEVELS: readonly LevelId[] = ['w3-1', 'w3-2', 'w3-3'];
 
@@ -243,6 +246,19 @@ describe.each(GADGET_LEVELS)('地形重排與新機關:%s', (id) => {
     }
   });
 
+  test('藤蔓盪的範圍(左右 180、頂端往下 230)沒有平台與機關', () => {
+    for (const v of L.vines ?? []) {
+      const zone = { x: v.x - 180, y: v.top, w: 360, h: 230 };
+      for (const o of overheads()) expect(overlaps(zone, o), `藤蔓 ${v.x} 擋到 ${o.what}`).toBe(false);
+      for (const sp of L.springs ?? []) expect(sp.x < zone.x - 30 || sp.x > zone.x + zone.w + 30, `藤蔓 ${v.x} 彈跳墊 ${sp.x}`).toBe(true);
+    }
+  });
+
+  test('彈跳墊不蓋住發光水晶、燭台;新的東西不擋住星星', () => {
+    for (const sp of L.springs ?? []) for (const c of L.crystals ?? []) expect(Math.abs(sp.x - c), `彈跳墊 ${sp.x} 水晶 ${c}`).toBeGreaterThan(50);
+    for (const st of L.stars ?? []) for (const o of overheads()) expect(overlaps({ x: st.x - 14, y: st.y - 14, w: 28, h: 28 }, o), `星星 ${st.x},${st.y} 在 ${o.what} 裡`).toBe(false);
+  });
+
   test('每個平台都到得了(一般跳、彈跳墊、移動平台),高處寶箱也是', () => {
     const r = reachable(L);
     for (const p of plats(L)) expect(r.has(key(p)), `${p.kind} ${p.x},${p.y} 到不了`).toBe(true);
@@ -269,10 +285,11 @@ test('河溝、熔岩上的移動平台:不蓋到岸上、底下沒有荷葉或�
   }
 });
 
-test('有河溝或熔岩的關卡:至少一段移動平台在河溝或熔岩上', () => {
+test('有寬的河溝(沒有藤蔓)或熔岩的關卡:至少一段移動平台在上面', () => {
   for (const id of GADGET_LEVELS) {
     const L = LEVELS[id];
-    const gaps = hazards(L);
+    // 有藤蔓的寬河溝是盪過去的;窄的(< 220)跳得過去。
+    const gaps = hazards(L).filter((g) => g.w >= 220 && !(L.vines ?? []).some((v) => v.x >= g.x && v.x <= g.x + g.w));
     if (gaps.length === 0) continue;
     const over = (L.movers ?? []).some((m) => gaps.some((g) => Math.min(m.x, m.x + m.dx) < g.x + g.w && Math.max(m.x, m.x + m.dx) + m.w > g.x));
     expect(over, id).toBe(true);

@@ -1,8 +1,14 @@
 import { describe, test, expect } from 'vitest';
-import { GROUND_Y, parseLevelId } from '../src/levels/levelDef';
+import { GROUND_Y, parseLevelId, type LevelDef } from '../src/levels/levelDef';
 import { LEVELS } from '../src/levels';
 import { ENEMY_DEFS } from '../src/game/enemies';
 import { STAND_HITBOX } from '../src/game/playerMotor';
+
+/** 左右來回、從地面跳得上去(高度 ≤ 140)、整個在缺口裡的移動平台:搭它過去(兩端離岸 ≤ 110)。 */
+function crossingMover(L: LevelDef, g: { x: number; w: number }): boolean {
+  const m = (L.movers ?? []).find((m) => m.dy === 0 && m.dx > 0 && GROUND_Y - m.y <= 140 && m.x >= g.x && m.x + m.dx + m.w <= g.x + g.w);
+  return !!m && m.x - g.x <= 110 && g.x + g.w - (m.x + m.dx + m.w) <= 110;
+}
 
 test('parseLevelId', () => {
   expect(parseLevelId('range')).toBe('range');
@@ -566,16 +572,18 @@ describe.each(['w8-1', 'w8-2', 'w8-3'] as const)('世界 8 高山:%s', (id) => {
     }
   });
 
-  test('每片雲海都跳得過:沒有平台時寬度 ≤ 110,有雲朵平台時每一跳 ≤ 110,上方沒有擋頭的平台', () => {
+  test('每片雲海都過得去:沒有平台時寬度 ≤ 110,有雲朵平台時每一跳 ≤ 110,或有移動平台;上方沒有擋頭的平台', () => {
     for (const g of gaps) {
-      const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= g.x && r.x + r.w <= g.x + g.w).sort((a, b) => a.x - b.x);
-      let from = g.x;
-      for (const p of plats) {
-        expect(p.x - from, `雲海 ${g.x}`).toBeLessThanOrEqual(110);
-        expect(GROUND_Y - p.y).toBeLessThanOrEqual(140);
-        from = p.x + p.w;
+      if (!crossingMover(L, g)) {
+        const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= g.x && r.x + r.w <= g.x + g.w).sort((a, b) => a.x - b.x);
+        let from = g.x;
+        for (const p of plats) {
+          expect(p.x - from, `雲海 ${g.x}`).toBeLessThanOrEqual(110);
+          expect(GROUND_Y - p.y).toBeLessThanOrEqual(140);
+          from = p.x + p.w;
+        }
+        expect(g.x + g.w - from, `雲海 ${g.x}`).toBeLessThanOrEqual(110);
       }
-      expect(g.x + g.w - from, `雲海 ${g.x}`).toBeLessThanOrEqual(110);
       for (const r of L.terrain.filter((r) => r.h <= 20)) {
         const stepping = r.x >= g.x && r.x + r.w <= g.x + g.w;
         const over = r.x < g.x + g.w + 80 && r.x + r.w > g.x - 80;
@@ -705,13 +713,15 @@ describe.each(['w10-1', 'w10-2', 'w10-3'] as const)('世界 10 城堡:%s', (id) 
   test('城牆缺口都跳得過,強風離缺口遠一點;檢查點不在缺口上', () => {
     const gaps = L.water?.gaps ?? [];
     for (const g of gaps) {
-      const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= g.x && r.x + r.w <= g.x + g.w).sort((a, b) => a.x - b.x);
-      let from = g.x;
-      for (const p of plats) {
-        expect(p.x - from, `缺口 ${g.x}`).toBeLessThanOrEqual(110);
-        from = p.x + p.w;
+      if (!crossingMover(L, g)) {
+        const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= g.x && r.x + r.w <= g.x + g.w).sort((a, b) => a.x - b.x);
+        let from = g.x;
+        for (const p of plats) {
+          expect(p.x - from, `缺口 ${g.x}`).toBeLessThanOrEqual(110);
+          from = p.x + p.w;
+        }
+        expect(g.x + g.w - from, `缺口 ${g.x}`).toBeLessThanOrEqual(110);
       }
-      expect(g.x + g.w - from, `缺口 ${g.x}`).toBeLessThanOrEqual(110);
       for (const z of L.winds ?? []) expect(z.x + z.w <= g.x - 150 || z.x >= g.x + g.w + 150).toBe(true);
       for (const cp of L.checkpoints) expect(cp + 40 < g.x - 20 || cp > g.x + g.w + 20).toBe(true);
       expect(outsideWindows(g.x, g.w)).toBe(true);
