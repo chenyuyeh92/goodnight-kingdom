@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'vitest';
 import { MOCHI_GRAVITY, RABBIT_WALK_MS, RABBIT_WINDUP_MS, initialRabbitBrain, stepRabbit, type RabbitBrain, type RabbitSense } from '../src/game/rabbit';
 import { DART_GAP_MS, DART_HIGH_Y, DART_LOW_Y, DART_SPEED, PEACOCK_WALK_MS, PEACOCK_WINDUP_MS, REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain, type PeacockSense } from '../src/game/peacock';
-import { INHALE_MS, INHALE_PULL, MIST_GAP_MS, NIGHTMARE_CHARGE_MS, NIGHTMARE_HEARTS, NIGHTMARE_SAFE_HALF_W, MIST_HIGH_Y, MIST_LOW_Y, MIST_SPEED, TAPIR_SCALE, TAPIR_WINDUP_MS, initialTapirBrain, stepTapir, type TapirBrain, type TapirSense } from '../src/game/tapir';
+import { INHALE_MS, INHALE_PULL, MIST_GAP_MS, NIGHTMARE_CHARGE_MS, TAPIR_HP_FLOOR, NIGHTMARE_HEARTS, NIGHTMARE_SAFE_HALF_W, MIST_HIGH_Y, MIST_LOW_Y, MIST_SPEED, TAPIR_SCALE, TAPIR_WINDUP_MS, initialTapirBrain, stepTapir, type TapirBrain, type TapirSense } from '../src/game/tapir';
+import { owlPhase } from '../src/game/owl';
 import { ENEMY_DEFS, VULTURE_SWOOP_Y, initialBrain, stepEnemy, type EnemySense } from '../src/game/enemies';
 import { CROUCH_HITBOX, STAND_HITBOX } from '../src/game/playerMotor';
 import { DEFAULT_TUNING } from '../src/config/tuning';
@@ -203,6 +204,13 @@ describe('偷走睡意的夢貘', () => {
     expect(NIGHTMARE_HEARTS).toBe(3);
     expect(NIGHTMARE_SAFE_HALF_W[3]).toBeLessThan(NIGHTMARE_SAFE_HALF_W[2]);
     expect(NIGHTMARE_CHARGE_MS[3]).toBeLessThan(NIGHTMARE_CHARGE_MS[2]);
+    // 集氣時打不動(不會在集氣時被打到下一階段,兩次大惡夢連著來)。
+    const b = run(initialTapirBrain(), 1100, { hpRatio: 0.6 }).b;
+    expect(b.mode).toBe('nightmare');
+    expect(stepTapir(b, sense({ hpRatio: 0.6 })).invulnerable).toBe(true);
+    // 血的底線剛好進下一階段(一下打很多也只往下一階段)。
+    expect(owlPhase(Math.floor(150 * TAPIR_HP_FLOOR[1]) / 150)).toBe(2);
+    expect(owlPhase(Math.floor(150 * TAPIR_HP_FLOOR[2]) / 150)).toBe(3);
     // 集氣的時間走得到王座裡最遠的月光(關主區 960 寬,月光最遠離玩家約 460)。
     expect((NIGHTMARE_CHARGE_MS[3] / 1000) * DEFAULT_TUNING.walkSpeed).toBeGreaterThan(460 + 60);
   });

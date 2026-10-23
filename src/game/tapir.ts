@@ -61,9 +61,14 @@ const ANGRY_MS = 1000;
 const SHAKE = 40;
 const MAX_MINIONS = 3;
 /** 大惡夢:每次換階段放一次(整場兩次),越後面月光越窄、集氣越短。 */
-export const NIGHTMARE_CHARGE_MS = { 2: 3000, 3: 2400 } as const;
+export const NIGHTMARE_CHARGE_MS = { 2: 3000, 3: 2800 } as const;
 export const NIGHTMARE_SAFE_HALF_W = { 2: 80, 3: 60 } as const;
 export const NIGHTMARE_HEARTS = 3;
+/**
+ * 還沒換到下一階段前,血最多扣到這個比例(owlPhase 剛好進下一階段):
+ * 一下打很多也不會跳過一個階段(少一次大惡夢),也不會兩次大惡夢連著來。
+ */
+export const TAPIR_HP_FLOOR = { 1: 0.66, 2: 0.33 } as const;
 
 export function initialTapirBrain(): TapirBrain {
   return { mode: 'idle', timerMs: 0, phase: 1, attacks: 0, pending: 'mist', nightmareNext: false };
@@ -123,10 +128,11 @@ export function stepTapir(b: TapirBrain, s: TapirSense): TapirStep {
     }
     case 'nightmare': {
       const phase = b.phase === 1 ? 2 : b.phase;
-      if (timerMs >= NIGHTMARE_CHARGE_MS[phase]) return { ...none, vx: 0, nightmareBlast: true, brain: { ...b, mode: 'idle', timerMs: 0 } };
+      if (timerMs >= NIGHTMARE_CHARGE_MS[phase]) return { ...none, vx: 0, nightmareBlast: true, invulnerable: true, brain: { ...b, mode: 'idle', timerMs: 0 } };
       // 集氣:慢慢地抖。
+      // 集氣時打不動(專心躲)。
       const vx = Math.floor(timerMs / 200) % 2 === 0 ? SHAKE / 2 : -SHAKE / 2;
-      return { ...none, vx, brain: { ...b, timerMs } };
+      return { ...none, vx, invulnerable: true, brain: { ...b, timerMs } };
     }
     case 'inhale': {
       if (timerMs >= INHALE_MS) return { ...none, vx: 0, brain: { ...b, mode: 'idle', timerMs: 0 } };

@@ -57,7 +57,7 @@ test.describe('武器', () => {
     await page.waitForFunction(() => window.__GK__!.enemies!.length === 2 && window.__GK__!.enemies!.every((e) => e.hp < 2) || window.__GK__!.enemiesDefeated! >= 2, undefined, { timeout: 1500 });
   });
 
-  test('牛奶噴霧一次 5 發', async ({ page }) => {
+  test('牛奶噴霧一次 4 發', async ({ page }) => {
     await open(page);
     await give(page, 'milkSpray');
     await page.keyboard.down('KeyC');
@@ -67,7 +67,7 @@ test.describe('武器', () => {
       return b > 0 ? b : false;
     }, undefined, { timeout: 500, polling: 'raf' });
     await page.keyboard.up('KeyC');
-    expect(await first.jsonValue()).toBe(5);
+    expect(await first.jsonValue()).toBe(4);
   });
 
   test('豎琴音符會轉向打到頭上的蝙蝠', async ({ page }) => {
@@ -230,7 +230,8 @@ test.describe('寶箱、道具與背包', () => {
     await open(page);
     await spawn(page, 'hedgehog', 400);
     await give(page, 'lullabyHarp');
-    await hold(page, 'KeyC', 600);
+    // 一顆 2 點,盾牌 15 點會破:只射幾發。
+    await hold(page, 'KeyC', 300);
     await page.waitForTimeout(500);
     expect((await gk(page)).enemies![0].hp).toBe(6);
   });

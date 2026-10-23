@@ -53,7 +53,7 @@ import { QUEEN_HOVER_Y, initialQueenBrain, stepQueen, type QueenBrain } from '..
 import { initialAxolotlBrain, stepAxolotl, type AxolotlBrain } from '../game/axolotl';
 import { MOCHI_GRAVITY, initialRabbitBrain, stepRabbit, type RabbitBrain } from '../game/rabbit';
 import { DART_SPEED, REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain } from '../game/peacock';
-import { INHALE_PULL, MIST_SPEED, NIGHTMARE_HEARTS, TAPIR_SCALE, initialTapirBrain, stepTapir, type TapirBrain } from '../game/tapir';
+import { INHALE_PULL, MIST_SPEED, NIGHTMARE_HEARTS, TAPIR_HP_FLOOR, TAPIR_SCALE, initialTapirBrain, stepTapir, type TapirBrain } from '../game/tapir';
 import { owlPhase } from '../game/owl';
 import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
@@ -2201,12 +2201,32 @@ export class TestRangeScene extends Phaser.Scene {
   private startNightmare(tapir: EnemyEntity, halfW: number, chargeMs: number): void {
     this.endNightmare();
     const lock = this.bossLock ?? this.scrollX;
-    const left = lock + NIGHTMARE_EDGE;
-    const right = Math.max(left, tapir.x - (tapir.def.w / 2) * tapir.artScaleMul - NIGHTMARE_EDGE);
-    const awake = this.players.filter((p) => !p.health.down);
-    const at = awake.length ? awake.reduce((sum, p) => sum + p.x, 0) / awake.length : left;
-    let safeX = left + Math.random() * (right - left);
-    for (let i = 0; i < 12 && Math.abs(safeX - at) < NIGHTMARE_MIN_MOVE; i++) safeX = left + Math.random() * (right - left);
+    const half = (tapir.def.w / 2) * tapir.artScaleMul;
+    // 月光放在夢貘前面或背後(有空間時),不跟夢貘重疊。
+    const spans = [
+      [lock + NIGHTMARE_EDGE, tapir.x - half - NIGHTMARE_EDGE],
+      [tapir.x + half + NIGHTMARE_EDGE, lock + VIEW_W - NIGHTMARE_EDGE],
+    ].filter(([a, b]) => b >= a);
+    const total = spans.reduce((sum, [a, b]) => sum + b - a, 0);
+    const pick = (): number => {
+      let r = Math.random() * total;
+      for (const [a, b] of spans) {
+        if (r <= b - a) return a + r;
+        r -= b - a;
+      }
+      return lock + NIGHTMARE_EDGE;
+    };
+    const xs = this.players.filter((p) => !p.health.down).map((p) => p.x);
+    // 每個醒著的玩家都走得到(留四成時間反應),而且最好要走一段。
+    const reach = this.getTuning().walkSpeed * (chargeMs / 1000) * 0.6 + halfW;
+    const farthest = (x: number): number => Math.max(0, ...xs.map((px) => Math.abs(px - x)));
+    const nearest = (x: number): number => Math.min(Infinity, ...xs.map((px) => Math.abs(px - x)));
+    const options = total > 0 ? Array.from({ length: 24 }, pick) : [lock + NIGHTMARE_EDGE];
+    const reachable = options.filter((x) => farthest(x) <= reach);
+    const safeX =
+      reachable.find((x) => nearest(x) >= NIGHTMARE_MIN_MOVE) ??
+      reachable[0] ??
+      options.reduce((best, x) => (farthest(x) < farthest(best) ? x : best));
     const fog = this.add.rectangle(0, 0, VIEW_W, WORLD_H, 0x2a0a4a).setOrigin(0, 0).setScrollFactor(0).setDepth(NIGHTMARE_DEPTH).setAlpha(0.15);
     const moon = this.add.rectangle(safeX, 0, halfW * 2, GROUND_Y, 0xfff3a8).setOrigin(0.5, 0).setDepth(NIGHTMARE_DEPTH + 0.5).setAlpha(0.35);
     const text = this.add
@@ -2231,6 +2251,8 @@ export class TestRangeScene extends Phaser.Scene {
     audio.sfx('bossDown');
     for (const p of this.players) {
       if (p.health.down || Math.abs(p.x - n.safeX) <= n.halfW) continue;
+      // 剛被別的東西打到的無敵時間擋不住大惡夢。
+      p.health = { ...p.health, invulnMs: 0 };
       if (this.hurtPlayer(p, false, NIGHTMARE_HEARTS)) this.nightmareHits += 1;
     }
   }
@@ -2979,11 +3001,18 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 扣血;打到 0 就打倒。 */
-  private damageEnemy(enemy: EnemyEntity, amount: number, impactScale = 1): void {
-    enemy.hp = Math.max(0, enemy.hp - amount);
+  private damageEnemy(enemy: EnemyEntity, amount: number, impactScale = 1, ignoreFloor = false): void {
+    enemy.hp = Math.max(ignoreFloor ? 0 : this.hpFloor(enemy), enemy.hp - amount);
     enemy.flash();
     if (enemy.hp === 0) this.defeatEnemy(enemy, impactScale);
     else if (impactScale !== 1) this.impact(impactScale);
+  }
+
+  /** 夢貘還沒換到下一階段前,血不會掉到下一階段以下(不會跳過階段)。 */
+  private hpFloor(enemy: EnemyEntity): number {
+    const boss = this.boss;
+    if (boss?.enemy !== enemy || boss.ai.kind !== 'tapir' || boss.ai.brain.phase === 3) return 0;
+    return Math.floor(boss.maxHp * TAPIR_HP_FLOOR[boss.ai.brain.phase]);
   }
 
   /** 可以被揮擊的對象:已上場的魔物與還站著的練習靶。 */
@@ -3330,7 +3359,9 @@ export class TestRangeScene extends Phaser.Scene {
       hurtBoss: this.testHooks
         ? (n: number) => {
             const e = this.boss?.enemy;
-            if (e && e.hp > 0 && !this.isInvulnerable(e)) this.damageEnemy(e, n);
+            if (!e || e.hp <= 0 || this.isInvulnerable(e)) return;
+            // 測試用:一下打完就直接打倒(不管夢貘的階段底線)。
+            this.damageEnemy(e, n, 1, n >= e.hp);
           }
         : undefined,
     };
