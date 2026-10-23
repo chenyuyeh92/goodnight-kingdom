@@ -78,6 +78,8 @@ export const CASTLE_GARDEN: LevelDef = {
   ],
   checkpoints: [150, 2160, 4060, 5960, 7880, 9100],
   chests: [
+    { x: 5850, bottom: GROUND_Y },
+    { x: 2950, bottom: GROUND_Y },
     { x: 600, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
     { x: 8100, bottom: GROUND_Y },

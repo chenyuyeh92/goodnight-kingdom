@@ -72,6 +72,8 @@ export const FOREST: LevelDef = {
   // 檢查點都放在戰鬥區鎖住的畫面之外(A 700–1660、B 5300–6260、C 7300–8260)。
   checkpoints: [150, 2250, 4250, 6300, 8450, 9900],
   chests: [
+    { x: 5800, bottom: GROUND_Y },
+    { x: 3000, bottom: GROUND_Y },
     { x: 820, bottom: GROUND_Y },
     { x: 3890, bottom: 280 },
     { x: 5250, bottom: 240 },

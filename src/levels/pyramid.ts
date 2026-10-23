@@ -75,6 +75,8 @@ export const PYRAMID: LevelDef = {
   // 檢查點都在戰鬥區鎖住的畫面(A 2600–3560、B 6600–7560)之外,也不在流沙、仙人掌與壓力板上。
   checkpoints: [150, 2400, 3880, 6300, 8100, 9050],
   chests: [
+    { x: 5800, bottom: GROUND_Y },
+    { x: 3000, bottom: GROUND_Y },
     { x: 600, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
     { x: 7650, bottom: GROUND_Y },

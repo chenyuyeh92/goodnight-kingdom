@@ -170,6 +170,25 @@ describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2',
   test('地圖夠長(一局約 4–5 分鐘)', () => {
     expect(L.worldW).toBeGreaterThanOrEqual(9000);
   });
+
+  test('武器寶箱至少 5 個,路上(地面)至少 4 個、一路上平均分布(相隔 ≤ 3000)', () => {
+    expect(L.chests.length).toBeGreaterThanOrEqual(5);
+    const ground = L.chests.filter((c) => c.bottom === GROUND_Y).map((c) => c.x).sort((a, b) => a - b);
+    expect(ground.length).toBeGreaterThanOrEqual(4);
+    expect(ground[0]).toBeLessThanOrEqual(1500);
+    for (let i = 1; i < ground.length; i++) expect(ground[i] - ground[i - 1], `寶箱 ${ground[i - 1]} → ${ground[i]}`).toBeLessThanOrEqual(3000);
+    expect(ground[ground.length - 1]).toBeLessThan(L.boss!.lockScrollX);
+  });
+
+  test('地上的寶箱不在危險的地面、壓力板、冰柱、彈跳墊上', () => {
+    const bad = [...L.thorns, ...(L.sand ?? []), ...(L.lava ?? []), ...(L.water?.gaps ?? [])];
+    for (const c of L.chests.filter((c) => c.bottom === GROUND_Y)) {
+      for (const z of bad) expect(c.x + 30 < z.x || c.x - 30 > z.x + z.w, `寶箱 ${c.x} 在 ${z.x}`).toBe(true);
+      for (const p of L.plates ?? []) for (const x of [p.x, ...p.drops]) expect(Math.abs(c.x - x), `寶箱 ${c.x} 壓力板 ${x}`).toBeGreaterThan(60);
+      for (const x of L.icicles ?? []) expect(Math.abs(c.x - x), `寶箱 ${c.x} 冰柱 ${x}`).toBeGreaterThan(60);
+      for (const s of L.springs ?? []) expect(Math.abs(c.x - s.x), `寶箱 ${c.x} 彈跳墊 ${s.x}`).toBeGreaterThan(70);
+    }
+  });
 });
 
 test('1-1:高處寶箱跳得上去、前面有教學告示牌', () => {

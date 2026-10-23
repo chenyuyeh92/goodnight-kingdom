@@ -76,6 +76,8 @@ export const DUNES: LevelDef = {
   // 檢查點都在戰鬥區鎖住的畫面(A 2400–3360、B 6200–7160)之外,也不在流沙與仙人掌上。
   checkpoints: [150, 2160, 4060, 5960, 7880, 9100],
   chests: [
+    { x: 5550, bottom: GROUND_Y },
+    { x: 2750, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
     { x: 7950, bottom: GROUND_Y },

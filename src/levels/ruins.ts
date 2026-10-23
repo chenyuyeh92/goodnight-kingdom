@@ -58,6 +58,8 @@ export const RUINS: LevelDef = {
   ],
   checkpoints: [150, 2400, 3980, 5900, 8100, 9050],
   chests: [
+    { x: 5800, bottom: GROUND_Y },
+    { x: 3000, bottom: GROUND_Y },
     { x: 600, bottom: GROUND_Y },
     { x: 4780, bottom: 130 },
     { x: 7650, bottom: GROUND_Y },

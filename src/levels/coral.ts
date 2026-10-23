@@ -50,6 +50,8 @@ export const CORAL: LevelDef = {
   ],
   checkpoints: [150, 2100, 4100, 6100, 8100, 9100],
   chests: [
+    { x: 5800, bottom: GROUND_Y },
+    { x: 3000, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4780, bottom: 180 },
     { x: 7950, bottom: GROUND_Y },

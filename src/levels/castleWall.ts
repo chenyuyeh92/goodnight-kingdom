@@ -75,6 +75,8 @@ export const CASTLE_WALL: LevelDef = {
   thorns: [],
   checkpoints: [150, 2160, 4060, 5960, 7880, 9100],
   chests: [
+    { x: 5900, bottom: GROUND_Y },
+    { x: 3000, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
     { x: 7950, bottom: GROUND_Y },

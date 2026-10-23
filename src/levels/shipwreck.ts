@@ -58,6 +58,8 @@ export const SHIPWRECK: LevelDef = {
   ],
   checkpoints: [150, 2160, 4060, 5960, 7880, 9100],
   chests: [
+    { x: 5750, bottom: GROUND_Y },
+    { x: 2950, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4670, bottom: 160 },
     { x: 7950, bottom: GROUND_Y },

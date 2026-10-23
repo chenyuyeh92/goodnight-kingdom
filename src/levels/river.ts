@@ -84,6 +84,8 @@ export const RIVER: LevelDef = {
   // 檢查點都在地面上(不在河溝),也不在戰鬥區(A 2400–3360、B 6200–7160)的畫面裡。
   checkpoints: [150, 2100, 4100, 6000, 7880, 9100],
   chests: [
+    { x: 5800, bottom: GROUND_Y },
+    { x: 3000, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
     { x: 7950, bottom: GROUND_Y },

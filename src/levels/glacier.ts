@@ -66,6 +66,8 @@ export const GLACIER: LevelDef = {
   ],
   checkpoints: [150, 2400, 3880, 6250, 8100, 9050],
   chests: [
+    { x: 5700, bottom: GROUND_Y },
+    { x: 3000, bottom: GROUND_Y },
     { x: 600, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
     { x: 7650, bottom: GROUND_Y },
