@@ -44,5 +44,7 @@
 | `public/assets/enemies/w*-boss*.png`（小頭目與 8-3、9-3、10-3 關主）、`public/assets/bullets/w1-*`～`w10-*` Boss 攻擊道具 | 小頭目本機 ComfyUI 生成（睡著版照醒著版修改），`docs/art/tools/process_bosses.py` 處理；攻擊道具程式繪製 | Nova Cartoon XL v6.0＋Chibi Animal V2（強度 0.9） | 見上表；程式繪製的部分沒有第三方授權問題 | 2026-10-22 |
 | `public/assets/enemies/w2-*`～`w10-*` 的 `-walk-`、`-flap-`、`-swim-`、`-bounce-` 動畫格 | 用現有素材以程式變形（`docs/art/tools/make_anim_all.py`） | 同原圖 | 同原圖 | 2026-10-22 |
 | `public/assets/enemies/w8-*`、`w9-*`、`w10-*`（小怪、中階）、`public/assets/backgrounds/w8-*`、`w9-*`、`w10-*`（遠景）、`public/assets/items/w8-*`、`w9-*`、`w10-*` | 本機 ComfyUI 生成魔物與遠景，`docs/art/tools/process_worlds8910.py` 處理；中景、近景、機關程式繪製 | Nova Cartoon XL v6.0（魔物加 Chibi Animal V2） | 見上表；程式繪製的部分沒有第三方授權問題 | 2026-10-22 |
+| `public/assets/weapons/yarn-ball.png` 等 4 把新武器、`public/assets/story/*`（castle-roof、nightmare-closet、nightmare-lunch、nightmare-gate、guards-back、opening-3、ending-3、ending-9、ending-10） | 本機 ComfyUI 生成，`docs/art/tools/process_story.py` 處理與合成 | Nova Cartoon XL v6.0（守衛背影、ending-10 加 Chibi Animal V2） | 見上表 | 2026-10-23 |
+| `public/assets/bullets/yarn-ball.png`、`marshmallow.png`、`hypno-wave.png`、`meteor.png`、`public/assets/story/tapir-silhouette.png`、`town-houses.png`、`nightmare-exam.png`、`nightmare-cup.png`、`nightmare-lost.png` | 程式繪製（`docs/art/tools/make_story.py`、`process_story.py`） | 無 | 自己畫的，沒有第三方授權問題 | 2026-10-23 |
 
 備註：純 AI 生成的圖，著作權保護在各國都還不明確（見企劃文件 8.3）。
