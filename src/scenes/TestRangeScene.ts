@@ -6,6 +6,7 @@ import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../ga
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
 import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
+import { WORLD_FODDER, addArenaFodder, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../game/fodder';
 import { NO_COMBO, RECOIL_VX, RECOIL_WEAPONS, comboDefeat, comboStyle, comboTick, knockbackSpeed, type Combo } from '../game/feel';
 import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
@@ -573,6 +574,11 @@ export class TestRangeScene extends Phaser.Scene {
   private combo: Combo = { ...NO_COMBO };
   private comboText!: Phaser.GameObjects.Text;
   private banner: Phaser.GameObjects.Text | null = null;
+  /** 雜魚:魔王叫雜魚的計時、魔王叫的(還在場上的)、叫了幾次、零星雜魚多生了幾隻跟班。 */
+  private bossFodder: BossFodder = initialBossFodder();
+  private bossFodderSet = new Set<EnemyEntity>();
+  private bossCalls = 0;
+  private echoes = 0;
   /** 夢貘的大惡夢:月光在哪、多寬,畫面上的東西。 */
   private nightmare: { safeX: number; halfW: number; views: Phaser.GameObjects.GameObject[] } | null = null;
   private nightmareHits = 0;
@@ -611,7 +617,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.initData = data ?? {};
     if (data?.getTuning) this.getTuning = data.getTuning;
     this.mode = data?.mode ?? 'single';
-    this.level = LEVELS[data?.level ?? 'forest'];
+    const level = LEVELS[data?.level ?? 'forest'];
+    // 戰鬥區每一波多兩隻這個世界的雜魚。
+    this.level = { ...level, arenas: addArenaFodder(level.arenas, level.world) };
     this.checkpointX = data?.checkpointX ?? START_X;
     this.restarts = data?.restarts ?? 0;
     this.testHooks = data?.testHooks ?? false;
@@ -786,6 +794,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.knocks = 0;
     this.combo = { ...NO_COMBO };
     this.banner = null;
+    this.bossFodder = initialBossFodder();
+    this.bossFodderSet = new Set();
+    this.bossCalls = 0;
+    this.echoes = 0;
     this.makeSparkTexture();
     this.nightmare = null;
     this.nightmareHits = 0;
@@ -1699,7 +1711,16 @@ export class TestRangeScene extends Phaser.Scene {
     });
     this.encounters = step.state;
     this.lockScrollX = step.lockScrollX;
-    for (const s of step.spawns) this.spawnFrom(s.spec, s.arena);
+    for (const s of step.spawns) {
+      this.spawnFrom(s.spec, s.arena);
+      // 零星的雜魚一次來一群:多兩隻跟班,晚一點出來。
+      if (s.arena || !isFodder(this.level.world, s.spec.type)) continue;
+      for (const echo of fodderEchoes(s.spec)) {
+        this.echoes += 1;
+        // 關主戰開始時會把路上的魔物收掉,還沒出來的跟班也不出來。
+        this.time.delayedCall(echo.delayMs, () => void (this.bossTriggered || this.spawnFrom(echo, false)));
+      }
+    }
     if (wasLocked && this.lockScrollX === null) this.goHintUntil = time + GO_HINT_MS;
 
     const active = this.encounters.active;
@@ -1902,6 +1923,7 @@ export class TestRangeScene extends Phaser.Scene {
     const boss = this.boss;
     if (!boss) return;
     for (const m of [...boss.minions]) if (!this.enemies.includes(m)) boss.minions.delete(m);
+    this.updateBossFodder(boss, dtMs);
     const ai = boss.ai;
     if (ai.kind === 'owl') this.updateOwl(boss, ai, dtMs, time);
     else if (ai.kind === 'sphinx') this.updateSphinx(boss, ai, dtMs);
@@ -3154,6 +3176,33 @@ export class TestRangeScene extends Phaser.Scene {
     this.cameras.main.shake(80, 0.002);
   }
 
+  /** 魔王戰每隔幾秒從左右輪流叫一群雜魚(地 2 飛 1);夢貘集氣時不叫。 */
+  private updateBossFodder(boss: Boss, dtMs: number): void {
+    for (const e of [...this.bossFodderSet]) if (!this.enemies.includes(e)) this.bossFodderSet.delete(e);
+    const f = WORLD_FODDER[this.level.world];
+    if (!f) return;
+    const r = stepBossFodder(this.bossFodder, {
+      phase: boss.enemy.bossPhase,
+      alive: this.bossFodderSet.size,
+      paused: this.physics.world.isPaused || this.nightmare !== null || this.bossDefeated,
+      dtMs,
+    });
+    this.bossFodder = r.state;
+    if (r.count === 0) return;
+    this.bossCalls += 1;
+    const group = [
+      { type: f.ground, delayMs: 0 },
+      { type: f.flying, delayMs: 150 },
+      { type: f.ground, delayMs: 300 },
+    ].slice(0, r.count);
+    for (const g of group) {
+      this.time.delayedCall(g.delayMs, () => {
+        if (this.bossDefeated || !this.boss) return;
+        this.bossFodderSet.add(this.spawnFrom({ type: g.type, from: r.side, delayMs: 0 }, false));
+      });
+    }
+  }
+
   /** 打倒一隻:2 秒內接連打倒就累加,右上角的字彈一下;最多的記進統計。 */
   private addCombo(): void {
     this.combo = comboDefeat(this.combo);
@@ -3474,6 +3523,7 @@ export class TestRangeScene extends Phaser.Scene {
       stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
       wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
       darkness: { alpha: this.darkAlpha, lights: this.lightCount, blackout: this.blackoutMs > 0 },
+      fodder: { bossAlive: this.bossFodderSet.size, bossCalls: this.bossCalls, echoes: this.echoes },
       feel: {
         sparks: this.sparks,
         flashes: this.flashes,

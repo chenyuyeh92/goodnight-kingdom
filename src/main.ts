@@ -143,6 +143,8 @@ export interface GkDebug {
   /** 世界 10:收集到的星星與總數、孔雀開屏後左右顛倒中、夢貘正在吸、每位玩家被麻糬黏住變慢中、夢貘大惡夢的月光(集氣中才有)與打中幾次。 */
   /** 手感:噴過幾次火花、槍口閃光幾次、魔物被打退幾次、連續哄睡(現在與最多)、畫面中央的大字。 */
   feel?: { sparks: number; flashes: number; knocks: number; combo: number; bestCombo: number; banner: string | null };
+  /** 雜魚:魔王叫的還在場上的數量、魔王叫了幾次、零星雜魚多生了幾隻跟班。 */
+  fodder?: { bossAlive: number; bossCalls: number; echoes: number };
   w10?: { stars: number; starsTotal: number; reversed: boolean; inhaling: boolean; slowed: boolean[]; mochiHits: number; pulls: number; nightmare: { safeX: number; halfW: number } | null; nightmareHits: number };
   /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
   desert?: { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number };
