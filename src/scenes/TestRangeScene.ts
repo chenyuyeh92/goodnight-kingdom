@@ -1062,6 +1062,24 @@ export class TestRangeScene extends Phaser.Scene {
       g.destroy();
       return;
     }
+    // 海底的高礁石:圓圓的石頭,上面長珊瑚、身上有斑點(不是一塊方板子)。
+    if (this.level.underwater && t.h > 40) {
+      const rr = Math.min(22, t.w / 2);
+      g.fillStyle(COLOR.outline).fillRoundedRect(t.x - 3, t.y - 3, t.w + 6, t.h + 6, rr + 3);
+      g.fillStyle(this.palette.platform).fillRoundedRect(t.x, t.y, t.w, t.h, rr);
+      g.fillStyle(this.palette.rim, 0.35).fillRoundedRect(t.x + 6, t.y + 6, t.w / 3, t.h - 12, rr / 2);
+      g.fillStyle(this.palette.ground, 0.5);
+      for (let y = t.y + 24; y < t.y + t.h - 16; y += 34) {
+        g.fillCircle(t.x + t.w * 0.65, y, 6);
+        g.fillCircle(t.x + t.w * 0.35, y + 17, 4);
+      }
+      // 長在礁石頂端(或垂下來的礁石底端)的小珊瑚。
+      const tip = t.y === 0 ? t.y + t.h : t.y;
+      const dir = t.y === 0 ? 1 : -1;
+      g.fillStyle(0xff8aa0);
+      for (const dx of [0.25, 0.55, 0.8]) g.fillCircle(t.x + t.w * dx, tip + dir * 4, 5);
+      return;
+    }
     const r = Math.min(8, t.h / 2);
     g.fillStyle(COLOR.outline).fillRoundedRect(t.x - 2, t.y - 2, t.w + 4, t.h + 4, r + 2);
     g.fillStyle(this.palette.platform).fillRoundedRect(t.x, t.y, t.w, t.h, r);
