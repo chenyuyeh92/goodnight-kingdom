@@ -17,6 +17,10 @@ export interface ProjectileHit {
   damage: number;
   vx: number;
   vy: number;
+  /** 打到時子彈的位置與顏色(噴火花用)。 */
+  x: number;
+  y: number;
+  color: number;
 }
 
 /** 命中處理的結果:consumed 一般命中、blocked 被刺盾擋下、ignored 不算(例如正在冒出的魔物)。 */
@@ -156,7 +160,7 @@ export class ProjectileSystem {
     const returning = this.scene.time.now - p.bornAt >= BOOMERANG_OUT_MS;
     if (boomerang && p.blockedOut.has(target) && !returning) return;
     const v = (p.shape.body as Phaser.Physics.Arcade.Body).velocity;
-    const result = this.onHit(target, { damage: p.def.damage, vx: v.x, vy: v.y });
+    const result = this.onHit(target, { damage: p.def.damage, vx: v.x, vy: v.y, x: p.shape.x, y: p.shape.y, color: p.def.color });
     if (result === 'ignored') return;
     if (result === 'blocked' && boomerang) {
       // 迴力鏢被正面擋下時不消失,繼續飛,回程打背後;回程又被擋下就不再碰這隻(不會每一格都磨盾牌)。

@@ -4,6 +4,7 @@ import { ENEMY_DEFS, SHIELD_HP, initialBrain, stepEnemy, type EnemyBrain, type E
 import { ART_FACES_RIGHT, ENEMY_ART_SCALE, ENEMY_ART_TINT, SPRITES, enemySprite, type ArtKey } from '../art/sprites';
 import { IDLE, enemyPose } from '../art/motion';
 import { animFrame, enemyFrame } from '../art/frames';
+import { KNOCK_MS, SQUASH, SQUASH_MS } from './feel';
 
 const SHIELD_W = 3;
 const SHIELD_ALPHA = 0.5;
@@ -32,6 +33,10 @@ export class EnemyEntity {
   baseTint: number | undefined = undefined;
   /** 圖再放大幾倍(夢貘每個階段越來越大)。 */
   artScaleMul = 1;
+  /** 被打中往後退(到 knockUntil 之前每格加上這個水平速度)、壓扁到什麼時候。 */
+  private knockVx = 0;
+  private knockUntil = 0;
+  private squashUntil = 0;
   private shield: Phaser.GameObjects.Rectangle | null;
   /** 美術圖;沒載入時為 null,改顯示色塊。 */
   private readonly art: Phaser.GameObjects.Image | null;
@@ -160,9 +165,27 @@ export class EnemyEntity {
     }
     // 躲進地洞:身體壓扁貼在地上,只露出頭頂。
     const squash = this.burrowed ? BURROW_SCALE_Y : 1;
-    this.art.setScale(base * pose.scaleX, base * pose.scaleY * squash).setAngle(pose.angle);
+    const hit = this.scene.time.now < this.squashUntil;
+    const sx = hit ? SQUASH.x : 1;
+    const sy = hit ? SQUASH.y : 1;
+    this.art.setScale(base * pose.scaleX * sx, base * pose.scaleY * squash * sy).setAngle(pose.angle);
     // 變色龍躲起來時幾乎看不到(還是打得到、碰到會痛)。
     this.art.setAlpha(this.body.alpha * (this.brain.phase === 'hide' ? CAMOUFLAGE_ALPHA : 1));
+  }
+
+  /** 被打中:往子彈方向退一下、壓扁一下。 */
+  knock(vx: number): void {
+    const now = this.scene.time.now;
+    this.knockVx = vx;
+    this.knockUntil = now + KNOCK_MS;
+    this.squashUntil = now + SQUASH_MS;
+  }
+
+  /** 魔物自己的動作設好速度之後呼叫:退後的那段時間加上退後的速度。 */
+  applyKnock(): void {
+    if (this.scene.time.now >= this.knockUntil) return;
+    const pb = this.physicsBody();
+    pb.setVelocityX(pb.velocity.x + this.knockVx);
   }
 
   destroy(): void {

@@ -5,7 +5,8 @@ import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
-import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId } from '../game/weapons';
+import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
+import { RECOIL_VX, RECOIL_WEAPONS, knockbackSpeed } from '../game/feel';
 import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
@@ -154,6 +155,12 @@ const STAR_R = 12;
 const INHALE_FX_MS = 90;
 /** 離夢貘這麼近(圖的半寬再加這些)就不再吸。 */
 const INHALE_STOP_GAP = 30;
+/** 手感:火花貼圖(白色小圓點,用 tint 上色)、火花與槍口閃光多久、被擋的火花顏色、打倒噴的星星顏色。 */
+const SPARK_KEY = 'gk-spark';
+const SPARK_MS = 260;
+const MUZZLE_FLASH_MS = 60;
+const BLOCKED_SPARK = 0xb0b0c0;
+const DEFEAT_STAR = 0xffe08a;
 /** 大惡夢的月光離王座左邊、夢貘多遠,與離玩家至少多遠(要走過去才躲得到)。 */
 const NIGHTMARE_EDGE = 100;
 const NIGHTMARE_MIN_MOVE = 180;
@@ -555,6 +562,10 @@ export class TestRangeScene extends Phaser.Scene {
   private slowMs: number[] = [];
   private mochiHits = 0;
   private pulls = 0;
+  /** 手感的計數(測試用):噴火花、槍口閃光、魔物被打退。 */
+  private sparks = 0;
+  private flashes = 0;
+  private knocks = 0;
   /** 夢貘的大惡夢:月光在哪、多寬,畫面上的東西。 */
   private nightmare: { safeX: number; halfW: number; views: Phaser.GameObjects.GameObject[] } | null = null;
   private nightmareHits = 0;
@@ -763,6 +774,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.slowMs = this.players.map(() => 0);
     this.mochiHits = 0;
     this.pulls = 0;
+    this.sparks = 0;
+    this.flashes = 0;
+    this.knocks = 0;
+    this.makeSparkTexture();
     this.nightmare = null;
     this.nightmareHits = 0;
     this.createStars();
@@ -949,6 +964,7 @@ export class TestRangeScene extends Phaser.Scene {
       if (p.jumped) audio.sfx('jump');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
+        this.muzzleFlash(p, r.weapon);
         audio.sfx(SHOOT_SFX[r.weapon.id], r.weapon.id === 'lullabyHarp' ? HARP_PITCH[Math.floor(Math.random() * HARP_PITCH.length)] : 1);
       }
       else if (r.kind === 'melee') this.performMelee(r.reach);
@@ -1121,6 +1137,18 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 柔和的光圈(中間全亮、往外慢慢變暗),擦黑暗遮罩用;半徑 LIGHT_TEX_R。 */
+  private makeSparkTexture(): void {
+    if (this.textures.exists(SPARK_KEY)) return;
+    const tex = this.textures.createCanvas(SPARK_KEY, 8, 8);
+    if (!tex) return;
+    const ctx = tex.getContext();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(4, 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+    tex.refresh();
+  }
+
   private makeLightTexture(): void {
     if (this.textures.exists(LIGHT_KEY)) return;
     const size = LIGHT_TEX_R * 2;
@@ -1835,6 +1863,7 @@ export class TestRangeScene extends Phaser.Scene {
         null,
       );
       const spit = e.update(nearest ? nearest.x : null, nearest ? nearest.feetY - 20 : null, dtMs, t.gravity);
+      e.applyKnock();
       if (e.def.type === 'octopus') this.keepOnScreen(e);
       if (spit) this.shots.fire(e.x, e.def.flying ? e.body.y : e.body.y - e.def.h / 2, spit.vx, spit.vy, e.def.type === 'snowman' ? 'snow' : 'coffee', spit.gravity);
       e.render();
@@ -3092,19 +3121,52 @@ export class TestRangeScene extends Phaser.Scene {
     }
   }
 
+  /** 開槍:槍口閃一下(武器顏色);重武器往後頓一下、畫面輕震。 */
+  private muzzleFlash(p: PlayerEntity, weapon: WeaponDef): void {
+    const m = p.muzzlePoint();
+    const flash = this.add.circle(m.x, m.y, 10, weapon.color, 0.9).setDepth(6);
+    this.tweens.add({ targets: flash, scale: 1.6, alpha: 0, duration: MUZZLE_FLASH_MS, onComplete: () => flash.destroy() });
+    this.flashes += 1;
+    if (!RECOIL_WEAPONS.has(weapon.id)) return;
+    const pb = p.body();
+    pb.setVelocityX(pb.velocity.x - p.motor.facing * RECOIL_VX);
+    this.cameras.main.shake(80, 0.002);
+  }
+
+  /** 從 (x, y) 往四周噴小光點後淡出(打中火花、打倒的星星)。 */
+  private sparkBurst(x: number, y: number, color: number, count: number, speed: number): void {
+    this.sparks += 1;
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + Math.random() * 0.6;
+      const d = speed * (0.25 + Math.random() * 0.15);
+      const dot = this.add.image(x, y, SPARK_KEY).setTint(color).setDepth(6).setScale(0.6 + Math.random() * 0.5);
+      this.tweens.add({ targets: dot, x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, alpha: 0, scale: 0.2, duration: SPARK_MS, onComplete: () => dot.destroy() });
+    }
+  }
+
   /** 子彈命中:刺盾擋下、扣血、打倒;正在冒出的魔物與已倒下的靶不算。 */
   private onProjectileHit(obj: Phaser.GameObjects.GameObject, hit: ProjectileHit): HitResult {
     const enemy = this.enemyFor(obj);
     if (enemy) {
       if (enemy.emerging || enemy.hp <= 0 || this.isInvulnerable(enemy)) return 'ignored';
-      if (this.blockedBy(enemy, hit.vx, hit.vy, hit.damage)) return 'blocked';
+      if (this.blockedBy(enemy, hit.vx, hit.vy, hit.damage)) {
+        this.sparkBurst(hit.x, hit.y, BLOCKED_SPARK, 4, 90);
+        return 'blocked';
+      }
       audio.sfx('hit');
+      this.sparkBurst(hit.x, hit.y, hit.color, 5, 110);
+      // 小魔物往子彈方向退一下、壓扁一下;關主不退。
+      if (enemy !== this.boss?.enemy && enemy.def.tier !== 'boss') {
+        enemy.knock(Math.sign(hit.vx) * knockbackSpeed(hit.damage));
+        this.knocks += 1;
+      }
       this.damageEnemy(enemy, hit.damage);
       if (enemy.def.type === 'puffer') enemy.brain = pufferHit(enemy.brain);
       return 'consumed';
     }
     const target = this.targets.find((t) => t.rect === obj);
     if (!target || target.hp <= 0) return 'ignored';
+    this.sparkBurst(hit.x, hit.y, hit.color, 5, 110);
     this.hitTarget(target, hit.damage);
     return 'consumed';
   }
@@ -3117,6 +3179,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.enemiesDefeated += 1;
     audio.sfx('sleep');
     this.playDefeatEffect(enemy.body.x, enemy.body.y, impactScale);
+    this.sparkBurst(enemy.body.x, enemy.body.y, DEFEAT_STAR, 8, 160);
     this.sleepAway(enemy, false);
     const drop = this.riggedDrop ?? rollDrop(Math.random);
     this.riggedDrop = null;
@@ -3343,6 +3406,7 @@ export class TestRangeScene extends Phaser.Scene {
       stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
       wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
       darkness: { alpha: this.darkAlpha, lights: this.lightCount, blackout: this.blackoutMs > 0 },
+      feel: { sparks: this.sparks, flashes: this.flashes, knocks: this.knocks },
       w10: {
         stars: this.collectedStarIndexes().length,
         starsTotal: this.stars.length,

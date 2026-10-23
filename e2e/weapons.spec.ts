@@ -65,6 +65,26 @@ test.describe('武器', () => {
     expect(s.players![1].held).not.toBeNull();
   });
 
+  test('打中小魔物會退後一點並噴火花;開槍有槍口閃光', async ({ page }) => {
+    await open(page);
+    await spawn(page, 'mummyCat', 400);
+    await hold(page, 'KeyC', 60);
+    await page.waitForFunction(() => window.__GK__!.feel!.knocks >= 1, undefined, { timeout: 2000 });
+    const f = (await gk(page)).feel!;
+    expect(f.sparks).toBeGreaterThanOrEqual(1);
+    expect(f.flashes).toBeGreaterThanOrEqual(1);
+  });
+
+  test('刺蝟正面擋下只噴灰火花、不退後', async ({ page }) => {
+    await open(page);
+    await spawn(page, 'hedgehog', 300);
+    await hold(page, 'KeyC', 60);
+    await page.waitForFunction(() => (window.__GK__!.blockedShots ?? 0) > 0, undefined, { timeout: 2000 });
+    const f = (await gk(page)).feel!;
+    expect(f.sparks).toBeGreaterThanOrEqual(1);
+    expect(f.knocks).toBe(0);
+  });
+
   test('數羊機槍射得比泡泡快並扣彈藥', async ({ page }) => {
     await open(page);
     await give(page, 'sheepGun');
@@ -122,7 +142,8 @@ test.describe('武器', () => {
     await hold(page, 'KeyC', 60);
     expect((await gk(page)).bullets).toBe(1);
     await page.waitForFunction(() => window.__GK__!.bullets === 0, undefined, { timeout: 1500 });
-    expect((await gk(page)).players![0].x).toBe(x0);
+    // 開火時有一點後座力(往後頓幾 px),但不會一直往後滑。
+    expect(Math.abs((await gk(page)).players![0].x - x0)).toBeLessThanOrEqual(5);
   });
 
   test('迴力鏢去程被刺盾擋,回程打到刺蝟背後', async ({ page }) => {
