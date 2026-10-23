@@ -7,6 +7,7 @@ import type { PlateDef } from '../game/traps';
 import type { Current } from '../game/currents';
 import type { Vine } from '../game/vine';
 import type { SpriteKey } from '../art/sprites';
+import type { MoverDef } from '../game/gadgets';
 
 export type BossType = Extract<
   EnemyType,
@@ -115,6 +116,12 @@ export interface LevelDef {
   stampedes?: readonly Span[];
   /** 平台用美術的圖畫(世界 4 的雪堆平台、世界 5 的岩石平台、世界 6 的木頭平台、世界 7 的岩石平台)。 */
   platformArt?: 'snow-platform' | 'rock-platform' | 'log-platform' | 'savanna-platform' | 'cloud-platform' | 'mine-platform' | 'moon-platform';
+  /** 移動平台:左右或上下來回,站在上面會被載著走。 */
+  movers?: readonly MoverDef[];
+  /** 彈跳墊:x 是中心,y 是墊子頂端(預設在地面上);從上面踩到就彈很高。 */
+  springs?: readonly { x: number; y?: number }[];
+  /** 會掉的平台:站上去抖一下就掉下去,過幾秒長回來。 */
+  crumbles?: readonly Rect[];
   /** 路邊的教學告示牌。 */
   hints?: readonly { x: number; kind: HintKind }[];
 }
