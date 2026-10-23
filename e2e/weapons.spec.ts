@@ -91,7 +91,8 @@ test.describe('武器', () => {
 
   test('迴力鏢去程被刺盾擋,回程打到刺蝟背後', async ({ page }) => {
     await open(page);
-    await spawn(page, 'hedgehog', 320);
+    // 近一點:迴力鏢一定飛過刺蝟背後才折回(遠的時候可能在刺蝟正前方就折回,回程又被擋)。
+    await spawn(page, 'hedgehog', 260);
     await give(page, 'blanketBoomerang');
     await hold(page, 'KeyC', 60);
     // 迴力鏢一下 6 點,刺蝟(6 血)回程被打到就睡著。
