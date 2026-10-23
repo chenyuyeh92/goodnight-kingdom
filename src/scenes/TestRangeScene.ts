@@ -5,11 +5,11 @@ import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
-import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
+import { BASE_LOADOUT, MAX_STARS, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
 import { GadgetSystem } from '../game/gadgetSystem';
 import { WORLD_FODDER, addArenaFodder, bossFodderSide, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../game/fodder';
 import { NO_COMBO, RECOIL_VX, RECOIL_WEAPONS, comboDefeat, comboStyle, comboTick, knockbackSpeed, type Combo } from '../game/feel';
-import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
+import { chestRatesText, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
 import { weaponHud } from '../game/hud';
@@ -1791,22 +1791,18 @@ export class TestRangeScene extends Phaser.Scene {
     const result = this.riggedChest ? resultFor(this.riggedChest, owned) : openChest(Math.random, owned);
     this.riggedChest = null;
     this.lastChest = result.kind;
-    if (result.kind === 'maxed') {
-      this.dropItem('milkBottle', chest.rect.x, chest.rect.y - CHEST_H);
-    } else {
-      this.save.setStars(result.weapon, result.stars);
-      this.stats = { ...this.stats, weaponsGot: addWeapon(this.stats.weaponsGot, result.weapon) };
-      p.loadout = equip(result.weapon, result.stars);
-      const w = WEAPONS[result.weapon];
-      this.showBanner(`${w.rarity} ${w.name}!`, BANNER_COLOR[w.rarity], 36, w.rarity === 'SSR');
-    }
+    // 已滿三星也照樣拿到這把武器(彈藥裝滿)。
+    const stars = result.kind === 'maxed' ? MAX_STARS : result.stars;
+    if (result.kind !== 'maxed') this.save.setStars(result.weapon, result.stars);
+    this.stats = { ...this.stats, weaponsGot: addWeapon(this.stats.weaponsGot, result.weapon) };
+    p.loadout = equip(result.weapon, stars);
+    const w = WEAPONS[result.weapon];
+    this.showBanner(`${w.rarity} ${w.name}!`, BANNER_COLOR[w.rarity], 36, w.rarity === 'SSR');
 
-    const def = WEAPONS[result.weapon];
-    const stars = result.kind === 'maxed' ? 3 : result.stars;
-    const line = `${def.rarity} ${def.name} ${'★'.repeat(stars)}${result.kind === 'maxed' ? '(已滿,改給牛奶瓶)' : ''}`;
-    const rates = `機率 R ${CHEST_RATES.R * 100}% / SR ${CHEST_RATES.SR * 100}% / SSR ${CHEST_RATES.SSR * 100}%`;
+    const line = `${w.rarity} ${w.name} ${'★'.repeat(stars)}${result.kind === 'maxed' ? '(已滿三星)' : ''}`;
+    const rates = chestRatesText();
     const title = this.add
-      .text(chest.rect.x, chest.rect.y - 96, line, { fontSize: '20px', color: RARITY_COLOR[def.rarity] })
+      .text(chest.rect.x, chest.rect.y - 96, line, { fontSize: '20px', color: RARITY_COLOR[w.rarity] })
       .setOrigin(0.5)
       .setDepth(8);
     const sub = this.add.text(chest.rect.x, chest.rect.y - 74, rates, { fontSize: '12px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(8);

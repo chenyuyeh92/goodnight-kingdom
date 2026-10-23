@@ -6,7 +6,6 @@ import { formatDuration } from '../game/runStats';
 import { LEVELS } from '../levels';
 import type { LevelId } from '../levels/levelDef';
 import type { TestRangeData } from './TestRangeScene';
-import { startLevel } from './LoadoutScene';
 import { onMenuKey } from './menuKeys';
 import { TEST_TOOLS, setTestMode, testModeOn } from '../config/testTools';
 import { menuButton, smallButton } from './menuButton';
@@ -103,7 +102,7 @@ export class LevelSelectScene extends Phaser.Scene {
     if (!unlocked) return;
     const level = LEVELS[id];
     const boss = atBoss && level.boss ? { checkpointX: Math.max(...level.checkpoints), arenasCleared: level.arenas.length } : {};
-    startLevel(this, { ...this.data_, level: id, ...boss });
+    this.scene.start('TestRange', { ...this.data_, level: id, ...boss });
   }
 
   private toggleTest(): void {

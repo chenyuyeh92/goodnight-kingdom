@@ -1,7 +1,18 @@
 import { MAX_STARS, SPECIAL_WEAPONS, WEAPONS, type SpecialWeaponId } from './weapons';
 
-/** 寶箱機率,開箱時在畫面上公開顯示。 */
-export const CHEST_RATES: Readonly<Record<'R' | 'SR' | 'SSR', number>> = { R: 0.7, SR: 0.25, SSR: 0.05 };
+/** 寶箱機率 R:SR:SSR = 60:40:20(換算成 50% / 33% / 17%),開箱時在畫面上公開顯示。 */
+const CHEST_WEIGHTS = { R: 60, SR: 40, SSR: 20 } as const;
+const WEIGHT_SUM = CHEST_WEIGHTS.R + CHEST_WEIGHTS.SR + CHEST_WEIGHTS.SSR;
+export const CHEST_RATES: Readonly<Record<'R' | 'SR' | 'SSR', number>> = {
+  R: CHEST_WEIGHTS.R / WEIGHT_SUM,
+  SR: CHEST_WEIGHTS.SR / WEIGHT_SUM,
+  SSR: CHEST_WEIGHTS.SSR / WEIGHT_SUM,
+};
+
+export function chestRatesText(): string {
+  const pct = (r: number): number => Math.round(r * 100);
+  return `機率 R ${pct(CHEST_RATES.R)}% / SR ${pct(CHEST_RATES.SR)}% / SSR ${pct(CHEST_RATES.SSR)}%`;
+}
 
 export function rollRarity(r: number): 'R' | 'SR' | 'SSR' {
   if (r < CHEST_RATES.R) return 'R';

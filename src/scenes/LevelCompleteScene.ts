@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { audio } from '../audio/audio';
 import { sessionData, type TestRangeData } from './TestRangeScene';
-import { startLevel } from './LoadoutScene';
 import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
 import type { LevelId } from '../levels/levelDef';
@@ -67,11 +66,11 @@ export class LevelCompleteScene extends Phaser.Scene {
   }
 
   private replay(): void {
-    startLevel(this, sessionData(this.data_));
+    this.scene.start('TestRange', sessionData(this.data_));
   }
 
   private playNext(next: LevelId): void {
-    startLevel(this, { ...sessionData(this.data_), level: next });
+    this.scene.start('TestRange', { ...sessionData(this.data_), level: next });
   }
 
   private menu(): void {

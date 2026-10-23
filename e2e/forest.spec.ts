@@ -240,61 +240,27 @@ test.describe('出發前選武器', () => {
     await page.waitForFunction(() => window.__GK__!.screen === 'range');
   });
 
-  test('單人選武器後帶著上場', async ({ page }) => {
+  test('背包裡有武器也不用選:直接進關卡,只帶哈欠泡泡(武器要在關卡裡開寶箱拿)', async ({ page }) => {
     await openMenu(page, SHEEP_SAVE);
     await pickMode(page, 'Digit1');
-    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
-    const s = await gk(page);
-    expect(s.loadoutFor).toBe('A');
-    expect(s.loadoutOptions![0]).toContain('哈欠泡泡');
-    expect(s.loadoutOptions![1]).toContain('數羊機槍');
-    await page.keyboard.press('Digit2');
-    await page.waitForFunction(() => window.__GK__!.screen === 'range');
-    const p = (await gk(page)).players![0];
-    expect(p.weapon).toBe('sheepGun');
-    expect(p.ammo).toBe(150);
-  });
-
-  test('雙人兩人可以選同一把', async ({ page }) => {
-    await openMenu(page, SHEEP_SAVE);
-    await pickMode(page, 'Digit2');
-    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
-    await page.keyboard.press('Digit2');
-    await page.waitForFunction(() => window.__GK__!.loadoutFor === 'B');
-    await page.keyboard.press('Digit2');
-    await page.waitForFunction(() => window.__GK__!.screen === 'range');
-    const ps = (await gk(page)).players!;
-    expect(ps.map((p) => [p.weapon, p.ammo])).toEqual([
-      ['sheepGun', 150],
-      ['sheepGun', 150],
-    ]);
-  });
-
-  test('選只帶哈欠泡泡', async ({ page }) => {
-    await openMenu(page, SHEEP_SAVE);
-    await pickMode(page, 'Digit1');
-    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
-    await page.keyboard.press('Digit1');
     await page.waitForFunction(() => window.__GK__!.screen === 'range');
     expect((await gk(page)).players![0].weapon).toBe('yawnBubble');
   });
 
-  test('用上下鍵移動再確認', async ({ page }) => {
+  test('雙人也直接進關卡,兩人都只帶哈欠泡泡', async ({ page }) => {
     await openMenu(page, SHEEP_SAVE);
-    await pickMode(page, 'Digit1');
-    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
-    await page.keyboard.press('KeyS');
-    await page.keyboard.press('Enter');
+    await pickMode(page, 'Digit2');
     await page.waitForFunction(() => window.__GK__!.screen === 'range');
-    expect((await gk(page)).players![0].weapon).toBe('sheepGun');
+    expect((await gk(page)).players!.map((p) => p.weapon)).toEqual(['yawnBubble', 'yawnBubble']);
   });
 
-  test('通關後再玩一次會先選武器', async ({ page }) => {
+  test('通關後再玩一次直接進關卡', async ({ page }) => {
     await page.addInitScript((s) => localStorage.setItem('gk.save.v1', s), SHEEP_SAVE);
     await openForest(page);
     await enterBoss(page);
     await defeatBoss(page);
     await page.keyboard.press('Digit1');
-    await page.waitForFunction(() => window.__GK__!.screen === 'loadout');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range' && window.__GK__!.restarts === 0);
+    expect((await gk(page)).players![0].weapon).toBe('yawnBubble');
   });
 });

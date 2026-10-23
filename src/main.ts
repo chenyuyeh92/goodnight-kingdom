@@ -11,7 +11,6 @@ import { parsePlayMode, type PlayMode } from './input/playMode';
 import { BackpackScene } from './scenes/BackpackScene';
 import { BootScene } from './scenes/BootScene';
 import { LevelCompleteScene } from './scenes/LevelCompleteScene';
-import { LoadoutScene } from './scenes/LoadoutScene';
 import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { GuardRoomScene } from './scenes/GuardRoomScene';
 import { SettingsScene } from './scenes/SettingsScene';
@@ -66,7 +65,7 @@ export interface EnemyDebug {
 
 export interface GkDebug {
   ready: boolean;
-  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'loadout' | 'guard-room' | 'draw' | 'settings';
+  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings';
   /** 設定畫面的音量與目前選到的列。 */
   settings?: { music: number; sfx: number; muted: boolean };
   settingsRow?: string;
@@ -92,8 +91,6 @@ export interface GkDebug {
   /** 結算畫面是不是破關結局(打倒夢貘)。 */
   ending?: boolean;
   /** 選武器畫面:正在選的玩家與選項文字。 */
-  loadoutFor?: 'A' | 'B';
-  loadoutOptions?: string[];
   /** 背包畫面上的文字列,供測試讀取。 */
   backpackText?: string[];
   mode?: PlayMode;
@@ -228,7 +225,6 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('ModeSelect', ModeSelectScene, false);
   game.scene.add('Backpack', BackpackScene, false);
   game.scene.add('LevelComplete', LevelCompleteScene, false);
-  game.scene.add('Loadout', LoadoutScene, false);
   game.scene.add('LevelSelect', LevelSelectScene, false);
   game.scene.add('GuardRoom', GuardRoomScene, false);
   game.scene.add('Settings', SettingsScene, false);

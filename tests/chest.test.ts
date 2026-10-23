@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { CHEST_RATES, openChest, resultFor, rollRarity } from '../src/game/chest';
+import { CHEST_RATES, chestRatesText, openChest, resultFor, rollRarity } from '../src/game/chest';
 import { SPECIAL_WEAPONS, WEAPONS } from '../src/game/weapons';
 
 function seq(...values: number[]): () => number {
@@ -9,12 +9,19 @@ function seq(...values: number[]): () => number {
 
 const firstR = SPECIAL_WEAPONS.find((id) => WEAPONS[id].rarity === 'R')!;
 
+test('機率 R:SR:SSR = 60:40:20(換算成 50% / 33% / 17%)', () => {
+  expect(CHEST_RATES.R).toBeCloseTo(0.5);
+  expect(CHEST_RATES.SR).toBeCloseTo(1 / 3);
+  expect(CHEST_RATES.SSR).toBeCloseTo(1 / 6);
+  expect(chestRatesText()).toBe('機率 R 50% / SR 33% / SSR 17%');
+});
+
 test('rollRarity 邊界', () => {
   expect(rollRarity(0)).toBe('R');
-  expect(rollRarity(0.6999)).toBe('R');
-  expect(rollRarity(0.7)).toBe('SR');
-  expect(rollRarity(0.9499)).toBe('SR');
-  expect(rollRarity(0.95)).toBe('SSR');
+  expect(rollRarity(0.4999)).toBe('R');
+  expect(rollRarity(0.5)).toBe('SR');
+  expect(rollRarity(0.8333)).toBe('SR');
+  expect(rollRarity(0.8334)).toBe('SSR');
   expect(rollRarity(0.9999)).toBe('SSR');
 });
 

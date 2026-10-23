@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { audio } from '../audio/audio';
-import { CHEST_RATES } from '../game/chest';
+import { chestRatesText } from '../game/chest';
 import { createSaveStore } from '../game/save';
 import { MAX_STARS, SPECIAL_WEAPONS, WEAPONS, type SpecialWeaponId } from '../game/weapons';
 import type { TestRangeData } from './TestRangeScene';
@@ -50,7 +50,7 @@ export class BackpackScene extends Phaser.Scene {
       this.add.text(160, y, line, { fontSize: '20px', color: stars > 0 ? RARITY_COLOR[def.rarity] : LOCKED_COLOR }).setOrigin(0, 0.5);
     });
 
-    const rates = `寶箱機率 R ${CHEST_RATES.R * 100}% / SR ${CHEST_RATES.SR * 100}% / SSR ${CHEST_RATES.SSR * 100}%`;
+    const rates = `寶箱${chestRatesText()}`;
     lines.push(rates);
     this.add.text(480, 445, rates, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5);
 

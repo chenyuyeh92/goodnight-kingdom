@@ -285,7 +285,7 @@ test.describe('寶箱、道具與背包', () => {
     expect((await gk(page)).feel!.banner).toContain('搖籃曲豎琴');
   });
 
-  test('重複抽到升星,三星後改給牛奶瓶', async ({ page }) => {
+  test('重複抽到升星,三星後還是拿到這把武器', async ({ page }) => {
     await open(page);
     await page.evaluate(() => window.__GK__!.clearSave!());
     for (let round = 1; round <= 4; round++) {
@@ -293,6 +293,7 @@ test.describe('寶箱、道具與背包', () => {
       const s = await gk(page);
       expect(s.backpack!.sheepGun).toBe(Math.min(round, 3));
       expect(s.lastChest).toBe(round === 1 ? 'new' : round <= 3 ? 'starUp' : 'maxed');
+      expect(s.players![0].weapon).toBe('sheepGun');
       const restarts = s.restarts!;
       await hurtUntilDown(page);
       await page.waitForFunction((r) => window.__GK__!.restarts === r + 1, restarts, { timeout: 3000 });
@@ -400,7 +401,7 @@ test.describe('背包畫面', () => {
     expect(text).toContain('數羊機槍');
     expect(text).toContain('★★☆');
     expect(text).toContain('???');
-    expect(text).toContain('R 70%');
+    expect(text).toContain('R 50% / SR 33% / SSR 17%');
   });
 
   test('按 Escape 回到開場選單', async ({ page }) => {

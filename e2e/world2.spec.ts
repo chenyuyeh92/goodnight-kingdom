@@ -203,6 +203,6 @@ test.describe('選關切換世界', () => {
     await page.keyboard.press('ArrowRight');
     await page.waitForFunction(() => window.__GK__!.world === 2);
     await page.keyboard.press('Digit1');
-    await page.waitForFunction(() => window.__GK__!.screen === 'range' || window.__GK__!.screen === 'loadout');
+    await page.waitForFunction(() => window.__GK__!.screen === 'range');
   });
 });
