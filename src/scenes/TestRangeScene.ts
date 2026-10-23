@@ -7,7 +7,7 @@ import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
 import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
 import { GadgetSystem } from '../game/gadgetSystem';
-import { WORLD_FODDER, addArenaFodder, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../game/fodder';
+import { WORLD_FODDER, addArenaFodder, bossFodderSide, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../game/fodder';
 import { NO_COMBO, RECOIL_VX, RECOIL_WEAPONS, comboDefeat, comboStyle, comboTick, knockbackSpeed, type Combo } from '../game/feel';
 import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
@@ -575,8 +575,9 @@ export class TestRangeScene extends Phaser.Scene {
   private combo: Combo = { ...NO_COMBO };
   private comboText!: Phaser.GameObjects.Text;
   private banner: Phaser.GameObjects.Text | null = null;
-  /** 雜魚:魔王叫雜魚的計時、魔王叫的(還在場上的)、叫了幾次、零星雜魚多生了幾隻跟班。 */
+  /** 三種新機關(移動平台、彈跳墊、會掉的平台)。 */
   private gadgets!: GadgetSystem;
+  /** 雜魚:魔王叫雜魚的計時、魔王叫的(還在場上的)、叫了幾次、零星雜魚多生了幾隻跟班。 */
   private bossFodder: BossFodder = initialBossFodder();
   private bossFodderSet = new Set<EnemyEntity>();
   private bossCalls = 0;
@@ -3196,6 +3197,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.bossFodder = r.state;
     if (r.count === 0) return;
     this.bossCalls += 1;
+    const side = bossFodderSide(r.side, this.scrollX, VIEW_W, this.level.worldW, SIDE_SPAWN_MARGIN);
     const group = [
       { type: f.ground, delayMs: 0 },
       { type: f.flying, delayMs: 150 },
@@ -3204,7 +3206,7 @@ export class TestRangeScene extends Phaser.Scene {
     for (const g of group) {
       this.time.delayedCall(g.delayMs, () => {
         if (this.bossDefeated || !this.boss) return;
-        this.bossFodderSet.add(this.spawnFrom({ type: g.type, from: r.side, delayMs: 0 }, false));
+        this.bossFodderSet.add(this.spawnFrom({ type: g.type, from: side, delayMs: 0 }, false));
       });
     }
   }

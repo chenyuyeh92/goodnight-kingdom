@@ -186,8 +186,15 @@ describe('1-2 河邊', () => {
     expect(R.boss!.type).toBe('beaver');
   });
 
-  test('每個河溝都跳得過去:沒有荷葉時寬度 ≤ 110,有荷葉時每一跳 ≤ 110', () => {
+  test('每個河溝都過得去:沒有荷葉時寬度 ≤ 110,有荷葉時每一跳 ≤ 110,或有移動平台在上面', () => {
     for (const g of W.gaps) {
+      // 有移動平台左右來回的河溝:搭平台過河(平台兩端離岸 ≤ 110)。
+      const mover = (R.movers ?? []).find((m) => m.x >= g.x && m.x + m.dx + m.w <= g.x + g.w);
+      if (mover) {
+        expect(mover.x - g.x, `河溝 ${g.x}`).toBeLessThanOrEqual(110);
+        expect(g.x + g.w - (mover.x + mover.dx + mover.w), `河溝 ${g.x}`).toBeLessThanOrEqual(110);
+        continue;
+      }
       const pads = W.pads.filter((p) => p.x >= g.x && p.x + p.w <= g.x + g.w).sort((a, b) => a.x - b.x);
       let from = g.x;
       for (const p of pads) {

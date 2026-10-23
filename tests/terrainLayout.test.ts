@@ -136,6 +136,21 @@ describe.each(GADGET_LEVELS)('地形重排與新機關:%s', (id) => {
   });
 });
 
+test('河溝上的移動平台:不蓋到岸上、底下沒有荷葉(從岸邊、荷葉起跳不會撞到平台底)', () => {
+  for (const id of GADGET_LEVELS) {
+    const L = LEVELS[id];
+    for (const g of L.water?.gaps ?? []) {
+      for (const m of L.movers ?? []) {
+        const lo = Math.min(m.x, m.x + m.dx);
+        const hi = Math.max(m.x, m.x + m.dx) + m.w;
+        if (hi <= g.x || lo >= g.x + g.w) continue;
+        expect(lo >= g.x && hi <= g.x + g.w, `${id} mover ${m.x} 蓋到岸上`).toBe(true);
+        for (const p of L.water?.pads ?? []) expect(p.x + p.w <= lo || p.x >= hi, `${id} mover ${m.x} 底下有荷葉 ${p.x}`).toBe(true);
+      }
+    }
+  }
+});
+
 test('有河溝的關卡:至少一段移動平台在河溝上', () => {
   for (const id of GADGET_LEVELS) {
     const L = LEVELS[id];

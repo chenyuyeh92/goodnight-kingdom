@@ -63,6 +63,17 @@ test.describe('新機關', () => {
     expect(top).toBeLessThan(220);
   });
 
+  test('走路經過彈跳墊不會被彈起來(要從上面踩下去才會彈)', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => window.__GK__!.warp!(1500));
+    await page.keyboard.down('KeyD');
+    await page.waitForTimeout(900);
+    await page.keyboard.up('KeyD');
+    const s = await gk(page);
+    expect(s.players![0].x).toBeGreaterThan(1640);
+    expect(s.gadgets!.bounces).toBe(0);
+  });
+
   test('站上會掉的平台抖一下就掉,之後長回來;睡著重來時在原位', async ({ page }) => {
     await open(page);
     await page.evaluate(() => window.__GK__!.warp!(2050, 398));

@@ -33,3 +33,29 @@ test('高更新率螢幕:按住 S 時一直維持蹲下,不會閃爍', async ({ 
     expect(samples.map(Number).join('')).toBe('1'.repeat(60));
   }
 });
+
+test('高更新率螢幕:站在移動平台上穩穩被載著走,平台照原本的路線來回', async ({ page }) => {
+  await page.goto('./?level=lab&mode=single&test=1');
+  await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 30000 });
+  const m = await page.evaluate(() => window.__GK__!.gadgets!.movers[0]);
+  await page.evaluate(([x, y]) => window.__GK__!.warp!(x, y), [m.x + 30, m.y - 2] as const);
+  await page.waitForTimeout(300);
+  const samples = await page.evaluate(
+    () =>
+      new Promise<{ d: number; mx: number }[]>((resolve) => {
+        const out: { d: number; mx: number }[] = [];
+        const tick = (): void => {
+          const g = window.__GK__!;
+          out.push({ d: g.players![0].y - g.gadgets!.movers[0].y, mx: g.gadgets!.movers[0].x });
+          if (out.length < 240) requestAnimationFrame(tick);
+          else resolve(out);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  for (const s of samples) {
+    expect(Math.abs(s.d)).toBeLessThanOrEqual(3);
+    expect(s.mx).toBeGreaterThanOrEqual(398);
+    expect(s.mx).toBeLessThanOrEqual(702);
+  }
+});

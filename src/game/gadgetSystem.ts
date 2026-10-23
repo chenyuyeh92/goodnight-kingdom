@@ -3,7 +3,7 @@ import { MAX_DT_MS } from '../config/tuning';
 import { audio } from '../audio/audio';
 import type { TerrainPalette } from '../art/scenes';
 import { GROUND_Y, type LevelDef, type Rect } from '../levels/levelDef';
-import { CRUMBLE_SHAKE_MS, MOVER_H, SPRING_H, SPRING_VY, SPRING_W, moverOffset, stepCrumble, type CrumbleState, type MoverDef } from './gadgets';
+import { CRUMBLE_SHAKE_MS, MOVER_H, SPRING_H, SPRING_VY, SPRING_W, moverOffset, moverVelocity, physicsSteps, stepCrumble, type CrumbleState, type MoverDef } from './gadgets';
 import type { PlayerEntity } from './playerEntity';
 
 const OUTLINE = 0x3a2a5a;
@@ -101,7 +101,11 @@ export class GadgetSystem {
       return;
     }
     this.tMs += dtMs;
-    for (const m of this.movers) this.moveMover(m, dtMs, players);
+    // Arcade 固定每步 1/60 秒:速度要照這一格真的會走幾步來算(高更新率螢幕有的格子不走)。
+    const w = this.scene.physics.world as unknown as { _elapsed: number; _frameTimeMS: number; timeScale: number };
+    const frameMs = w._frameTimeMS * w.timeScale;
+    const steps = physicsSteps(w._elapsed, dtMs, frameMs);
+    for (const m of this.movers) this.moveMover(m, steps, frameMs, players);
   }
 
   /** 物理走完這一格之後呼叫:畫移動平台、彈跳、會掉的平台計時。 */
@@ -126,11 +130,11 @@ export class GadgetSystem {
     };
   }
 
-  private moveMover(m: Mover, dtMs: number, players: readonly PlayerEntity[]): void {
+  private moveMover(m: Mover, steps: number, frameMs: number, players: readonly PlayerEntity[]): void {
     const body = m.rect.body as Phaser.Physics.Arcade.Body;
-    // 速度 = (這一格結束時該在的位置 − 現在的位置) / 這一格的時間。
+    // 速度 = (這一格結束時該在的位置 − 現在的位置) / 這一格會走的物理時間。
     const at = moverOffset(m.def, this.tMs);
-    body.setVelocity(((m.def.x + at.x - body.x) * 1000) / dtMs, ((m.def.y + at.y - body.y) * 1000) / dtMs);
+    body.setVelocity(moverVelocity(m.def.x + at.x - body.x, steps, frameMs), moverVelocity(m.def.y + at.y - body.y, steps, frameMs));
     // 站在上面的玩家上下都跟平台一樣快(往上時不會被彈飛、往下時不會飄起來);剛起跳的不管。
     const vy = body.velocity.y;
     for (const p of players) {
@@ -145,6 +149,8 @@ export class GadgetSystem {
       if (p.health.down) continue;
       const pb = p.body();
       if (pb.velocity.y < 0 || Math.abs(p.x - s.x) > SPRING_W / 2 + 8) continue;
+      // 要從上面踩下來(上一步腳底在墊子頂端上面);走路經過不會彈。
+      if (pb.prev.y + pb.height > s.top + 4) continue;
       if (pb.bottom < s.top - 4 || pb.bottom > s.top + SPRING_H) continue;
       pb.velocity.y = -SPRING_VY;
       this.bounces += 1;

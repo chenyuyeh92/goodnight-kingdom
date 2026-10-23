@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
 import { ENEMY_DEFS } from '../src/game/enemies';
-import { BOSS_FODDER_MAX, WORLD_FODDER, addArenaFodder, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../src/game/fodder';
+import { BOSS_FODDER_MAX, FODDER_MAX_Y, WORLD_FODDER, bossFodderSide, addArenaFodder, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../src/game/fodder';
 
 test('每個世界都有一地一飛的雜魚,都是一兩下打倒', () => {
   for (let w = 1; w <= 10; w++) {
@@ -58,4 +58,14 @@ test('魔王叫雜魚:依階段的間隔、3 隻一群、左右輪流、最多 6
   // 滿了就等:有空位的下一格馬上叫。
   expect(stepBossFodder(full.s, { phase: 1, alive: 3, paused: false, dtMs: 16 }).count).toBe(3);
   expect(run(initialBossFodder(), 30000, 1, 0, true).count).toBe(0);
+});
+
+test('跟班不會生在地底下(海底的小丑魚)', () => {
+  for (const e of fodderEchoes({ type: 'clownfish', from: 'right', y: 440, delayMs: 0 })) expect(e.y!).toBeLessThanOrEqual(FODDER_MAX_Y);
+});
+
+test('魔王區右邊沒有空間(世界盡頭)時,雜魚改從左邊來,不會在畫面裡突然冒出來', () => {
+  expect(bossFodderSide('right', 9240, 960, 10200, 60)).toBe('left');
+  expect(bossFodderSide('right', 5000, 960, 10200, 60)).toBe('right');
+  expect(bossFodderSide('left', 9240, 960, 10200, 60)).toBe('left');
 });

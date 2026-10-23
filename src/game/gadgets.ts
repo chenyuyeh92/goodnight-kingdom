@@ -44,3 +44,16 @@ export function stepCrumble(s: CrumbleState, stoodOn: boolean, dtMs: number): Cr
       return ms >= CRUMBLE_RESPAWN_MS ? { phase: 'solid', ms: 0 } : { phase: 'fallen', ms };
   }
 }
+
+/**
+ * Arcade 物理固定每步 frameMs(1/60 秒):把這一格的時間加進累積的時間,算出這一格會走幾步。
+ * 高更新率螢幕(144 Hz 以上)有的格子一步都不走、有的走一步。
+ */
+export function physicsSteps(elapsedMs: number, dtMs: number, frameMs: number): number {
+  return Math.floor((elapsedMs + dtMs) / frameMs);
+}
+
+/** 這一格要走 delta 的距離:平均分給這一格會走的步數(一步都不走時速度 0,下一格再補)。 */
+export function moverVelocity(delta: number, steps: number, frameMs: number): number {
+  return steps > 0 ? (delta * 1000) / (steps * frameMs) : 0;
+}
