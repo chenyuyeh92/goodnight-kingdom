@@ -111,7 +111,7 @@ test.describe('關主戰', () => {
     expect(s.boss).toBeNull();
     await enterBoss(page);
     s = await gk(page);
-    expect(s.boss!.hp).toBe(60);
+    expect(s.boss!.hp).toBe(180);
   });
 });
 

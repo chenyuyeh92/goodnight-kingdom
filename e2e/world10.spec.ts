@@ -98,9 +98,9 @@ test.describe('世界 10 月亮城堡', () => {
   for (const inMoon of [false, true]) {
     test(`夢貘換階段放大惡夢:${inMoon ? '躲進月光不扣愛心' : '沒躲扣 3 顆愛心'}`, async ({ page }) => {
       await toBoss(page, 'w10-3', 'tapir');
-      // 一下打很多也只掉到第二階段(血的底線 99),不會跳過第二階段的大惡夢。
+      // 一下打很多也只掉到第二階段(血的底線 297),不會跳過第二階段的大惡夢。
       await page.evaluate(() => window.__GK__!.hurtBoss!(420));
-      expect((await gk(page)).enemies!.find((e) => e.type === 'tapir')!.hp).toBe(99);
+      expect((await gk(page)).enemies!.find((e) => e.type === 'tapir')!.hp).toBe(297);
       await page.waitForFunction(() => window.__GK__!.w10!.nightmare !== null, undefined, { timeout: 4000 });
       const { safeX, halfW } = (await gk(page)).w10!.nightmare!;
       await page.evaluate((x) => window.__GK__!.warp!(x), inMoon ? safeX : safeX + (safeX < 9550 ? 1 : -1) * (halfW + 120));
