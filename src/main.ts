@@ -103,6 +103,8 @@ export interface GkDebug {
   checkpointX?: number;
   restarts?: number;
   hurt?: (index: number) => void;
+  /** 測試用:直接睡著。 */
+  knockOut?: (index: number) => void;
   enemies?: EnemyDebug[];
   enemiesDefeated?: number;
   blockedShots?: number;
@@ -145,6 +147,8 @@ export interface GkDebug {
   feel?: { sparks: number; flashes: number; knocks: number; combo: number; bestCombo: number; banner: string | null };
   /** 雜魚:魔王叫的還在場上的數量、魔王叫了幾次、零星雜魚多生了幾隻跟班。 */
   fodder?: { bossAlive: number; bossCalls: number; echoes: number };
+  /** 機關:移動平台現在的左上角、會掉的平台的狀態、彈跳次數、被移動平台載的次數。 */
+  gadgets?: { movers: { x: number; y: number; w: number }[]; crumbles: ('solid' | 'shaking' | 'fallen')[]; bounces: number };
   w10?: { stars: number; starsTotal: number; reversed: boolean; inhaling: boolean; slowed: boolean[]; mochiHits: number; pulls: number; nightmare: { safeX: number; halfW: number } | null; nightmareHits: number };
   /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
   desert?: { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number };
@@ -161,7 +165,7 @@ export interface GkDebug {
   /** 測試用:讓魔物從地面冒出。 */
   spawnGround?: (type: EnemyType, x: number) => void;
   /** 測試用:把醒著的角色移到 x(站在地面上)。 */
-  warp?: (x: number) => void;
+  warp?: (x: number, feetY?: number) => void;
   bullets?: number;
   targetsHit?: number;
   cameraX?: number;

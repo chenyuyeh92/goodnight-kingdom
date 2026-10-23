@@ -6,6 +6,7 @@ import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../ga
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
 import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
+import { GadgetSystem } from '../game/gadgetSystem';
 import { WORLD_FODDER, addArenaFodder, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../game/fodder';
 import { NO_COMBO, RECOIL_VX, RECOIL_WEAPONS, comboDefeat, comboStyle, comboTick, knockbackSpeed, type Combo } from '../game/feel';
 import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
@@ -575,6 +576,7 @@ export class TestRangeScene extends Phaser.Scene {
   private comboText!: Phaser.GameObjects.Text;
   private banner: Phaser.GameObjects.Text | null = null;
   /** 雜魚:魔王叫雜魚的計時、魔王叫的(還在場上的)、叫了幾次、零星雜魚多生了幾隻跟班。 */
+  private gadgets!: GadgetSystem;
   private bossFodder: BossFodder = initialBossFodder();
   private bossFodderSet = new Set<EnemyEntity>();
   private bossCalls = 0;
@@ -729,6 +731,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.scrollX = Math.min(Math.max(startX - VIEW_W * CAMERA_LEAD, 0), this.level.worldW - VIEW_W);
     this.encounters = initialEncounters(this.scrollX, this.level.trickles, this.initData.arenasCleared ?? 0);
     for (const p of this.players) this.physics.add.collider(p.zone, this.terrain);
+    this.gadgets = new GadgetSystem(this, this.level, this.palette);
+    for (const p of this.players) this.gadgets.addPlayer(p.zone);
     this.players.forEach((p, i) => (p.loadout = { ...(this.initData.loadouts?.[i] ?? BASE_LOADOUT) }));
     this.desert = new DesertHazards(this, {
       sand: this.level.sand ?? [],
@@ -974,6 +978,7 @@ export class TestRangeScene extends Phaser.Scene {
     const t = this.getTuning();
     const dtMs = Math.min(delta, MAX_DT_MS);
     // 卡頓時物理也只前進 MAX_DT_MS,不會一次衝過頭(例如蝙蝠俯衝低到打到蹲著的人)。
+    this.gadgets.beforePhysics(dtMs, this.players, this.physics.world.isPaused);
     this.physics.world.update(time, dtMs);
     const raw = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent());
     // 孔雀開屏後一陣子左右顛倒。
@@ -1001,6 +1006,7 @@ export class TestRangeScene extends Phaser.Scene {
       if (!this.physics.world.isPaused) this.desert.applySand(p, i, dtMs);
       if (this.level.underwater) this.applySwim(p, i, intents[i]);
     });
+    this.gadgets.update(dtMs, this.players, this.physics.world.isPaused);
     this.currentsView?.update(dtMs, this.scrollX, VIEW_W);
     this.updateIcicles();
     this.updateVolcano(dtMs);
@@ -1867,9 +1873,9 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 測試用:把醒著的角色與鏡頭一起移到 x。 */
-  private warp(x: number): void {
+  private warp(x: number, feetY = GROUND_Y): void {
     this.players.forEach((p, i) => {
-      if (!p.health.down) p.teleport(x + i * PARTNER_OFFSET_X, GROUND_Y);
+      if (!p.health.down) p.teleport(x + i * PARTNER_OFFSET_X, feetY);
     });
     this.scrollX = Math.min(Math.max(x - VIEW_W * CAMERA_LEAD, this.scrollX), this.level.worldW - VIEW_W);
     this.maxReachedX = Math.max(this.maxReachedX, x);
@@ -3459,6 +3465,7 @@ export class TestRangeScene extends Phaser.Scene {
       checkpointX: this.checkpointX,
       restarts: this.restarts,
       hurt: this.testHooks ? (i: number) => this.hurtPlayer(this.players[i], false) : undefined,
+      knockOut: this.testHooks ? (i: number) => void (this.players[i].health = { hearts: 0, invulnMs: 0, down: true, downMs: 0 }) : undefined,
       giveWeapon: this.testHooks
         ? (i: number, id: SpecialWeaponId, stars?: number) => void (this.players[i].loadout = equip(id, stars ?? 1))
         : undefined,
@@ -3477,7 +3484,7 @@ export class TestRangeScene extends Phaser.Scene {
       items: this.pickups.length,
       spawn: this.testHooks ? (type: EnemyType, x: number, y?: number) => void this.spawnEnemy(type, x, y) : undefined,
       defeatAll: this.testHooks ? () => [...this.enemies].forEach((e) => this.defeatEnemy(e)) : undefined,
-      warp: this.testHooks ? (x: number) => this.warp(x) : undefined,
+      warp: this.testHooks ? (x: number, feetY?: number) => this.warp(x, feetY) : undefined,
       spawnGround: this.testHooks
         ? (type: EnemyType, x: number) => void this.spawnFrom({ type, from: 'ground', x, delayMs: 0 }, false)
         : undefined,
@@ -3523,6 +3530,7 @@ export class TestRangeScene extends Phaser.Scene {
       stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
       wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
       darkness: { alpha: this.darkAlpha, lights: this.lightCount, blackout: this.blackoutMs > 0 },
+      gadgets: this.gadgets.debug(),
       fodder: { bossAlive: this.bossFodderSet.size, bossCalls: this.bossCalls, echoes: this.echoes },
       feel: {
         sparks: this.sparks,

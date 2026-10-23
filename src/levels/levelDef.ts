@@ -16,6 +16,7 @@ export type BossType = Extract<
 
 export type LevelId =
   | 'range'
+  | 'lab'
   | 'forest'
   | 'w1-1'
   | 'w1-2'
@@ -47,7 +48,7 @@ export type LevelId =
   | 'w10-2'
   | 'w10-3';
 
-const LEVEL_IDS: readonly LevelId[] = ['range', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3', 'w9-1', 'w9-2', 'w9-3', 'w10-1', 'w10-2', 'w10-3'];
+const LEVEL_IDS: readonly LevelId[] = ['range', 'lab', 'forest', 'w1-1', 'w1-2', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3', 'w4-1', 'w4-2', 'w4-3', 'w5-1', 'w5-2', 'w5-3', 'w6-1', 'w6-2', 'w6-3', 'w7-1', 'w7-2', 'w7-3', 'w8-1', 'w8-2', 'w8-3', 'w9-1', 'w9-2', 'w9-3', 'w10-1', 'w10-2', 'w10-3'];
 
 /** 左上角座標與寬高。 */
 export interface Rect {

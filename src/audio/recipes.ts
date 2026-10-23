@@ -36,7 +36,8 @@ export type SfxName =
   | 'bossPhase'
   | 'bossDown'
   | 'complete'
-  | 'select';
+  | 'select'
+  | 'spring';
 
 const n = noteFreq;
 
@@ -83,6 +84,11 @@ export const SFX: Record<SfxName, readonly Tone[]> = {
   bossDown: ['G5', 'E5', 'C5', 'G4', 'C5'].map((x, i) => ({ freq: n(x), at: i * 0.16, dur: 0.6, wave: 'sine' as const, gain: 0.25 })),
   complete: ['C5', 'E5', 'G5', 'C6', 'G5', 'C6'].map((x, i) => ({ freq: n(x), at: i * 0.13, dur: i === 5 ? 0.9 : 0.3, wave: 'triangle' as const, gain: 0.25 })),
   select: [{ freq: n('A5'), at: 0, dur: 0.08, wave: 'sine', gain: 0.18 }],
+  // 彈跳墊「啵嚶」。
+  spring: [
+    { freq: 220, toFreq: 880, at: 0, dur: 0.16, wave: 'sine', gain: 0.25 },
+    { freq: 440, toFreq: 1320, at: 0.04, dur: 0.12, wave: 'triangle', gain: 0.1 },
+  ],
 };
 
 export const SHOOT_SFX: Readonly<Record<WeaponId, SfxName>> = {

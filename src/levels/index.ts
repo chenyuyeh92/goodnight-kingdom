@@ -2,6 +2,7 @@ import { FOREST } from './forest';
 import { GRASSLAND } from './grassland';
 import type { LevelDef, LevelId } from './levelDef';
 import { RANGE } from './range';
+import { LAB } from './lab';
 import { RIVER } from './river';
 import { OASIS } from './oasis';
 import { DUNES } from './dunes';
@@ -33,6 +34,7 @@ import { CASTLE_HALL } from './castleHall';
 
 export const LEVELS: Readonly<Record<LevelId, LevelDef>> = {
   range: RANGE,
+  lab: LAB,
   forest: FOREST,
   'w1-1': GRASSLAND,
   'w1-2': RIVER,
