@@ -24,6 +24,8 @@ interface Plat {
   y: number;
   w: number;
   kind: 'terrain' | 'crumble' | 'mover';
+  /** 移動平台的第幾個(兩端是同一個)。 */
+  mover?: number;
 }
 
 /** 站得上去的東西:平台(不含天花板)、會掉的平台、移動平台(兩端的位置都算)。 */
@@ -31,9 +33,9 @@ function plats(L: LevelDef): Plat[] {
   return [
     ...L.terrain.filter((r) => r.h <= 30).map((r) => ({ x: r.x, y: r.y, w: r.w, kind: 'terrain' as const })),
     ...(L.crumbles ?? []).map((r) => ({ x: r.x, y: r.y, w: r.w, kind: 'crumble' as const })),
-    ...(L.movers ?? []).flatMap((m) => [
-      { x: m.x, y: m.y, w: m.w, kind: 'mover' as const },
-      { x: m.x + m.dx, y: m.y + m.dy, w: m.w, kind: 'mover' as const },
+    ...(L.movers ?? []).flatMap((m, i) => [
+      { x: m.x, y: m.y, w: m.w, kind: 'mover' as const, mover: i },
+      { x: m.x + m.dx, y: m.y + m.dy, w: m.w, kind: 'mover' as const, mover: i },
     ]),
   ];
 }
@@ -44,6 +46,21 @@ function hGap(a: { x: number; w: number }, b: { x: number; w: number }): number 
 
 function overlaps(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/**
+ * 跳過寬 w 的東西,頭上要留多高:撞到頭就停止往上、開始往下掉,
+ * 在空中的時間(×空中速度 200)要夠飛過 w + 身體寬 28 + 多留 10。
+ */
+function clearanceToJump(w: number): number {
+  for (let c = 60; c <= 260; c++) {
+    const h = Math.min(c - 48, 145);
+    const d = 670 * 670 - 4 * 775 * h;
+    if (d < 0) continue;
+    const up = (670 - Math.sqrt(d)) / 1550;
+    if ((up + Math.sqrt((2 * h) / 1550)) * 200 >= w + 28 + 10) return c;
+  }
+  return 999;
 }
 
 const key = (p: Plat): string => `${p.kind}:${p.x},${p.y},${p.w}`;
@@ -65,7 +82,7 @@ function reachable(L: LevelDef): Set<string> {
     for (const p of all) {
       if (reached.has(p)) continue;
       // 移動平台:站上一端就會被載到另一端。
-      const partner = p.kind === 'mover' ? all.find((o) => o !== p && o.kind === 'mover' && o.w === p.w && reached.has(o) && (o.x === p.x || o.y === p.y)) : undefined;
+      const partner = p.kind === 'mover' ? all.find((o) => o !== p && o.kind === 'mover' && o.mover === p.mover && reached.has(o)) : undefined;
       const ok = !!partner || [...reached].some((q) => {
         if (q === ground) {
           // 從地面:平台底下或旁邊 GAP 以內要有地(不全是河溝)。
@@ -152,6 +169,78 @@ describe.each(GADGET_LEVELS)('地形重排與新機關:%s', (id) => {
       ...(L.springs ?? []).map((sp) => ({ x: sp.x - SPRING_W / 2, w: SPRING_W })),
     ];
     for (const t of things) for (const d of drops) expect(d < t.x - 50 || d > t.x + t.w + 50, `${t.x} 接住 ${d}`).toBe(true);
+  });
+
+  /** 會擋頭的東西:平台(不含天花板)、會掉的平台、移動平台整條路線。 */
+  const overheads = (): (Rect & { what: string })[] => [
+    ...L.terrain.filter((r) => r.h <= 30).map((r) => ({ ...r, what: `平台 ${r.x},${r.y}` })),
+    ...(L.crumbles ?? []).map((r) => ({ ...r, what: `會掉的平台 ${r.x}` })),
+    ...(L.movers ?? []).map((m) => ({ x: Math.min(m.x, m.x + m.dx), y: Math.min(m.y, m.y + m.dy), w: m.w + Math.abs(m.dx), h: MOVER_H + Math.abs(m.dy), what: `移動平台 ${m.x}` })),
+  ];
+  /** 地面上要跳過去的東西:荊棘、熔岩、河溝。 */
+  const jumpOver = (): { x: number; w: number }[] => [...L.thorns, ...(L.lava ?? []), ...(L.water?.gaps ?? [])];
+  /** 跳過這片危險最長的一跳:中間有踩的岩石、荷葉就分段;有移動平台載過去時算一跳 110。 */
+  const widestJump = (z: { x: number; w: number }): number => {
+    if ((L.movers ?? []).some((m) => isCrossing({ x: Math.min(m.x, m.x + m.dx), y: m.y, w: m.w + Math.abs(m.dx), h: MOVER_H }, z))) return 110;
+    const steps = [...L.terrain, ...(L.water?.pads ?? []).map((p) => ({ ...p, h: 10 }))]
+      .filter((r) => r.x >= z.x && r.x + r.w <= z.x + z.w && r.y >= 380)
+      .sort((a, b) => a.x - b.x);
+    let from = z.x;
+    let widest = 0;
+    for (const r of steps) {
+      widest = Math.max(widest, r.x - from);
+      from = r.x + r.w;
+    }
+    return Math.max(widest, z.x + z.w - from);
+  };
+  /** 熔岩、河溝裡踩的岩石、荷葉,和過河、過熔岩的移動平台(本身就是過去的路)。 */
+  const isCrossing = (o: Rect, z: { x: number; w: number }): boolean => o.x >= z.x && o.x + o.w <= z.x + z.w && o.y + o.h >= 380;
+
+  test('要跳過的荊棘、熔岩、河溝上方(前後 30)沒有擋頭的東西(撞到頭還跳得過去的高度)', () => {
+    for (const z of jumpOver()) {
+      for (const o of overheads()) {
+        if (isCrossing(o, z)) continue;
+        const over = o.x < z.x + z.w + 30 && o.x + o.w > z.x - 30;
+        expect(!over || GROUND_Y - (o.y + o.h) >= clearanceToJump(widestJump(z)), `${o.what} 擋住跳過 ${z.x}`).toBe(true);
+      }
+    }
+  });
+
+  test('彈跳墊正上方(左右 60、往上 300)沒有東西(彈起來不會撞頭)', () => {
+    for (const sp of L.springs ?? []) {
+      const top = (sp.y ?? GROUND_Y) - SPRING_H;
+      for (const o of overheads()) {
+        const over = o.x < sp.x + 60 && o.x + o.w > sp.x - 60;
+        const above = o.y + o.h <= top && o.y + o.h > top - 300;
+        expect(over && above, `彈跳墊 ${sp.x} 上方有 ${o.what}`).toBe(false);
+      }
+    }
+  });
+
+  test('檢查點與地上的寶箱上方沒有矮平台(重來後第一下跳不會撞頭,寶箱看得到)', () => {
+    for (const o of overheads()) {
+      for (const cp of L.checkpoints) expect(o.x < cp + 60 && o.x + o.w > cp - 20 && o.y + o.h > GROUND_Y - 150, `檢查點 ${cp} 上方有 ${o.what}`).toBe(false);
+      for (const c of L.chests.filter((c) => c.bottom === GROUND_Y)) expect(o.x < c.x + 30 && o.x + o.w > c.x - 30 && o.y + o.h > GROUND_Y - 120, `寶箱 ${c.x} 上方有 ${o.what}`).toBe(false);
+    }
+  });
+
+  test('會掉的平台不在熔岩、河溝上(掉下來回到地面,不會掉進去)', () => {
+    for (const c of L.crumbles ?? []) for (const z of [...(L.lava ?? []), ...(L.water?.gaps ?? [])]) expect(c.x + c.w <= z.x || c.x >= z.x + z.w, `會掉的平台 ${c.x} 在 ${z.x} 上`).toBe(true);
+  });
+
+  test('平台都不接住冰柱與沙磚(冰柱寬 24,離掉落點 ≥ 30)', () => {
+    const drops = [...(L.icicles ?? []), ...(L.plates ?? []).flatMap((p) => p.drops)];
+    for (const o of overheads()) for (const d of drops) expect(d < o.x - 30 || d > o.x + o.w + 30, `${o.what} 接住 ${d}`).toBe(true);
+  });
+
+  test('移動平台不比走路快(最快 ≤ 220 px/s);不跨過戰鬥區鎖住畫面的邊', () => {
+    const windows = [...L.arenas.map((a) => a.lockScrollX), lock];
+    for (const m of L.movers ?? []) {
+      expect((Math.PI * Math.max(Math.abs(m.dx), Math.abs(m.dy)) * 1000) / m.periodMs, `移動平台 ${m.x}`).toBeLessThanOrEqual(220);
+      const lo = Math.min(m.x, m.x + m.dx);
+      const hi = Math.max(m.x, m.x + m.dx) + m.w;
+      for (const w of windows) for (const edge of [w, w + 960]) expect(lo < edge && hi > edge, `移動平台 ${m.x} 跨過 ${edge}`).toBe(false);
+    }
   });
 
   test('每個平台都到得了(一般跳、彈跳墊、移動平台),高處寶箱也是', () => {

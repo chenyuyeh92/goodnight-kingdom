@@ -386,13 +386,15 @@ describe.each(['w5-1', 'w5-2', 'w5-3'] as const)('世界 5 火山:%s', (id) => {
   test('每片熔岩都過得去:沒有平台時寬度 ≤ 110,有岩石平台時每一跳 ≤ 110、平台從地面跳得上去,或有移動平台在上面', () => {
     for (const s of lava) {
       // 熔岩上左右來回的移動平台:搭平台過去(平台兩端離岸 ≤ 110)。
-      const mover = (L.movers ?? []).find((m) => m.x >= s.x && m.x + m.dx + m.w <= s.x + s.w);
+      // 左右來回、從地面跳得上去(高度 ≤ 140)的才算。
+      const mover = (L.movers ?? []).find((m) => m.dy === 0 && m.dx > 0 && GROUND_Y - m.y <= 140 && m.x >= s.x && m.x + m.dx + m.w <= s.x + s.w);
       if (mover) {
         expect(mover.x - s.x, `熔岩 ${s.x}`).toBeLessThanOrEqual(110);
         expect(s.x + s.w - (mover.x + mover.dx + mover.w), `熔岩 ${s.x}`).toBeLessThanOrEqual(110);
         continue;
       }
-      const plats = L.terrain.filter((r) => r.h <= 20 && r.x >= s.x && r.x + r.w <= s.x + s.w).sort((a, b) => a.x - b.x);
+      // 踩著過去的是低的岩石(高高的平台是上面的路,不算)。
+      const plats = L.terrain.filter((r) => r.h <= 20 && r.y >= 380 && r.x >= s.x && r.x + r.w <= s.x + s.w).sort((a, b) => a.x - b.x);
       let from = s.x;
       for (const p of plats) {
         expect(p.x - from, `熔岩 ${s.x}`).toBeLessThanOrEqual(110);
