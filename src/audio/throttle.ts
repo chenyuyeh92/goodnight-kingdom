@@ -9,3 +9,10 @@ export function makeThrottle(minMs: Partial<Record<string, number>>): (name: str
     return true;
   };
 }
+
+/** 同時最多這麼多個音效聲音(連射加熱可可時不會疊到爆音)。 */
+export const MAX_VOICES = 12;
+
+export function voiceCap(active: number): boolean {
+  return active < MAX_VOICES;
+}

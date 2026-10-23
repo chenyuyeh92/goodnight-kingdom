@@ -1,12 +1,10 @@
 import type { StorageLike } from '../config/tuning';
 import { noteFreq } from './notes';
-import { SFX, type SfxName } from './recipes';
+import { SFX, THROTTLE_MS, type SfxName } from './recipes';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, volumeGain, type AudioSettings } from './settings';
-import { makeThrottle } from './throttle';
+import { makeThrottle, voiceCap } from './throttle';
 import { TUNES, type TrackId, type Tune } from './tunes';
 
-/** 同一種音效最短的間隔(ms):連射與一次打倒很多隻時不會吵成一片。 */
-const THROTTLE_MS: Partial<Record<SfxName, number>> = { shoot: 90, hit: 50, blocked: 80, sleep: 70, splash: 200, select: 40 };
 /** 整體音量上限,避免合成音疊起來爆音。 */
 const MASTER = 0.6;
 /** 配樂比音效小聲一點,但在手機喇叭上也要聽得到。 */
@@ -42,6 +40,8 @@ class AudioManager {
   readonly counts: Partial<Record<SfxName, number>> = {};
   /** 實際發出聲音的音效次數(測試用:靜音時應該是 0)。 */
   voicesStarted = 0;
+  /** 正在響的音效數(到 MAX_VOICES 就不放新的)。 */
+  private activeVoices = 0;
   /** 正在排程的配樂數(測試用:換場景後應該只剩 1)。 */
   activeSchedulers = 0;
 
@@ -107,7 +107,7 @@ class AudioManager {
     const ctx = this.ctx;
     if (!ctx || ctx.state !== 'running' || volumeGain(this.settings.sfx, this.settings.muted) === 0) return;
     try {
-      this.playTones('select', ctx);
+      this.playTones('select', ctx, 1);
       this.voicesStarted++;
     } catch {
       // 同 sfx()。
@@ -124,35 +124,41 @@ class AudioManager {
     this.applySettings();
   }
 
-  sfx(name: SfxName): void {
+  /** pitch:音高倍數(豎琴每發不同音)。 */
+  sfx(name: SfxName, pitch = 1): void {
     this.counts[name] = (this.counts[name] ?? 0) + 1;
     const ctx = this.ctx;
     // 先看聽不聽得到再算頻率限制,靜音時不會佔掉之後的那一次。
     if (!ctx || !this.sfxBus || ctx.state !== 'running' || volumeGain(this.settings.sfx, this.settings.muted) === 0) return;
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    if (!this.throttle(name, now)) return;
+    if (!voiceCap(this.activeVoices) || !this.throttle(name, now)) return;
     try {
-      this.playTones(name, ctx);
+      this.playTones(name, ctx, pitch);
       this.voicesStarted++;
     } catch {
       // 合成失敗(瀏覽器怪狀況)就安靜跳過,不影響遊戲。
     }
   }
 
-  private playTones(name: SfxName, ctx: AudioContext): void {
+  private playTones(name: SfxName, ctx: AudioContext, pitch: number): void {
     const t0 = ctx.currentTime;
-    for (const tone of SFX[name]) {
+    const tones = SFX[name];
+    // 這個音效最後一個音停掉時,才算少一個正在響的聲音。
+    const end = Math.max(...tones.map((t) => t.at + t.dur));
+    this.activeVoices++;
+    for (const tone of tones) {
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
       osc.type = tone.wave;
-      osc.frequency.setValueAtTime(tone.freq, t0 + tone.at);
-      if (tone.toFreq) osc.frequency.exponentialRampToValueAtTime(tone.toFreq, t0 + tone.at + tone.dur);
+      osc.frequency.setValueAtTime(tone.freq * pitch, t0 + tone.at);
+      if (tone.toFreq) osc.frequency.exponentialRampToValueAtTime(tone.toFreq * pitch, t0 + tone.at + tone.dur);
       g.gain.setValueAtTime(0.0001, t0 + tone.at);
       g.gain.exponentialRampToValueAtTime(tone.gain, t0 + tone.at + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + tone.at + tone.dur);
       osc.connect(g).connect(this.sfxBus!);
       osc.start(t0 + tone.at);
       osc.stop(t0 + tone.at + tone.dur + 0.02);
+      if (tone.at + tone.dur === end) osc.onended = () => (this.activeVoices = Math.max(0, this.activeVoices - 1));
     }
   }
 

@@ -1,9 +1,11 @@
 import { test, expect } from 'vitest';
 import { noteFreq } from '../src/audio/notes';
-import { SFX, sfxLength, type SfxName } from '../src/audio/recipes';
+import { SFX, SHOOT_SFX, THROTTLE_MS, sfxLength, type SfxName } from '../src/audio/recipes';
 import { TUNES, tuneBeats } from '../src/audio/tunes';
 import { DEFAULT_SETTINGS, sanitizeSettings, volumeGain, loadSettings, saveSettings } from '../src/audio/settings';
-import { makeThrottle } from '../src/audio/throttle';
+import { makeThrottle, voiceCap } from '../src/audio/throttle';
+import { WEAPONS } from '../src/game/weapons';
+import { DEFAULT_TUNING } from '../src/config/tuning';
 
 test('音名轉頻率', () => {
   expect(noteFreq('A4')).toBeCloseTo(440);
@@ -61,4 +63,19 @@ test('連射聲音限制頻率', () => {
   expect(ok('shoot', 100)).toBe(true);
   expect(ok('hit', 100)).toBe(true);
   expect(ok('hit', 101)).toBe(true);
+});
+
+test('每把武器有自己的射擊聲,間隔短到每一發都有聲音', () => {
+  for (const def of Object.values(WEAPONS)) {
+    const name = SHOOT_SFX[def.id];
+    expect(SFX[name], def.id).toBeDefined();
+    const interval = def.fireIntervalMs ?? DEFAULT_TUNING.fireIntervalMs;
+    expect(THROTTLE_MS[name] ?? 0, def.id).toBeLessThan(interval);
+  }
+  expect(new Set(Object.values(SHOOT_SFX)).size).toBe(Object.keys(WEAPONS).length);
+});
+
+test('同時最多 12 個音效聲音', () => {
+  expect(voiceCap(11)).toBe(true);
+  expect(voiceCap(12)).toBe(false);
 });

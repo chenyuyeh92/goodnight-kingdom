@@ -21,20 +21,20 @@ test.describe('聲音', () => {
     await page.evaluate(() => window.__GK__!.hurt!(0));
     await page.waitForTimeout(200);
     const sfx = (await gk(page)).sfx!;
-    for (const name of ['shoot', 'hit', 'sleep', 'jump', 'hurt']) expect(sfx[name] ?? 0, name).toBeGreaterThan(0);
+    for (const name of ['shootBubble', 'hit', 'sleep', 'jump', 'hurt']) expect(sfx[name] ?? 0, name).toBeGreaterThan(0);
   });
 
-  test('連射時射擊聲有限制頻率', async ({ page }) => {
+  test('連射時每一發都有射擊聲(機槍「噠」)', async ({ page }) => {
     await open(page);
     await page.evaluate(() => window.__GK__!.giveWeapon!(0, 'sheepGun', 1));
     await page.keyboard.down('KeyC');
     await page.waitForTimeout(1000);
     await page.keyboard.up('KeyC');
-    // 觸發次數照射擊次數算(約 14 次),實際發出的聲音被限制在約 11 次以下(沒有魔物,只有射擊聲)。
+    // 約 14 發,每一發都發出聲音(射擊聲的間隔比射擊間隔短;沒有魔物,只有射擊聲)。
+    // 最前面一兩發可能在瀏覽器還沒開好聲音時射出。
     const s = await gk(page);
-    expect(s.sfx!.shoot ?? 0).toBeGreaterThan(s.voices!);
-    expect(s.voices!).toBeGreaterThan(5);
-    expect(s.voices!).toBeLessThanOrEqual(12);
+    expect(s.sfx!.shootSheep ?? 0).toBeGreaterThan(10);
+    expect(s.voices!).toBeGreaterThanOrEqual(s.sfx!.shootSheep! - 3);
   });
 
   test('每一關播自己的配樂,關主戰換成關主曲', async ({ page }) => {
@@ -60,7 +60,7 @@ test.describe('聲音', () => {
     await page.waitForTimeout(600);
     await page.keyboard.up('KeyC');
     const s = await gk(page);
-    expect(s.sfx!.shoot ?? 0).toBeGreaterThan(0);
+    expect(s.sfx!.shootBubble ?? 0).toBeGreaterThan(0);
     expect(s.voices).toBe(0);
   });
 

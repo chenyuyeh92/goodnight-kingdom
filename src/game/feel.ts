@@ -1,9 +1,12 @@
 import type { WeaponId } from './weapons';
 import type { Aim, Facing } from './playerMotor';
 
-/** 射擊聲最短間隔:比射擊間隔短一點,每一發都有聲音。 */
+/**
+ * 射擊聲最短間隔:每一發都有聲音。畫面卡一下時兩發可能只隔射擊間隔的一半左右,
+ * 所以取 0.4 倍;只擋同一格重複觸發(雙人同時射同一把)。
+ */
 export function shootGapMs(intervalMs: number): number {
-  return intervalMs * 0.8;
+  return intervalMs * 0.4;
 }
 
 /** 小魔物被打中往子彈方向退後的速度(傷害越大退越多,有上限)、退多久;壓扁多久、多扁。 */

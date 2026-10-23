@@ -65,6 +65,7 @@ import { CurrentsView } from '../game/currentsView';
 import type { Intent } from '../input/intent';
 import { ParallaxBackground } from '../game/background';
 import { audio } from '../audio/audio';
+import { HARP_PITCH, SHOOT_SFX } from '../audio/recipes';
 import type { TrackId } from '../audio/tunes';
 import { hintText } from '../ui/hints';
 import type { GuardPlayer, GuardStore } from '../draw/guards';
@@ -948,7 +949,7 @@ export class TestRangeScene extends Phaser.Scene {
       if (p.jumped) audio.sfx('jump');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
-        audio.sfx('shoot');
+        audio.sfx(SHOOT_SFX[r.weapon.id], r.weapon.id === 'lullabyHarp' ? HARP_PITCH[Math.floor(Math.random() * HARP_PITCH.length)] : 1);
       }
       else if (r.kind === 'melee') this.performMelee(r.reach);
       this.applyWater(p);
