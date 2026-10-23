@@ -37,8 +37,15 @@ test('三星再抽到 → maxed', () => {
   expect(openChest(seq(0.1, 0), { [firstR]: 3 })).toEqual({ kind: 'maxed', weapon: firstR });
 });
 
-test('SSR 只會是月亮燈', () => {
-  expect(openChest(seq(0.99, 0.5), {})).toMatchObject({ weapon: 'moonLamp' });
+test('SSR 是月亮燈或許願流星杖(各一半)', () => {
+  expect(openChest(seq(0.99, 0), {})).toMatchObject({ weapon: 'moonLamp' });
+  expect(openChest(seq(0.99, 0.6), {})).toMatchObject({ weapon: 'wishingStar' });
+});
+
+test('寶箱抽得到全部十把', () => {
+  const got = new Set<string>();
+  for (const r of [0.1, 0.6, 0.9]) for (let k = 0; k < 4; k++) got.add(openChest(seq(r, k / 4 + 0.01), {}).weapon);
+  expect(got.size).toBe(10);
 });
 
 test('等級內平均挑選', () => {

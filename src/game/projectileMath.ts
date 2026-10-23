@@ -53,3 +53,31 @@ export function boomerangVelocity(
   const d = Math.hypot(dx, dy) || 1;
   return { vx: (dx / d) * speed, vy: (dy / d) * speed };
 }
+
+/** 懷錶集氣:輕按 3 點,線性加到集滿(1.2 秒)22 點。 */
+export function chargeDamage(ms: number, min = 3, max = 22, maxMs = 1200): number {
+  return min + ((max - min) * Math.min(Math.max(ms, 0), maxMs)) / maxMs;
+}
+
+/** 集越久催眠波越大:輕按 1 倍,集滿 2.5 倍。 */
+export function chargeScale(ms: number, maxMs = 1200): number {
+  return 1 + (1.5 * Math.min(Math.max(ms, 0), maxMs)) / maxMs;
+}
+
+/** 流星的落點:在玩家前方 160–360 px 之間隨機。 */
+export function meteorTargetX(x: number, facing: 1 | -1, rng: () => number): number {
+  return x + facing * (160 + 200 * rng());
+}
+
+/** 爆炸的圓碰到魔物的方框(離方框最近的點在半徑以內)。 */
+export function inBlast(cx: number, cy: number, r: number, box: { x: number; y: number; w: number; h: number }): boolean {
+  const nx = Math.max(box.x, Math.min(cx, box.x + box.w));
+  const ny = Math.max(box.y, Math.min(cy, box.y + box.h));
+  return Math.hypot(cx - nx, cy - ny) <= r;
+}
+
+/** 彈跳:碰地(或平台頂)垂直速度反過來、留 3/4;碰牆水平反過來。 */
+export const BOUNCE_KEEP = 0.75;
+export function bounceOff(v: { vx: number; vy: number }, surface: 'floor' | 'wall'): { vx: number; vy: number } {
+  return surface === 'floor' ? { vx: v.vx, vy: -Math.abs(v.vy) * BOUNCE_KEEP } : { vx: -v.vx, vy: v.vy };
+}

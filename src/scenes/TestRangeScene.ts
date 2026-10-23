@@ -4,7 +4,8 @@ import { KeyboardSource } from '../input/keyboardSource';
 import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity } from '../game/playerEntity';
-import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
+import { ProjectileSystem, type Blast, type HitResult, type ProjectileHit } from '../game/projectileSystem';
+import { inBlast } from '../game/projectileMath';
 import { BASE_LOADOUT, MAX_STARS, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
 import { GadgetSystem } from '../game/gadgetSystem';
 import { WORLD_FODDER, addArenaFodder, ambientGroup, bossFodderSide, fodderEchoes, initialAmbientFodder, initialBossFodder, isFodder, stepAmbientFodder, stepBossFodder, topSpawnY, type AmbientFodder, type BossFodder } from '../game/fodder';
@@ -160,6 +161,13 @@ const INHALE_STOP_GAP = 30;
 const SPARK_KEY = 'gk-spark';
 const SPARK_MS = 260;
 const MUZZLE_FLASH_MS = 60;
+/** 爆炸圈圈擴大後淡出的時間。 */
+const BLAST_MS = 280;
+
+/** 懷錶集滿氣射出(有後座力)。 */
+function fullCharge(weapon: WeaponDef, chargeMs: number | undefined): boolean {
+  return !!weapon.charge && (chargeMs ?? 0) >= weapon.charge.maxMs;
+}
 const BLOCKED_SPARK = 0xb0b0c0;
 const DEFEAT_STAR = 0xffe08a;
 /** 撿到武器時畫面中央的大字:稀有度顏色、停多久。 */
@@ -570,6 +578,9 @@ export class TestRangeScene extends Phaser.Scene {
   private sparks = 0;
   private flashes = 0;
   private knocks = 0;
+  /** 棉花糖、流星爆開了幾次、最後一次在哪、打到幾個。 */
+  private blasts = 0;
+  private lastBlast: { x: number; y: number; hits: number } | null = null;
   /** 連續哄睡:計數與右上角的字;畫面中央的大字(撿到武器、道具)。 */
   private combo: Combo = { ...NO_COMBO };
   private comboText!: Phaser.GameObjects.Text;
@@ -803,6 +814,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.sparks = 0;
     this.flashes = 0;
     this.knocks = 0;
+    this.blasts = 0;
+    this.lastBlast = null;
     this.combo = { ...NO_COMBO };
     this.banner = null;
     this.bossFodder = initialBossFodder();
@@ -877,7 +890,12 @@ export class TestRangeScene extends Phaser.Scene {
       this.physics.add.overlap(p.zone, this.enemyGroup, () => this.hurtPlayer(p, true), solid);
     }
 
-    this.projectiles = new ProjectileSystem(this, this.terrain, (target, hit) => this.onProjectileHit(target, hit));
+    this.projectiles = new ProjectileSystem(
+      this,
+      this.terrain,
+      (target, hit) => this.onProjectileHit(target, hit),
+      (blast) => this.onBlast(blast),
+    );
     this.projectiles.addTargets(this.enemyGroup);
     this.projectiles.addTargets(this.targetGroup);
 
@@ -1005,9 +1023,10 @@ export class TestRangeScene extends Phaser.Scene {
       this.applyInhale(p);
       this.applyMochi(p, i);
       if (p.jumped) audio.sfx('jump');
+      if (p.charge.charging) audio.sfx('watchCharge');
       if (r.kind === 'bullet') {
         this.projectiles.fire(p, r.weapon, r.spawn, t);
-        this.muzzleFlash(p, r.weapon);
+        this.muzzleFlash(p, r.weapon, fullCharge(r.weapon, r.spawn.chargeMs));
         audio.sfx(SHOOT_SFX[r.weapon.id], r.weapon.id === 'lullabyHarp' ? HARP_PITCH[Math.floor(Math.random() * HARP_PITCH.length)] : 1);
       }
       else if (r.kind === 'melee') this.performMelee(r.reach);
@@ -3195,13 +3214,13 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   /** 開槍:槍口閃一下(武器顏色);重武器往後頓一下、畫面輕震。 */
-  private muzzleFlash(p: PlayerEntity, weapon: WeaponDef): void {
+  private muzzleFlash(p: PlayerEntity, weapon: WeaponDef, fullyCharged = false): void {
     const m = p.muzzlePoint();
     // 用火花貼圖(和其他圖同一種畫法,第一次閃光不會卡一下)。
     const flash = this.add.image(m.x, m.y, SPARK_KEY).setTint(weapon.color).setAlpha(0.9).setScale(2.5).setDepth(6);
     this.tweens.add({ targets: flash, scale: 4, alpha: 0, duration: MUZZLE_FLASH_MS, onComplete: () => flash.destroy() });
     this.flashes += 1;
-    if (!RECOIL_WEAPONS.has(weapon.id)) return;
+    if (!RECOIL_WEAPONS.has(weapon.id) && !fullyCharged) return;
     const pb = p.body();
     pb.setVelocityX(pb.velocity.x - p.motor.facing * RECOIL_VX);
     this.cameras.main.shake(80, 0.002);
@@ -3339,6 +3358,38 @@ export class TestRangeScene extends Phaser.Scene {
     this.sparkBurst(hit.x, hit.y, hit.color, 5, 110);
     this.hitTarget(target, hit.damage);
     return 'consumed';
+  }
+
+  /** 棉花糖、流星爆開:圈圈與火花;半徑內的魔物與靶全部受傷(刺盾擋不住),小魔物往外退。 */
+  private onBlast(b: Blast): void {
+    audio.sfx('boom');
+    this.blasts += 1;
+    const ring = this.add.circle(b.x, b.y, b.radius, b.color, 0.35).setStrokeStyle(3, b.color).setDepth(6).setScale(0.3);
+    this.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: BLAST_MS, onComplete: () => ring.destroy() });
+    this.sparkBurst(b.x, b.y, b.color, 8, 180);
+    this.cameras.main.shake(80, 0.003);
+    let hits = 0;
+    for (const enemy of [...this.enemies]) {
+      if (enemy.emerging || enemy.hp <= 0 || this.isInvulnerable(enemy)) continue;
+      const box = { x: enemy.body.x - enemy.def.w / 2, y: enemy.body.y - enemy.def.h / 2, w: enemy.def.w, h: enemy.def.h };
+      if (!inBlast(b.x, b.y, b.radius, box)) continue;
+      hits += 1;
+      if (enemy !== this.boss?.enemy && enemy.def.tier !== 'boss') {
+        enemy.knock(Math.sign(enemy.body.x - b.x || 1) * knockbackSpeed(b.damage));
+        this.knocks += 1;
+      }
+      this.damageEnemy(enemy, b.damage);
+      if (enemy.def.type === 'puffer') enemy.brain = pufferHit(enemy.brain);
+    }
+    for (const target of this.targets) {
+      if (target.hp <= 0) continue;
+      const r = target.rect;
+      if (!inBlast(b.x, b.y, b.radius, { x: r.x - r.width / 2, y: r.y - r.height / 2, w: r.width, h: r.height })) continue;
+      hits += 1;
+      this.hitTarget(target, b.damage);
+    }
+    if (hits > 0) audio.sfx('hit');
+    this.lastBlast = { x: Math.round(b.x), y: Math.round(b.y), hits };
   }
 
   private defeatEnemy(enemy: EnemyEntity, impactScale = 1): void {
@@ -3550,6 +3601,8 @@ export class TestRangeScene extends Phaser.Scene {
       meleeHits: this.meleeHits,
       meleeSwings: this.meleeSwings,
       bullets: this.projectiles.count(),
+      shots: this.projectiles.debug(),
+      blasts: { count: this.blasts, last: this.lastBlast },
       targetsHit: this.targetsHit,
       cameraX: this.scrollX,
       sfx: { ...audio.counts },

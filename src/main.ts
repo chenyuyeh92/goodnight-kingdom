@@ -36,6 +36,8 @@ export interface PlayerDebug {
   ammo: number | null;
   heat: number;
   overheated: boolean;
+  /** 懷錶集氣中:集了多久(ms);沒在集氣是 0。 */
+  chargeMs: number;
   cocoa: boolean;
   star: boolean;
   /** 角色用的圖(小綿羊 'guard' 或玩家畫的守衛),沒有圖為 null。 */
@@ -165,6 +167,8 @@ export interface GkDebug {
   /** 測試用:把醒著的角色移到 x(站在地面上)。 */
   warp?: (x: number, feetY?: number) => void;
   bullets?: number;
+  shots?: { id: string; x: number; y: number; damage: number; bouncesLeft: number; size: number }[];
+  blasts?: { count: number; last: { x: number; y: number; hits: number } | null };
   targetsHit?: number;
   cameraX?: number;
 }

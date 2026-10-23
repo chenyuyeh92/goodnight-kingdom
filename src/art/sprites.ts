@@ -384,6 +384,10 @@ const BASE_SPRITES = {
   'w-lullaby-harp': { file: 'weapons/lullaby-harp.png', w: 40, h: 38 },
   'w-blanket-boomerang': { file: 'weapons/blanket-boomerang.png', w: 40, h: 37 },
   'w-moon-lamp': { file: 'weapons/moon-lamp.png', w: 27, h: 40 },
+  'w-yarn-ball': { file: 'weapons/yarn-ball.png', w: 40, h: 36 },
+  'w-marshmallow-bomb': { file: 'weapons/marshmallow-bomb.png', w: 42, h: 36 },
+  'w-hypno-watch': { file: 'weapons/hypno-watch.png', w: 36, h: 40 },
+  'w-wishing-star': { file: 'weapons/wishing-star.png', w: 24, h: 44 },
   'ui-cover-bg': { file: 'ui/cover-bg.png', w: 1920, h: 1080 },
   'ui-logo': { file: 'ui/logo.png', w: 1243, h: 518 },
   'ui-guard': { file: 'ui/cover-guard.png', w: 350, h: 400 },
@@ -412,6 +416,10 @@ const BASE_SPRITES = {
   'b-milk': { file: 'bullets/milk-drop.png', w: 10, h: 10 },
   'b-note': { file: 'bullets/music-note.png', w: 11, h: 14 },
   'b-moon': { file: 'bullets/moon-beam.png', w: 32, h: 10 },
+  'b-yarn': { file: 'bullets/yarn-ball.png', w: 16, h: 16 },
+  'b-marshmallow': { file: 'bullets/marshmallow.png', w: 20, h: 18 },
+  'b-hypno': { file: 'bullets/hypno-wave.png', w: 24, h: 48 },
+  'b-meteor': { file: 'bullets/meteor.png', w: 24, h: 40 },
 } as const satisfies Record<string, { file: string; w: number; h: number }>;
 
 /** 全部素材:手寫的原圖與世界 1 動畫格,加上產生的世界 2–10 與 Boss 動畫格(animSprites.ts)。 */
@@ -668,6 +676,10 @@ const WEAPON_ICONS: Record<WeaponId, SpriteKey> = {
   lullabyHarp: 'w-lullaby-harp',
   blanketBoomerang: 'w-blanket-boomerang',
   moonLamp: 'w-moon-lamp',
+  yarnBall: 'w-yarn-ball',
+  marshmallowBomb: 'w-marshmallow-bomb',
+  hypnoWatch: 'w-hypno-watch',
+  wishingStar: 'w-wishing-star',
 };
 
 export function weaponIcon(id: WeaponId): SpriteKey {
@@ -683,6 +695,10 @@ const BULLETS: Record<WeaponId, SpriteKey> = {
   lullabyHarp: 'b-note',
   blanketBoomerang: 'w-blanket-boomerang',
   moonLamp: 'b-moon',
+  yarnBall: 'b-yarn',
+  marshmallowBomb: 'b-marshmallow',
+  hypnoWatch: 'b-hypno',
+  wishingStar: 'b-meteor',
 };
 
 export function bulletSprite(id: WeaponId): SpriteKey {

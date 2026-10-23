@@ -15,6 +15,10 @@ const BLURB: Record<SpecialWeaponId, string> = {
   lullabyHarp: '音符自動追蹤,對付飛行魔物',
   blanketBoomerang: '飛出去再繞回來,打盾牌魔物的背後',
   moonLamp: '持續光束,連射會過熱',
+  yarnBall: '拋出去會彈跳,彈起來再打一次',
+  marshmallowBomb: '拋物線丟出,落地爆開打一群',
+  hypnoWatch: '按住集氣,放開射出穿牆的催眠波',
+  wishingStar: '前方落下流星,爆開打一群',
 };
 const RARITY_COLOR: Record<string, string> = { R: '#ffffff', SR: '#7fb4ff', SSR: '#ffd24a' };
 const LOCKED_COLOR = '#6f6a8a';

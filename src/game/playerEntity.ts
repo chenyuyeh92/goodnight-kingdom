@@ -2,17 +2,20 @@ import Phaser from 'phaser';
 import type { Tuning } from '../config/tuning';
 import type { Intent } from '../input/intent';
 import type { PlayerDebug } from '../main';
-import { bulletVelocity, muzzleOffset } from './fire';
+import { bulletVelocity, initialChargeState, muzzleOffset, stepCharge, type ChargeState } from './fire';
 import { initialAttackState, stepAttack, type AttackState, type MeleeReach } from './melee';
 import { freshHealth, type Health } from './health';
 import { CROUCH_HITBOX, STAND_HITBOX, initialMotorState, stepMotor, type MotorState } from './playerMotor';
-import { BASE_LOADOUT, activeWeapon, canFire, coolWeapon, fireWeapon, type Loadout, type WeaponDef } from './weapons';
+import { BASE_LOADOUT, WEAPONS, activeWeapon, canFire, coolWeapon, fireWeapon, type Loadout, type WeaponDef } from './weapons';
 import { NO_BUFFS, fireIntervalWithBuffs, tickBuffs, type Buffs } from './items';
 import { playerPose } from '../art/motion';
 import { guardFrame } from '../art/frames';
 import { DEFAULT_GUARD_KEY } from '../draw/guardTextures';
 import { weaponIcon } from '../art/sprites';
 import { ART_ANGLE, HELD_FORWARD, HELD_SCALE, MUZZLE, heldPose } from './feel';
+
+/** 懷錶集滿的時間。 */
+const CHARGE_FULL_MS = WEAPONS.hypnoWatch.charge?.maxMs ?? 1200;
 
 const DOWN_HEIGHT = 20;
 /** 小綿羊守衛圖:站著 48×55,蹲下壓扁,睡著躺平。 */
@@ -54,6 +57,8 @@ export interface BulletSpawn {
   y: number;
   vx: number;
   vy: number;
+  /** 懷錶:集氣了多久(ms)。 */
+  chargeMs?: number;
 }
 
 /** 一個角色:物理 body、繪圖、動作、射擊與愛心。 */
@@ -61,6 +66,8 @@ export class PlayerEntity {
   readonly zone: Phaser.GameObjects.Zone;
   motor: MotorState = initialMotorState();
   attack: AttackState = initialAttackState();
+  /** 懷錶的集氣。 */
+  charge: ChargeState = initialChargeState();
   health: Health = freshHealth();
   loadout: Loadout = { ...BASE_LOADOUT };
   buffs: Buffs = { ...NO_BUFFS };
@@ -164,14 +171,28 @@ export class PlayerEntity {
     const shooting = near || (intent.shoot && canFire(this.loadout));
     const weapon = activeWeapon(this.loadout);
     const interval = fireIntervalWithBuffs(weapon.fireIntervalMs ?? t.fireIntervalMs, this.buffs);
+    // 懷錶:按住集氣、放開射出(身邊有魔物時照樣揮枕頭)。
+    if (weapon.kind === 'charge' && !near) {
+      this.attack = stepAttack(this.attack, false, false, dtMs, interval).state;
+      const c = stepCharge(this.charge, { held: intent.shoot, canFire: canFire(this.loadout), dtMs, intervalMs: interval });
+      this.charge = c.state;
+      if (c.releaseMs === null) return { kind: 'none' };
+      return this.shoot(weapon, t, pb.bottom, c.releaseMs);
+    }
+    this.charge = initialChargeState();
     const r = stepAttack(this.attack, shooting, near, dtMs, interval);
     this.attack = r.state;
     if (r.action === 'melee') return { kind: 'melee', reach };
     if (r.action === 'none') return { kind: 'none' };
+    return this.shoot(weapon, t, pb.bottom);
+  }
+
+  private shoot(weapon: WeaponDef, t: Tuning, feetY: number, chargeMs?: number): AttackResult {
+    const m = this.motor;
     this.loadout = fireWeapon(this.loadout, this.buffs.starMs > 0);
     const off = muzzleOffset(m.aim, m.facing, m.crouching);
     const v = bulletVelocity(m.aim, m.facing, weapon.speed ?? t.bulletSpeed);
-    return { kind: 'bullet', weapon, spawn: { x: this.zone.x + off.x, y: pb.bottom + off.y, vx: v.vx, vy: v.vy } };
+    return { kind: 'bullet', weapon, spawn: { x: this.zone.x + off.x, y: feetY + off.y, vx: v.vx, vy: v.vy, chargeMs } };
   }
 
   /** 夾在畫面裡;頂到邊時往邊外的速度歸零(冰上才不會留著舊速度,轉身時卡在邊上)。 */
@@ -192,6 +213,7 @@ export class PlayerEntity {
     if (this.motor.crouching) this.resizeBody(false, feetY);
     this.motor = { ...initialMotorState(), facing: this.motor.facing };
     this.attack = initialAttackState();
+    this.charge = initialChargeState();
     this.body().reset(x, feetY - STAND_HITBOX.h / 2);
   }
 
@@ -228,9 +250,16 @@ export class PlayerEntity {
       .setVisible(true)
       .setOrigin(MUZZLE[id].x, MUZZLE[id].y)
       .setScale(pose.flipX ? -HELD_SCALE : HELD_SCALE, HELD_SCALE)
-      .setAngle(pose.angle)
+      .setAngle(pose.angle + this.chargeWobble())
       .setPosition(m.x, m.y + this.poseDy)
       .setAlpha(blinking ? 0.3 : 1);
+  }
+
+  /** 懷錶集氣時在手上擺動,集越久擺得越快(最快 1.2 秒)。 */
+  private chargeWobble(): number {
+    if (!this.charge.charging) return 0;
+    const k = Math.min(this.charge.chargeMs / CHARGE_FULL_MS, 1);
+    return 14 * Math.sin((this.charge.chargeMs / 1000) * Math.PI * 2 * (1.5 + 4.5 * k));
   }
 
   /** 手上武器實際畫出來的左右範圍(getBounds 不管負的寬度,這裡自己算四個角)。 */
@@ -295,6 +324,7 @@ export class PlayerEntity {
       ammo: this.loadout.ammo,
       heat: this.loadout.heat,
       overheated: this.loadout.overheated,
+      chargeMs: this.charge.charging ? this.charge.chargeMs : 0,
       cocoa: this.buffs.cocoaMs > 0,
       star: this.buffs.starMs > 0,
     };

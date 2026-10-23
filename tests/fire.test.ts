@@ -1,5 +1,5 @@
-import { test, expect } from 'vitest';
-import { bulletVelocity, initialFireState, muzzleOffset, stepFire, type FireState } from '../src/game/fire';
+import { describe, test, expect } from 'vitest';
+import { bulletVelocity, initialChargeState, initialFireState, muzzleOffset, stepCharge, stepFire, type ChargeState, type FireState } from '../src/game/fire';
 
 test('點一下立刻發射', () => {
   expect(stepFire(initialFireState(), true, 16, 160).fired).toBe(true);
@@ -62,4 +62,38 @@ test('連射時保留剩餘時間,射速不受畫面更新率影響', () => {
   expect(at60).toBeGreaterThanOrEqual(19);
   expect(at60).toBeLessThanOrEqual(21);
   expect(Math.abs(at60 - at165)).toBeLessThanOrEqual(1);
+});
+
+describe('懷錶集氣', () => {
+  const run = (s: ChargeState, held: boolean, ms: number, ready = true) => {
+    let release: number | null = null;
+    for (let t = 0; t < ms; t += 16) {
+      const r = stepCharge(s, { held, canFire: ready, dtMs: 16, intervalMs: 300 });
+      s = r.state;
+      if (r.releaseMs !== null) release = r.releaseMs;
+    }
+    return { s, release };
+  };
+
+  test('按住時集氣、不射;放開才射出,帶著集了多久', () => {
+    const a = run(initialChargeState(), true, 800);
+    expect(a.release).toBeNull();
+    expect(a.s.chargeMs).toBeGreaterThanOrEqual(784);
+    const b = run(a.s, false, 16);
+    expect(b.release).toBeGreaterThanOrEqual(784);
+    expect(b.s.chargeMs).toBe(0);
+  });
+
+  test('射完要等間隔(300 ms)才能再開始集氣', () => {
+    const shot = run(run(initialChargeState(), true, 100).s, false, 16);
+    const again = run(shot.s, true, 160);
+    expect(again.s.charging).toBe(false);
+    const later = run(shot.s, true, 480);
+    expect(later.s.charging).toBe(true);
+  });
+
+  test('沒在集氣時放開不會射;不能射(過熱、沒有武器)時不集氣', () => {
+    expect(run(initialChargeState(), false, 200).release).toBeNull();
+    expect(run(initialChargeState(), true, 200, false).s.charging).toBe(false);
+  });
 });

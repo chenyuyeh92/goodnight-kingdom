@@ -7,10 +7,15 @@ export type WeaponId =
   | 'milkSpray'
   | 'lullabyHarp'
   | 'blanketBoomerang'
-  | 'moonLamp';
+  | 'moonLamp'
+  | 'yarnBall'
+  | 'marshmallowBomb'
+  | 'hypnoWatch'
+  | 'wishingStar';
 export type SpecialWeaponId = Exclude<WeaponId, 'yawnBubble'>;
 export type Rarity = 'base' | 'R' | 'SR' | 'SSR';
-export type ProjectileKind = 'straight' | 'pierce' | 'spread' | 'homing' | 'boomerang' | 'beam';
+/** bounce 會彈跳、lob 拋物線落地爆開、charge 按住集氣放開射出、meteor 從天上落到前方爆開。 */
+export type ProjectileKind = 'straight' | 'pierce' | 'spread' | 'homing' | 'boomerang' | 'beam' | 'bounce' | 'lob' | 'charge' | 'meteor';
 
 export interface OverheatDef {
   heatPerShot: number;
@@ -38,12 +43,21 @@ export interface WeaponDef {
   pellets?: number;
   spreadDeg?: number;
   overheat?: OverheatDef;
+  /** 受重力往下掉(px/s²):毛線球、棉花糖。 */
+  gravity?: number;
+  /** 最多彈幾次(毛線球)。 */
+  bounces?: number;
+  /** 爆開的半徑:範圍內的魔物全部受傷,刺盾擋不住。 */
+  blastRadius?: number;
+  /** 集氣:輕按是 damage,集滿 maxMs 是 maxDamage,中間線性。 */
+  charge?: { maxDamage: number; maxMs: number };
 }
 
 /**
  * 強度階級(對單一魔物每秒傷害,稀有度越高越強):
  * 哈欠泡泡 6.7 < 枕頭砲 8.9(穿透)、牛奶噴霧近距離 13.3(射程約 290)、數羊機槍 14.3
  * < 搖籃曲豎琴 16.7(追蹤不會打歪)、棉被迴力鏢 15(穿透、穿牆)< 月亮催眠燈約 20(連射時 33,無限彈藥)。
+ * 第二批:彈彈毛線球 7.1(彈跳多打幾下)< 棉花糖炸彈 14.5(範圍)、催眠懷錶全集氣約 14.7(穿透穿牆)< 許願流星杖 22(範圍)。
  */
 export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
   yawnBubble: { id: 'yawnBubble', name: '哈欠泡泡', rarity: 'base', kind: 'straight', fireIntervalMs: null, damage: 1, speed: null, size: 14, color: 0xd6f0ff, lifeMs: 1000, baseAmmo: null },
@@ -56,15 +70,29 @@ export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
     id: 'moonLamp', name: '月亮催眠燈', rarity: 'SSR', kind: 'beam', fireIntervalMs: 60, damage: 2, speed: 900, size: 12, color: 0xfff3a8, lifeMs: 300, baseAmmo: null,
     overheat: { heatPerShot: 5, maxHeat: 100, coolPerSec: 40, resumeAt: 30 },
   },
+  yarnBall: { id: 'yarnBall', name: '彈彈毛線球', rarity: 'R', kind: 'bounce', fireIntervalMs: 280, damage: 2, speed: 460, size: 14, color: 0xf6b8d0, lifeMs: 2400, baseAmmo: 50, gravity: 1100, bounces: 3 },
+  marshmallowBomb: {
+    id: 'marshmallowBomb', name: '晚安棉花糖炸彈', rarity: 'SR', kind: 'lob', fireIntervalMs: 550, damage: 8, speed: 480, size: 18, color: 0xfff4f8, lifeMs: 2400, baseAmmo: 30,
+    gravity: 1100, blastRadius: 80,
+  },
+  hypnoWatch: {
+    id: 'hypnoWatch', name: '催眠懷錶', rarity: 'SR', kind: 'charge', fireIntervalMs: 300, damage: 3, speed: 520, size: 24, color: 0xc8a8ff, lifeMs: 1400, baseAmmo: 25,
+    charge: { maxDamage: 22, maxMs: 1200 },
+  },
+  wishingStar: { id: 'wishingStar', name: '許願流星杖', rarity: 'SSR', kind: 'meteor', fireIntervalMs: 180, damage: 4, speed: 900, size: 18, color: 0xffe070, lifeMs: 1200, baseAmmo: 60, blastRadius: 60 },
 };
 
 export const SPECIAL_WEAPONS: readonly SpecialWeaponId[] = [
   'sheepGun',
   'pillowCannon',
   'milkSpray',
+  'yarnBall',
   'lullabyHarp',
   'blanketBoomerang',
+  'marshmallowBomb',
+  'hypnoWatch',
   'moonLamp',
+  'wishingStar',
 ];
 
 export const MAX_STARS = 3;

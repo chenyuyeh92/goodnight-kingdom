@@ -23,6 +23,12 @@ export type SfxName =
   | 'shootHarp'
   | 'shootBoomerang'
   | 'shootLamp'
+  | 'shootYarn'
+  | 'shootMarshmallow'
+  | 'shootWatch'
+  | 'shootStar'
+  | 'watchCharge'
+  | 'boom'
   | 'hit'
   | 'blocked'
   | 'melee'
@@ -60,6 +66,27 @@ export const SFX: Record<SfxName, readonly Tone[]> = {
   ],
   shootBoomerang: [{ freq: 300, toFreq: 900, at: 0, dur: 0.18, wave: 'sine', gain: 0.18 }],
   shootLamp: [{ freq: 330, toFreq: 360, at: 0, dur: 0.08, wave: 'triangle', gain: 0.12 }],
+  // 毛線球「啵嚶」(彈弓)、棉花糖「噗」、懷錶放開「嗡~」、流星「叮鈴」。
+  shootYarn: [{ freq: 300, toFreq: 520, at: 0, dur: 0.09, wave: 'triangle', gain: 0.2 }],
+  shootMarshmallow: [
+    { freq: 180, toFreq: 110, at: 0, dur: 0.12, wave: 'sine', gain: 0.3 },
+    { freq: 600, toFreq: 300, at: 0, dur: 0.06, wave: 'triangle', gain: 0.08 },
+  ],
+  shootWatch: [
+    { freq: 520, toFreq: 260, at: 0, dur: 0.35, wave: 'sine', gain: 0.22 },
+    { freq: 780, toFreq: 390, at: 0.03, dur: 0.3, wave: 'triangle', gain: 0.08 },
+  ],
+  shootStar: [
+    { freq: n('E6'), at: 0, dur: 0.12, wave: 'sine', gain: 0.12 },
+    { freq: n('B6'), at: 0.04, dur: 0.12, wave: 'sine', gain: 0.08 },
+  ],
+  // 懷錶集氣中「滴答」。
+  watchCharge: [{ freq: 1200, at: 0, dur: 0.03, wave: 'square', gain: 0.05 }],
+  // 棉花糖、流星落地爆開「碰」(軟軟的)。
+  boom: [
+    { freq: 160, toFreq: 50, at: 0, dur: 0.25, wave: 'sine', gain: 0.4 },
+    { freq: 400, toFreq: 120, at: 0, dur: 0.12, wave: 'triangle', gain: 0.12 },
+  ],
   hit: [{ freq: 420, toFreq: 200, at: 0, dur: 0.06, wave: 'triangle', gain: 0.3 }],
   blocked: [
     { freq: 1600, toFreq: 1300, at: 0, dur: 0.05, wave: 'square', gain: 0.08 },
@@ -99,6 +126,10 @@ export const SHOOT_SFX: Readonly<Record<WeaponId, SfxName>> = {
   lullabyHarp: 'shootHarp',
   blanketBoomerang: 'shootBoomerang',
   moonLamp: 'shootLamp',
+  yarnBall: 'shootYarn',
+  marshmallowBomb: 'shootMarshmallow',
+  hypnoWatch: 'shootWatch',
+  wishingStar: 'shootStar',
 };
 
 /** 豎琴每發從這幾個音高挑一個(Do、Re、Mi、Sol)。 */
@@ -111,6 +142,8 @@ export const THROTTLE_MS: Partial<Record<SfxName, number>> = {
   sleep: 70,
   splash: 200,
   select: 40,
+  boom: 60,
+  watchCharge: 150,
   ...Object.fromEntries(Object.values(WEAPONS).map((d) => [SHOOT_SFX[d.id], shootGapMs(d.fireIntervalMs ?? DEFAULT_TUNING.fireIntervalMs)])),
 };
 

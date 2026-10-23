@@ -37,3 +37,27 @@ export function muzzleOffset(aim: Aim, facing: Facing, crouching: boolean): { x:
   if (aim === 'down') return { x: 0, y: 2 };
   return crouching ? { x: facing * 16, y: -14 } : { x: facing * 16, y: -30 };
 }
+
+/** 懷錶:按住集氣、放開射出;射完要等 intervalMs 才能再開始集氣。 */
+export interface ChargeState {
+  charging: boolean;
+  chargeMs: number;
+  cooldownMs: number;
+}
+
+export function initialChargeState(): ChargeState {
+  return { charging: false, chargeMs: 0, cooldownMs: 0 };
+}
+
+export function stepCharge(
+  s: ChargeState,
+  i: { held: boolean; canFire: boolean; dtMs: number; intervalMs: number },
+): { state: ChargeState; releaseMs: number | null } {
+  const dt = Math.min(i.dtMs, MAX_DT_MS);
+  const cooldownMs = Math.max(0, s.cooldownMs - dt);
+  if (i.held && i.canFire && (s.charging || cooldownMs === 0)) {
+    return { state: { charging: true, chargeMs: s.charging ? s.chargeMs + dt : 0, cooldownMs }, releaseMs: null };
+  }
+  if (!s.charging) return { state: { ...s, cooldownMs }, releaseMs: null };
+  return { state: { charging: false, chargeMs: 0, cooldownMs: i.intervalMs }, releaseMs: s.chargeMs };
+}

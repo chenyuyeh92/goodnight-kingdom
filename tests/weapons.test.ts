@@ -13,10 +13,32 @@ import {
   type Loadout,
 } from '../src/game/weapons';
 
-test('六把特殊武器的等級分布:R 3、SR 2、SSR 1', () => {
+test('十把特殊武器的等級分布:R 4、SR 4、SSR 2', () => {
   const count = (r: string) => SPECIAL_WEAPONS.filter((id) => WEAPONS[id].rarity === r).length;
-  expect(SPECIAL_WEAPONS).toHaveLength(6);
-  expect([count('R'), count('SR'), count('SSR')]).toEqual([3, 2, 1]);
+  expect(SPECIAL_WEAPONS).toHaveLength(10);
+  expect([count('R'), count('SR'), count('SSR')]).toEqual([4, 4, 2]);
+});
+
+test('四把新武器的數值(★1)', () => {
+  expect(WEAPONS.yarnBall).toMatchObject({ rarity: 'R', kind: 'bounce', fireIntervalMs: 280, damage: 2, baseAmmo: 50, bounces: 3 });
+  expect(WEAPONS.marshmallowBomb).toMatchObject({ rarity: 'SR', kind: 'lob', fireIntervalMs: 550, damage: 8, baseAmmo: 30, blastRadius: 80 });
+  expect(WEAPONS.hypnoWatch).toMatchObject({ rarity: 'SR', kind: 'charge', damage: 3, baseAmmo: 25, charge: { maxDamage: 22, maxMs: 1200 } });
+  expect(WEAPONS.wishingStar).toMatchObject({ rarity: 'SSR', kind: 'meteor', fireIntervalMs: 180, baseAmmo: 60, blastRadius: 60 });
+});
+
+test('強度排序:R 每秒傷害 < SR < SSR(對單一魔物)', () => {
+  const dps = (id: keyof typeof WEAPONS): number => {
+    const w = WEAPONS[id];
+    // 懷錶:全集氣 1.2 秒 + 放開後的間隔。
+    if (w.charge) return w.charge.maxDamage / ((w.charge.maxMs + (w.fireIntervalMs ?? 0)) / 1000);
+    return (w.damage * (w.pellets ?? 1)) / ((w.fireIntervalMs ?? 150) / 1000);
+  };
+  const R = SPECIAL_WEAPONS.filter((id) => WEAPONS[id].rarity === 'R' && id !== 'milkSpray').map(dps);
+  const SR = SPECIAL_WEAPONS.filter((id) => WEAPONS[id].rarity === 'SR').map(dps);
+  expect(dps('yarnBall')).toBeLessThanOrEqual(Math.max(...R));
+  expect(Math.min(...SR)).toBeGreaterThanOrEqual(Math.max(...R));
+  expect(dps('wishingStar')).toBeGreaterThan(Math.max(...SR));
+  expect(dps('wishingStar')).toBeLessThan(25);
 });
 
 test('ammoCapacity 依星等增加,最多三星', () => {

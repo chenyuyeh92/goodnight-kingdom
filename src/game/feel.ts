@@ -18,7 +18,7 @@ export const SQUASH_MS = 80;
 export const SQUASH = { x: 1.15, y: 0.85 } as const;
 
 /** 開火時角色往後頓一下的重武器。 */
-export const RECOIL_WEAPONS: ReadonlySet<WeaponId> = new Set<WeaponId>(['pillowCannon', 'blanketBoomerang']);
+export const RECOIL_WEAPONS: ReadonlySet<WeaponId> = new Set<WeaponId>(['pillowCannon', 'blanketBoomerang', 'marshmallowBomb']);
 export const RECOIL_VX = 60;
 
 /** 連續哄睡:上一隻打倒後 COMBO_WINDOW_MS 內再打倒就累加。 */
@@ -55,6 +55,10 @@ export const MUZZLE: Readonly<Record<WeaponId, { x: number; y: number }>> = {
   lullabyHarp: { x: 0.95, y: 0.4 },
   blanketBoomerang: { x: 1, y: 0.5 },
   moonLamp: { x: 0.5, y: 0.05 },
+  yarnBall: { x: 0.85, y: 0.25 },
+  marshmallowBomb: { x: 0.9, y: 0.35 },
+  hypnoWatch: { x: 0.75, y: 0.6 },
+  wishingStar: { x: 0.75, y: 0.15 },
 };
 
 /** 月亮燈的圖是直的(燈頭朝上),轉 90 度才是朝右。 */

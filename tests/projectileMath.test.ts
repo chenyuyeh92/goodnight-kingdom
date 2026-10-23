@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { boomerangVelocity, pelletVelocities, steerToward } from '../src/game/projectileMath';
+import { boomerangVelocity, pelletVelocities, steerToward, bounceOff, chargeDamage, chargeScale, inBlast, meteorTargetX } from '../src/game/projectileMath';
 
 const speed = (v: { vx: number; vy: number }) => Math.hypot(v.vx, v.vy);
 
@@ -42,4 +42,34 @@ test('迴力鏢 400ms 內照原速度,之後飛回主人', () => {
 test('主人不在時沿原方向飛走', () => {
   const initial = { vx: 520, vy: 0 };
   expect(boomerangVelocity(900, initial, { x: 500, y: 450 }, null)).toEqual(initial);
+});
+
+test('懷錶集氣:輕按 3 點,線性加到 1.2 秒 22 點,再久也是 22', () => {
+  expect(chargeDamage(0)).toBe(3);
+  expect(chargeDamage(600)).toBeCloseTo(12.5);
+  expect(chargeDamage(1200)).toBe(22);
+  expect(chargeDamage(5000)).toBe(22);
+  expect(chargeScale(0)).toBe(1);
+  expect(chargeScale(1200)).toBeCloseTo(2.5);
+});
+
+test('流星落在前方 160–360 之間', () => {
+  expect(meteorTargetX(1000, 1, () => 0)).toBe(1160);
+  expect(meteorTargetX(1000, 1, () => 0.999)).toBeCloseTo(1360, 0);
+  expect(meteorTargetX(1000, -1, () => 0)).toBe(840);
+});
+
+test('爆炸範圍:圓碰到魔物的方框就算(離中心 r 以內)', () => {
+  const box = { x: 100, y: 100, w: 40, h: 40 };
+  expect(inBlast(50, 120, 60, box)).toBe(true);
+  expect(inBlast(30, 120, 60, box)).toBe(false);
+  expect(inBlast(120, 120, 10, box)).toBe(true);
+  // 角落:距離 (√(30²+30²) ≈ 42)
+  expect(inBlast(70, 70, 40, box)).toBe(false);
+  expect(inBlast(70, 70, 45, box)).toBe(true);
+});
+
+test('毛線球碰地反彈:往下的速度反過來、變小一點;水平不變', () => {
+  expect(bounceOff({ vx: 300, vy: 400 }, 'floor')).toEqual({ vx: 300, vy: -300 });
+  expect(bounceOff({ vx: 300, vy: -100 }, 'wall')).toEqual({ vx: -300, vy: -100 });
 });
