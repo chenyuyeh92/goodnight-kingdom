@@ -78,6 +78,8 @@ export class PlayerEntity {
   private readonly held: Phaser.GameObjects.Image;
   /** 走路時上下晃的量(手上的武器跟著晃)。 */
   private poseDy = 0;
+  /** 這一格畫角色圖用的腳底 y。 */
+  private artFeetY = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -105,11 +107,16 @@ export class PlayerEntity {
 
   /** 手上武器槍口的世界座標(子彈發射點再往瞄準方向伸出 HELD_FORWARD;槍口閃光用)。 */
   muzzlePoint(): { x: number; y: number } {
+    return this.heldMuzzle(this.body().bottom);
+  }
+
+  /** 腳底在 feetY 時手上武器的槍口位置。 */
+  private heldMuzzle(feetY: number): { x: number; y: number } {
     const m = this.motor;
     const off = muzzleOffset(m.aim, m.facing, m.crouching);
     const fx = m.aim === 'forward' ? m.facing * HELD_FORWARD : 0;
     const fy = m.aim === 'up' ? -HELD_FORWARD : m.aim === 'down' ? HELD_FORWARD : 0;
-    return { x: this.zone.x + off.x + fx, y: this.body().bottom + off.y + fy };
+    return { x: this.zone.x + off.x + fx, y: feetY + off.y + fy };
   }
 
   body(): Phaser.Physics.Arcade.Body {
@@ -192,6 +199,7 @@ export class PlayerEntity {
     const down = this.health.down;
     const h = down ? DOWN_HEIGHT : this.motor.crouching ? CROUCH_HITBOX.h : STAND_HITBOX.h;
     const feetY = this.zone.y + this.body().height / 2 + this.sink;
+    this.artFeetY = feetY;
     this.sprite.setPosition(this.zone.x, feetY);
     this.sprite.setSize(STAND_HITBOX.w, h);
     this.sprite.setDisplaySize(down ? STAND_HITBOX.w + 12 : STAND_HITBOX.w, h);
@@ -213,14 +221,30 @@ export class PlayerEntity {
     }
     if (this.held.texture.key !== key) this.held.setTexture(key);
     const pose = heldPose(this.motor.aim, this.motor.facing, ART_ANGLE[id]);
-    const m = this.muzzlePoint();
+    // 跟角色圖用同一個腳底(物理這一格已經動了,圖還在上一格的位置)。
+    const m = this.heldMuzzle(this.artFeetY);
+    // 翻轉用負的寬度:以槍口為中心翻(setFlipX 是以圖的正中間翻,槍口會跑到前面)。
     this.held
       .setVisible(true)
       .setOrigin(MUZZLE[id].x, MUZZLE[id].y)
-      .setFlipX(pose.flipX)
+      .setScale(pose.flipX ? -HELD_SCALE : HELD_SCALE, HELD_SCALE)
       .setAngle(pose.angle)
-      .setPosition(m.x, m.y + this.sink + this.poseDy)
+      .setPosition(m.x, m.y + this.poseDy)
       .setAlpha(blinking ? 0.3 : 1);
+  }
+
+  /** 手上武器實際畫出來的左右範圍(getBounds 不管負的寬度,這裡自己算四個角)。 */
+  private heldDebug(): NonNullable<PlayerDebug['held']> {
+    const h = this.held;
+    const r = h.rotation;
+    const xs = [0, 1].flatMap((u) =>
+      [0, 1].map((v) => {
+        const dx = (u - h.originX) * h.width * h.scaleX;
+        const dy = (v - h.originY) * h.height * h.scaleY;
+        return h.x + dx * Math.cos(r) - dy * Math.sin(r);
+      }),
+    );
+    return { key: h.texture.key, angle: h.angle, x: h.x, y: h.y, left: Math.min(...xs), right: Math.max(...xs) };
   }
 
   /** 畫小綿羊,回傳圖的高度(標籤放在上面)。 */
@@ -266,7 +290,8 @@ export class PlayerEntity {
       weapon: activeWeapon(this.loadout).id,
       // 用的是哪一個守衛(不是目前的動畫格)。
       art: this.art ? this.opts.artKey : null,
-      held: this.held.visible ? { key: this.held.texture.key, angle: this.held.angle, x: this.held.x, y: this.held.y } : null,
+      held: this.held.visible ? this.heldDebug() : null,
+      artFeetY: this.artFeetY,
       ammo: this.loadout.ammo,
       heat: this.loadout.heat,
       overheated: this.loadout.overheated,

@@ -42,7 +42,9 @@ export interface PlayerDebug {
   /** 角色用的圖(小綿羊 'guard' 或玩家畫的守衛),沒有圖為 null。 */
   art: string | null;
   /** 手上的武器圖(位置是槍口);睡著或沒有圖時為 null。 */
-  held: { key: string; angle: number; x: number; y: number } | null;
+  held: { key: string; angle: number; x: number; y: number; left: number; right: number } | null;
+  /** 畫角色圖用的腳底 y(手上武器要跟著它)。 */
+  artFeetY?: number;
 }
 
 export interface EnemyDebug {

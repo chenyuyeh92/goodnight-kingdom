@@ -46,6 +46,36 @@ test.describe('武器', () => {
     expect(p.held!.x).toBeLessThan(p.x);
   });
 
+  test('朝左時武器離身體的距離和朝右一樣(不會飄在前面)', async ({ page }) => {
+    await open(page);
+    await give(page, 'sheepGun');
+    await page.waitForTimeout(100);
+    let p = (await gk(page)).players![0];
+    const right = p.held!.left - p.x;
+    await hold(page, 'KeyA', 120);
+    await page.waitForTimeout(100);
+    p = (await gk(page)).players![0];
+    const left = p.x - p.held!.right;
+    expect(Math.abs(right - left)).toBeLessThanOrEqual(3);
+  });
+
+  test('跳起來時武器跟著身體,不會上下錯開', async ({ page }) => {
+    await open(page);
+    await give(page, 'sheepGun');
+    await page.waitForTimeout(100);
+    const p0 = (await gk(page)).players![0];
+    const d0 = p0.held!.y - p0.artFeetY!;
+    await page.keyboard.down('KeyV');
+    const offsets: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      await page.waitForTimeout(40);
+      const p = (await gk(page)).players![0];
+      offsets.push(p.held!.y - p.artFeetY!);
+    }
+    await page.keyboard.up('KeyV');
+    for (const d of offsets) expect(Math.abs(d - d0)).toBeLessThanOrEqual(2);
+  });
+
   test('雙人各自拿各自的武器;睡著時藏起來', async ({ page }) => {
     await open(page, './?level=range&mode=duo&test=1');
     await give(page, 'milkSpray');
