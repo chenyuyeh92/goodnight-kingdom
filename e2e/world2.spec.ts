@@ -111,8 +111,9 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     await page.evaluate(() => window.__GK__!.warp!(1960));
     await calm(page);
     // A 站在流沙(1960),B 在右邊 40(2000)也在流沙;B 先走出去。
+    // 走到流沙外(2100)才放開(電腦忙的時候固定秒數會走不出去)。
     await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(1300);
+    await page.waitForFunction(() => window.__GK__!.players![1].x > 2130, undefined, { timeout: 4000 });
     await page.keyboard.up('ArrowRight');
     await page.waitForFunction(() => window.__GK__!.desert!.sinks >= 1, undefined, { timeout: 4000 });
     expect((await gk(page)).desert!.sinks).toBe(1);

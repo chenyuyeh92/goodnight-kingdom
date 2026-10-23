@@ -13,7 +13,8 @@ export const FROZEN_LAKE: LevelDef = {
   platformArt: 'snow-platform',
   terrain: [
     // 1 湖岸
-    { x: 700, y: 380, w: 160, h: 20 },
+    { x: 600, y: 380, w: 260, h: 20 },
+    { x: 1000, y: 300, w: 120, h: 20 },
     { x: 1600, y: 360, w: 160, h: 20 },
     // 2 湖面
     { x: 2230, y: 380, w: 180, h: 20 },
@@ -36,7 +37,6 @@ export const FROZEN_LAKE: LevelDef = {
     { x: 6550, y: 300, w: 120, h: 20 },
     { x: 2750, y: 380, w: 140, h: 20 },
     { x: 3000, y: 300, w: 120, h: 20 },
-    { x: 600, y: 380, w: 120, h: 20 },
     { x: 1300, y: 380, w: 120, h: 20 },
     { x: 7200, y: 380, w: 120, h: 20 },
   ],

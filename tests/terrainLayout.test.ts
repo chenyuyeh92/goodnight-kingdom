@@ -231,6 +231,40 @@ describe.each(GADGET_LEVELS)('地形重排與新機關:%s', (id) => {
     for (const c of L.crumbles ?? []) for (const z of [...(L.lava ?? []), ...(L.water?.gaps ?? [])]) expect(c.x + c.w <= z.x || c.x >= z.x + z.w, `會掉的平台 ${c.x} 在 ${z.x} 上`).toBe(true);
   });
 
+  test('會掉的平台離熔岩、河溝、雲海缺口 ≥ 110,也不在荊棘上(掉下來時往前飄,不會掉進去)', () => {
+    for (const c of L.crumbles ?? []) {
+      for (const z of [...(L.lava ?? []), ...(L.water?.gaps ?? [])]) expect(c.x + c.w <= z.x - 110 || c.x >= z.x + z.w + 110, `會掉的平台 ${c.x} 離 ${z.x} 太近`).toBe(true);
+      for (const t of L.thorns) expect(c.x + c.w <= t.x - 30 || c.x >= t.x + t.w + 30, `會掉的平台 ${c.x} 在荊棘 ${t.x} 上`).toBe(true);
+    }
+  });
+
+  test('會掉的平台離風區 ≥ 150(站著會被吹掉)', () => {
+    for (const c of L.crumbles ?? []) for (const z of L.winds ?? []) expect(c.x + c.w <= z.x - 150 || c.x >= z.x + z.w + 150, `會掉的平台 ${c.x} 在風區 ${z.x} 旁`).toBe(true);
+  });
+
+  test('彈跳墊離風區 ≥ 150(逆風彈不上去)', () => {
+    for (const s of L.springs ?? []) for (const z of L.winds ?? []) expect(s.x + SPRING_W / 2 <= z.x - 150 || s.x - SPRING_W / 2 >= z.x + z.w + 150, `彈跳墊 ${s.x} 在風區 ${z.x} 旁`).toBe(true);
+  });
+
+  test('平台彼此不重疊', () => {
+    const ts = L.terrain.filter((r) => r.h <= 30);
+    for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) expect(overlaps(ts[i], ts[j]), `平台 ${ts[i].x},${ts[i].y} 和 ${ts[j].x},${ts[j].y}`).toBe(false);
+  });
+
+  test('矮的平台不壓到燭台的火(火頂端約地面往上 79;水晶只有 36 高)', () => {
+    if (L.lightStyle !== 'candle') return;
+    for (const c of L.crystals ?? []) for (const o of overheads().filter((o) => o.y + o.h > GROUND_Y - 95)) expect(o.x < c + 40 && o.x + o.w > c - 40, `${o.what} 壓到燭台 ${c}`).toBe(false);
+  });
+
+  test('平台上的星星不在邊邊(離平台邊 ≥ 20)', () => {
+    for (const st of L.stars ?? []) {
+      for (const p of plats(L).filter((p) => p.y - st.y > 0 && p.y - st.y <= 80)) {
+        const nearEdge = Math.min(Math.abs(st.x - p.x), Math.abs(st.x - p.x - p.w)) < 20;
+        expect(nearEdge, `星星 ${st.x},${st.y} 在 ${p.kind} ${p.x},${p.y} 的邊上`).toBe(false);
+      }
+    }
+  });
+
   test('平台都不接住冰柱與沙磚(冰柱寬 24,離掉落點 ≥ 30)', () => {
     const drops = [...(L.icicles ?? []), ...(L.plates ?? []).flatMap((p) => p.drops)];
     for (const o of overheads()) for (const d of drops) expect(d < o.x - 30 || d > o.x + o.w + 30, `${o.what} 接住 ${d}`).toBe(true);
