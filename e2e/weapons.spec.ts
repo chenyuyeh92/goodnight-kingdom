@@ -29,6 +29,42 @@ async function hold(page: Page, code: string, ms: number): Promise<void> {
 }
 
 test.describe('武器', () => {
+  test('守衛手上拿著目前的武器,往上瞄準時轉向、轉身時換邊', async ({ page }) => {
+    await open(page);
+    await give(page, 'sheepGun');
+    await page.waitForTimeout(100);
+    let p = (await gk(page)).players![0];
+    expect(p.held!.key).toBe('w-sheep-gun');
+    expect(p.held!.angle).toBe(0);
+    expect(p.held!.x).toBeGreaterThan(p.x);
+    await page.keyboard.down('KeyW');
+    await page.waitForTimeout(150);
+    expect((await gk(page)).players![0].held!.angle).toBe(-90);
+    await page.keyboard.up('KeyW');
+    await hold(page, 'KeyA', 150);
+    p = (await gk(page)).players![0];
+    expect(p.held!.x).toBeLessThan(p.x);
+  });
+
+  test('雙人各自拿各自的武器;睡著時藏起來', async ({ page }) => {
+    await open(page, './?level=range&mode=duo&test=1');
+    await give(page, 'milkSpray');
+    await page.waitForTimeout(100);
+    let s = await gk(page);
+    expect(s.players![0].held!.key).toBe('w-milk-spray');
+    expect(s.players![1].held!.key).toBe('w-yawn-bubble');
+    const deadline = Date.now() + 10000;
+    while (!(await gk(page)).players![0].down) {
+      if (Date.now() > deadline) throw new Error('沒有睡著');
+      await page.evaluate(() => window.__GK__!.hurt!(0));
+      await page.waitForTimeout(50);
+    }
+    await page.waitForTimeout(100);
+    s = await gk(page);
+    expect(s.players![0].held).toBeNull();
+    expect(s.players![1].held).not.toBeNull();
+  });
+
   test('數羊機槍射得比泡泡快並扣彈藥', async ({ page }) => {
     await open(page);
     await give(page, 'sheepGun');

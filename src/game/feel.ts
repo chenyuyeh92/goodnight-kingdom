@@ -60,6 +60,8 @@ export const MUZZLE: Readonly<Record<WeaponId, { x: number; y: number }>> = {
 /** 月亮燈的圖是直的(燈頭朝上),轉 90 度才是朝右。 */
 export const ART_ANGLE: Partial<Record<WeaponId, number>> = { moonLamp: 90 };
 export const HELD_SCALE = 0.8;
+/** 手上的武器往瞄準方向伸出去一點(不擋住身體);子彈發射點不變,子彈從武器裡飛出來。 */
+export const HELD_FORWARD = 18;
 
 const AIM_ANGLE: Record<Aim, number> = { forward: 0, up: -90, down: 90 };
 

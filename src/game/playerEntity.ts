@@ -11,6 +11,8 @@ import { NO_BUFFS, fireIntervalWithBuffs, tickBuffs, type Buffs } from './items'
 import { playerPose } from '../art/motion';
 import { guardFrame } from '../art/frames';
 import { DEFAULT_GUARD_KEY } from '../draw/guardTextures';
+import { weaponIcon } from '../art/sprites';
+import { ART_ANGLE, HELD_FORWARD, HELD_SCALE, MUZZLE, heldPose } from './feel';
 
 const DOWN_HEIGHT = 20;
 /** 小綿羊守衛圖:站著 48×55,蹲下壓扁,睡著躺平。 */
@@ -72,6 +74,10 @@ export class PlayerEntity {
   private readonly zzz: Phaser.GameObjects.Text;
   private readonly art: Phaser.GameObjects.Image | null;
   private readonly artStand: { w: number; h: number };
+  /** 手上拿著的武器圖(槍口對到子彈的發射點)。 */
+  private readonly held: Phaser.GameObjects.Image;
+  /** 走路時上下晃的量(手上的武器跟著晃)。 */
+  private poseDy = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -94,6 +100,16 @@ export class PlayerEntity {
       this.sprite.setVisible(false);
       if (opts.artTint !== null) this.art.setTint(opts.artTint);
     }
+    this.held = scene.add.image(opts.x, opts.feetY, '__DEFAULT').setScale(HELD_SCALE).setDepth(0.5).setVisible(false);
+  }
+
+  /** 手上武器槍口的世界座標(子彈發射點再往瞄準方向伸出 HELD_FORWARD;槍口閃光用)。 */
+  muzzlePoint(): { x: number; y: number } {
+    const m = this.motor;
+    const off = muzzleOffset(m.aim, m.facing, m.crouching);
+    const fx = m.aim === 'forward' ? m.facing * HELD_FORWARD : 0;
+    const fy = m.aim === 'up' ? -HELD_FORWARD : m.aim === 'down' ? HELD_FORWARD : 0;
+    return { x: this.zone.x + off.x + fx, y: this.body().bottom + off.y + fy };
   }
 
   body(): Phaser.Physics.Arcade.Body {
@@ -182,8 +198,29 @@ export class PlayerEntity {
     const blinking = !down && this.health.invulnMs > 0 && Math.floor(timeMs / BLINK_MS) % 2 === 0;
     this.sprite.setAlpha(down ? 0.5 : blinking ? 0.3 : 1);
     const top = this.art ? this.renderArt(feetY, down, blinking, timeMs) : h;
+    this.renderHeld(down, blinking);
     this.tag?.setPosition(this.zone.x, feetY - top - 4);
     this.zzz.setVisible(down).setPosition(this.zone.x + 28, feetY - top - 4);
+  }
+
+  /** 手上的武器:槍口對到發射點,跟著瞄準方向轉、朝左翻轉、跟著走路晃;睡著時藏起來。 */
+  private renderHeld(down: boolean, blinking: boolean): void {
+    const id = activeWeapon(this.loadout).id;
+    const key = weaponIcon(id);
+    if (down || !this.scene.textures.exists(key)) {
+      this.held.setVisible(false);
+      return;
+    }
+    if (this.held.texture.key !== key) this.held.setTexture(key);
+    const pose = heldPose(this.motor.aim, this.motor.facing, ART_ANGLE[id]);
+    const m = this.muzzlePoint();
+    this.held
+      .setVisible(true)
+      .setOrigin(MUZZLE[id].x, MUZZLE[id].y)
+      .setFlipX(pose.flipX)
+      .setAngle(pose.angle)
+      .setPosition(m.x, m.y + this.sink + this.poseDy)
+      .setAlpha(blinking ? 0.3 : 1);
   }
 
   /** 畫小綿羊,回傳圖的高度(標籤放在上面)。 */
@@ -209,6 +246,7 @@ export class PlayerEntity {
       if (art.texture.key !== key) art.setTexture(key);
       if (frame && key === frame) pose = { ...pose, scaleX: 1, scaleY: 1, angle: 0 };
     }
+    this.poseDy = pose.dy;
     art.setOrigin(0.5, 1).setAngle(pose.angle);
     art.setDisplaySize(size.w * pose.scaleX, size.h * pose.scaleY).setPosition(this.zone.x, feetY + pose.dy);
     art.setAlpha(blinking ? 0.3 : 1);
@@ -228,6 +266,7 @@ export class PlayerEntity {
       weapon: activeWeapon(this.loadout).id,
       // 用的是哪一個守衛(不是目前的動畫格)。
       art: this.art ? this.opts.artKey : null,
+      held: this.held.visible ? { key: this.held.texture.key, angle: this.held.angle, x: this.held.x, y: this.held.y } : null,
       ammo: this.loadout.ammo,
       heat: this.loadout.heat,
       overheated: this.loadout.overheated,
