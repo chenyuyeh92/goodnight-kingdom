@@ -88,7 +88,7 @@ export const RIVER: LevelDef = {
     { x: 3000, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
-    { x: 7950, bottom: GROUND_Y },
+    { x: 8110, bottom: GROUND_Y },
   ],
   targets: [],
   trickles: [

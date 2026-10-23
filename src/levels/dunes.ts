@@ -80,7 +80,7 @@ export const DUNES: LevelDef = {
     { x: 2750, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
-    { x: 7950, bottom: GROUND_Y },
+    { x: 7990, bottom: GROUND_Y },
   ],
   targets: [],
   trickles: [

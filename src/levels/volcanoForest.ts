@@ -69,11 +69,11 @@ export const VOLCANO_FOREST: LevelDef = {
   thorns: [],
   checkpoints: [150, 2160, 4060, 5960, 7880, 9100],
   chests: [
-    { x: 5950, bottom: GROUND_Y },
+    { x: 5570, bottom: GROUND_Y },
     { x: 2950, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },
-    { x: 7950, bottom: GROUND_Y },
+    { x: 7990, bottom: GROUND_Y },
   ],
   targets: [],
   trickles: [

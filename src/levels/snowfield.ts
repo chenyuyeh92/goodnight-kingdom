@@ -67,7 +67,7 @@ export const SNOWFIELD: LevelDef = {
   ],
   checkpoints: [150, 2100, 4060, 5800, 8100, 9100],
   chests: [
-    { x: 5800, bottom: GROUND_Y },
+    { x: 5920, bottom: GROUND_Y },
     { x: 3000, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4750, bottom: 240 },

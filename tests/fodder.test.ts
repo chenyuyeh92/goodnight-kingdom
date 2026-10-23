@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
 import { ENEMY_DEFS } from '../src/game/enemies';
-import { AMBIENT_FODDER_MAX, AMBIENT_FODDER_MS, BOSS_FODDER_MAX, FODDER_MAX_Y, WORLD_FODDER, ambientGroup, bossFodderSide, addArenaFodder, fodderEchoes, initialAmbientFodder, initialBossFodder, isFodder, stepAmbientFodder, stepBossFodder, type AmbientFodder, type BossFodder } from '../src/game/fodder';
+import { AMBIENT_FODDER_MAX, AMBIENT_FODDER_MS, BOSS_FODDER_MAX, FODDER_MAX_Y, WORLD_FODDER, ambientGroup, bossFodderSide, topSpawnY, addArenaFodder, fodderEchoes, initialAmbientFodder, initialBossFodder, isFodder, stepAmbientFodder, stepBossFodder, type AmbientFodder, type BossFodder } from '../src/game/fodder';
 
 test('每個世界都有一地一飛的雜魚,都是一兩下打倒', () => {
   for (let w = 1; w <= 10; w++) {
@@ -106,8 +106,18 @@ test('跟班不會生在地底下(海底的小丑魚)', () => {
   for (const e of fodderEchoes({ type: 'clownfish', from: 'right', y: 440, delayMs: 0 })) expect(e.y!).toBeLessThanOrEqual(FODDER_MAX_Y);
 });
 
-test('魔王區右邊沒有空間(世界盡頭)時,雜魚改從左邊來,不會在畫面裡突然冒出來', () => {
+test('一邊沒有空間(世界盡頭、關卡最左邊)時,雜魚改從另一邊來,不會在畫面裡突然冒出來', () => {
   expect(bossFodderSide('right', 9240, 960, 10200, 60)).toBe('left');
   expect(bossFodderSide('right', 5000, 960, 10200, 60)).toBe('right');
   expect(bossFodderSide('left', 9240, 960, 10200, 60)).toBe('left');
+  expect(bossFodderSide('left', 0, 960, 10200, 60)).toBe('right');
+  expect(bossFodderSide('left', 40, 960, 10200, 60)).toBe('right');
+  expect(bossFodderSide('left', 500, 960, 10200, 60)).toBe('left');
+  expect(bossFodderSide('top', 0, 960, 10200, 60)).toBe('top');
+});
+
+test('從上面來的:陸上從畫面上方外面掉下來;海底從水面下出來(玩家游不出水面,打得到)', () => {
+  expect(topSpawnY(false, 48)).toBeLessThan(0);
+  expect(topSpawnY(true, 48)).toBeGreaterThanOrEqual(70 + 24);
+  expect(topSpawnY(true, 48)).toBeLessThan(200);
 });

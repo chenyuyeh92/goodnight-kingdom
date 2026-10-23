@@ -37,6 +37,7 @@ test.describe('雜魚變多', () => {
 
   test('路上的雜魚潮:幾秒一群,從右、上、左輪流來,同時最多 8 隻', async ({ page }) => {
     await open(page, 'w1-1');
+    await page.evaluate(() => window.__GK__!.setAmbient!(true));
     await page.evaluate(() => window.__GK__!.warp!(1500));
     await page.waitForFunction(() => window.__GK__!.fodder!.ambientCalls >= 3, undefined, { timeout: 12000 });
     expect((await gk(page)).fodder!.ambientAlive).toBeLessThanOrEqual(8);
@@ -44,6 +45,7 @@ test.describe('雜魚變多', () => {
 
   test('魔王區前一個畫面就不叫雜魚潮;測試可以關掉', async ({ page }) => {
     await open(page, 'w1-1');
+    await page.evaluate(() => window.__GK__!.setAmbient!(true));
     await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! - 600));
     await page.waitForTimeout(4000);
     expect((await gk(page)).fodder!.ambientCalls).toBe(0);
@@ -51,6 +53,17 @@ test.describe('雜魚變多', () => {
     await page.evaluate(() => window.__GK__!.warp!(1500));
     await page.waitForTimeout(4000);
     expect((await gk(page)).fodder!.ambientCalls).toBe(0);
+  });
+
+  test('海底(世界 3)從上面來的水母在水面下,打得到', async ({ page }) => {
+    await open(page, 'w3-1');
+    await page.evaluate(() => window.__GK__!.setAmbient!(true));
+    await page.evaluate(() => window.__GK__!.warp!(1500));
+    await page.waitForFunction(() => window.__GK__!.fodder!.ambientCalls >= 2, undefined, { timeout: 12000 });
+    await page.waitForTimeout(800);
+    const jelly = (await gk(page)).enemies!.filter((e) => e.type === 'jellyfish');
+    expect(jelly.length).toBeGreaterThan(0);
+    for (const e of jelly) expect(e.y).toBeGreaterThan(70);
   });
 
   test('夢貘放大惡夢集氣時不叫雜魚', async ({ page }) => {

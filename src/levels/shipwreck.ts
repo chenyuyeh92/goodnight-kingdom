@@ -62,7 +62,7 @@ export const SHIPWRECK: LevelDef = {
     { x: 2950, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
     { x: 4670, bottom: 160 },
-    { x: 7950, bottom: GROUND_Y },
+    { x: 7990, bottom: GROUND_Y },
   ],
   targets: [],
   hints: [{ x: 900, kind: 'current' }],

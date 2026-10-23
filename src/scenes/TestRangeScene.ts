@@ -7,7 +7,7 @@ import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
 import { BASE_LOADOUT, MAX_STARS, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
 import { GadgetSystem } from '../game/gadgetSystem';
-import { WORLD_FODDER, addArenaFodder, ambientGroup, bossFodderSide, fodderEchoes, initialAmbientFodder, initialBossFodder, isFodder, stepAmbientFodder, stepBossFodder, type AmbientFodder, type BossFodder } from '../game/fodder';
+import { WORLD_FODDER, addArenaFodder, ambientGroup, bossFodderSide, fodderEchoes, initialAmbientFodder, initialBossFodder, isFodder, stepAmbientFodder, stepBossFodder, topSpawnY, type AmbientFodder, type BossFodder } from '../game/fodder';
 import { NO_COMBO, RECOIL_VX, RECOIL_WEAPONS, comboDefeat, comboStyle, comboTick, knockbackSpeed, type Combo } from '../game/feel';
 import { chestRatesText, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
@@ -101,7 +101,6 @@ const ENEMY_DESPAWN_BEHIND = 200;
 const ENEMY_FALL_OUT = 100;
 const FLYING_SPAWN_Y = 320;
 const SIDE_SPAWN_MARGIN = 20;
-const TOP_SPAWN_Y = -30;
 const EMERGE_MS = 300;
 const GO_HINT_MS = 1500;
 const SWING_MS = 120;
@@ -631,6 +630,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.checkpointX = data?.checkpointX ?? START_X;
     this.restarts = data?.restarts ?? 0;
     this.testHooks = data?.testHooks ?? false;
+    // 測試模式預設不叫路上的雜魚潮(不干擾其他測試);雜魚的測試自己打開。
+    this.ambientOff = this.testHooks;
     this.save = data?.save ?? createSaveStore(null);
   }
 
@@ -1777,7 +1778,7 @@ export class TestRangeScene extends Phaser.Scene {
       return this.spawnEnemy(spec.type, x, def.flying ? spec.y : undefined, arena);
     }
     const x = spec.x ?? this.scrollX + VIEW_W / 2;
-    if (spec.from === 'top') return this.spawnEnemy(spec.type, x, TOP_SPAWN_Y, arena);
+    if (spec.from === 'top') return this.spawnEnemy(spec.type, x, topSpawnY(this.level.underwater ?? false, def.h), arena);
     const enemy = this.spawnEnemy(spec.type, x, def.flying ? undefined : GROUND_Y - def.h / 2, arena);
     enemy.emerging = true;
     enemy.body.setAlpha(0);
@@ -3247,7 +3248,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.ambient = r.state;
     if (r.count === 0) return;
     this.ambientCalls += 1;
-    for (const g of ambientGroup(this.level.world, r.from, r.count, this.scrollX)) {
+    const from = bossFodderSide(r.from, this.scrollX, VIEW_W, this.level.worldW, SIDE_SPAWN_MARGIN);
+    for (const g of ambientGroup(this.level.world, from, r.count, this.scrollX)) {
       this.time.delayedCall(g.delayMs, () => {
         if (this.bossTriggered || this.lockScrollX !== null) return;
         this.ambientSet.add(this.spawnFrom({ ...g, delayMs: 0 }, false));

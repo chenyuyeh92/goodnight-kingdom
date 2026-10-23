@@ -2,6 +2,7 @@ import { MAX_DT_MS } from '../config/tuning';
 import type { ArenaDef, SpawnSpec } from './encounters';
 import type { EnemyType } from './enemies';
 import { GROUND_Y } from '../levels/levelDef';
+import { SWIM_TOP } from './swim';
 
 /** 每個世界一兩下就打倒的雜魚(一地一飛;世界 3 在水裡都是游的)。 */
 export const WORLD_FODDER: Readonly<Record<number, { ground: EnemyType; flying: EnemyType }>> = {
@@ -58,9 +59,17 @@ export function addArenaFodder(arenas: readonly ArenaDef[], world: number): Aren
   }));
 }
 
-/** 魔王區右邊到世界盡頭了(從右邊生會被夾進畫面裡,突然冒出來):改從左邊來。 */
+/** 一邊沒有空間(右邊到世界盡頭、左邊到關卡最左邊):從那邊生會被夾進畫面裡突然冒出來,改從另一邊來。 */
 export function bossFodderSide(side: FodderFrom, scrollX: number, viewW: number, worldW: number, margin: number): FodderFrom {
-  return side === 'right' && scrollX + viewW + margin > worldW ? 'left' : side;
+  if (side === 'right' && scrollX + viewW + margin > worldW) return 'left';
+  if (side === 'left' && scrollX - margin < 0) return 'right';
+  return side;
+}
+
+/** 陸上從畫面上方外面掉下來;海底(世界 3)的水母不會往下游,從水面下出來才打得到。 */
+export const TOP_SPAWN_Y = -30;
+export function topSpawnY(underwater: boolean, h: number): number {
+  return underwater ? SWIM_TOP + h / 2 + 10 : TOP_SPAWN_Y;
 }
 
 /** 雜魚一群一群輪流從右邊、上面、左邊、上面來(四面八方)。 */
