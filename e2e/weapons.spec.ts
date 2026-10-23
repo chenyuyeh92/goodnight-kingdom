@@ -85,6 +85,23 @@ test.describe('武器', () => {
     expect(f.knocks).toBe(0);
   });
 
+  test('2 秒內連續打倒兩隻出現連續哄睡 ×2,過了 2 秒歸零但記住最多', async ({ page }) => {
+    await open(page);
+    await spawn(page, 'nightBat', 330, 400);
+    await spawn(page, 'nightBat', 370, 400);
+    await give(page, 'sheepGun');
+    await page.keyboard.down('KeyC');
+    await page.waitForFunction(() => window.__GK__!.enemiesDefeated! >= 2, undefined, { timeout: 3000 });
+    await page.keyboard.up('KeyC');
+    let f = (await gk(page)).feel!;
+    expect(f.combo).toBe(2);
+    expect(f.bestCombo).toBe(2);
+    await page.waitForTimeout(2300);
+    f = (await gk(page)).feel!;
+    expect(f.combo).toBe(0);
+    expect(f.bestCombo).toBe(2);
+  });
+
   test('數羊機槍射得比泡泡快並扣彈藥', async ({ page }) => {
     await open(page);
     await give(page, 'sheepGun');
@@ -229,6 +246,13 @@ test.describe('寶箱、道具與背包', () => {
     await page.reload();
     await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
     expect((await gk(page)).backpack!.sheepGun).toBe(1);
+  });
+
+  test('開寶箱跳出武器名稱大字', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => window.__GK__!.clearSave!());
+    await openChestAt900(page, 'lullabyHarp');
+    expect((await gk(page)).feel!.banner).toContain('搖籃曲豎琴');
   });
 
   test('重複抽到升星,三星後改給牛奶瓶', async ({ page }) => {

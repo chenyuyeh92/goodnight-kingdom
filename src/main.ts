@@ -139,8 +139,8 @@ export interface GkDebug {
   /** 世界 9:黑暗多濃(0–1)、這一格有幾個光源、火螢女王閃光後的全黑中。 */
   darkness?: { alpha: number; lights: number; blackout: boolean };
   /** 世界 10:收集到的星星與總數、孔雀開屏後左右顛倒中、夢貘正在吸、每位玩家被麻糬黏住變慢中、夢貘大惡夢的月光(集氣中才有)與打中幾次。 */
-  /** 手感:噴過幾次火花、槍口閃光幾次、魔物被打退幾次。 */
-  feel?: { sparks: number; flashes: number; knocks: number };
+  /** 手感:噴過幾次火花、槍口閃光幾次、魔物被打退幾次、連續哄睡(現在與最多)、畫面中央的大字。 */
+  feel?: { sparks: number; flashes: number; knocks: number; combo: number; bestCombo: number; banner: string | null };
   w10?: { stars: number; starsTotal: number; reversed: boolean; inhaling: boolean; slowed: boolean[]; mochiHits: number; pulls: number; nightmare: { safeX: number; halfW: number } | null; nightmareHits: number };
   /** 沙漠機關:場上的沙磚與沙浪數、每位玩家陷進流沙的時間、壓力板觸發次數。 */
   desert?: { blocks: number; landed: number; bottoms: number[]; waves: number; sink: number[]; sinks: number; platesFired: number };

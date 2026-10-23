@@ -47,7 +47,8 @@ export class LevelCompleteScene extends Phaser.Scene {
     } else {
       this.add.text(480, 90, `${levelName} 通關!`, { fontSize: '44px', color: '#ffe08a' }).setOrigin(0.5);
       summary.forEach((line, i) => {
-        this.add.text(480, 170 + i * 44, line, { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+        // 最多 7 行(有星星、有連續哄睡)也不會碰到按鈕。
+        this.add.text(480, 150 + i * 38, line, { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
       });
     }
 

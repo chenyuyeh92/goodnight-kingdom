@@ -27,3 +27,10 @@ test('addWeapon 不重複', () => {
   expect(addWeapon(['sheepGun'], 'sheepGun')).toEqual(['sheepGun']);
   expect(addWeapon(['sheepGun'], 'moonLamp')).toEqual(['sheepGun', 'moonLamp']);
 });
+
+test('summaryLines:連續哄睡 2 隻以上才多一行「最多連續哄睡」,放在哄睡魔物下面', () => {
+  const lines = summaryLines({ ...base, bestCombo: 4 }, 66_000);
+  expect(lines[2]).toBe('最多連續哄睡 4 隻');
+  expect(summaryLines({ ...base, bestCombo: 1 }, 66_000).some((l) => l.includes('連續'))).toBe(false);
+  expect(summaryLines(base, 66_000).some((l) => l.includes('連續'))).toBe(false);
+});

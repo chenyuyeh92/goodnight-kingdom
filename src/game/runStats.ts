@@ -11,6 +11,8 @@ export interface RunStats {
   /** 收集的星星(世界 10 才有)。 */
   starsFound?: number;
   starsTotal?: number;
+  /** 最多連續哄睡幾隻(2 秒內接連打倒)。 */
+  bestCombo?: number;
 }
 
 export function newRunStats(startedAt: number, chestsTotal: number): RunStats {
@@ -34,6 +36,7 @@ export function summaryLines(s: RunStats, endedAt: number): string[] {
   return [
     `通關時間 ${formatDuration(endedAt - s.startedAt)}`,
     `哄睡魔物 ${s.defeated} 隻`,
+    ...((s.bestCombo ?? 0) >= 2 ? [`最多連續哄睡 ${s.bestCombo} 隻`] : []),
     `找到寶箱 ${s.chestsFound} / ${s.chestsTotal}`,
     ...(s.starsTotal ? [`收集星星 ${s.starsFound ?? 0} / ${s.starsTotal}`] : []),
     `這次拿到:${weapons}`,

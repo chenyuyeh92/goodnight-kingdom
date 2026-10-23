@@ -6,7 +6,7 @@ import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../ga
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
 import { BASE_LOADOUT, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
-import { RECOIL_VX, RECOIL_WEAPONS, knockbackSpeed } from '../game/feel';
+import { NO_COMBO, RECOIL_VX, RECOIL_WEAPONS, comboDefeat, comboStyle, comboTick, knockbackSpeed, type Combo } from '../game/feel';
 import { CHEST_RATES, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
@@ -161,6 +161,9 @@ const SPARK_MS = 260;
 const MUZZLE_FLASH_MS = 60;
 const BLOCKED_SPARK = 0xb0b0c0;
 const DEFEAT_STAR = 0xffe08a;
+/** 撿到武器時畫面中央的大字:稀有度顏色、停多久。 */
+const BANNER_COLOR: Record<string, string> = { R: '#8ac8ff', SR: '#d0a0ff', SSR: '#ffd060' };
+const BANNER_MS = 900;
 /** 大惡夢的月光離王座左邊、夢貘多遠,與離玩家至少多遠(要走過去才躲得到)。 */
 const NIGHTMARE_EDGE = 100;
 const NIGHTMARE_MIN_MOVE = 180;
@@ -566,6 +569,10 @@ export class TestRangeScene extends Phaser.Scene {
   private sparks = 0;
   private flashes = 0;
   private knocks = 0;
+  /** 連續哄睡:計數與右上角的字;畫面中央的大字(撿到武器、道具)。 */
+  private combo: Combo = { ...NO_COMBO };
+  private comboText!: Phaser.GameObjects.Text;
+  private banner: Phaser.GameObjects.Text | null = null;
   /** 夢貘的大惡夢:月光在哪、多寬,畫面上的東西。 */
   private nightmare: { safeX: number; halfW: number; views: Phaser.GameObjects.GameObject[] } | null = null;
   private nightmareHits = 0;
@@ -777,6 +784,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.sparks = 0;
     this.flashes = 0;
     this.knocks = 0;
+    this.combo = { ...NO_COMBO };
+    this.banner = null;
     this.makeSparkTexture();
     this.nightmare = null;
     this.nightmareHits = 0;
@@ -928,6 +937,13 @@ export class TestRangeScene extends Phaser.Scene {
         .setDepth(10);
     }
 
+    this.comboText = this.add
+      .text(VIEW_W - 16, this.stars.length > 0 ? 56 : 24, '', { fontSize: '22px', color: '#f3e9d2', ...HUD_STROKE })
+      .setOrigin(1, 0.5)
+      .setScrollFactor(0)
+      .setDepth(10)
+      .setVisible(false);
+
     this.keyboard = new KeyboardSource(window, document);
     this.touchControls = this.initData.touch ? mountTouchControls(document.body) : null;
     // 物理移動完才把美術圖對到判定上,圖不會落後一格。
@@ -980,6 +996,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.updateStampede(dtMs);
     this.updateWind(dtMs);
     this.updateW10(dtMs);
+    this.updateCombo(dtMs);
     this.projectiles.update(dtMs, this.scrollX, VIEW_W, () =>
       this.enemies.filter((e) => !e.emerging && !this.isInvulnerable(e)).map((e) => ({ x: e.body.x, y: e.body.y })),
     );
@@ -1734,6 +1751,8 @@ export class TestRangeScene extends Phaser.Scene {
       this.save.setStars(result.weapon, result.stars);
       this.stats = { ...this.stats, weaponsGot: addWeapon(this.stats.weaponsGot, result.weapon) };
       p.loadout = equip(result.weapon, result.stars);
+      const w = WEAPONS[result.weapon];
+      this.showBanner(`${w.rarity} ${w.name}!`, BANNER_COLOR[w.rarity], 36, w.rarity === 'SSR');
     }
 
     const def = WEAPONS[result.weapon];
@@ -1820,6 +1839,7 @@ export class TestRangeScene extends Phaser.Scene {
   private applyItemTo(p: PlayerEntity, item: ItemId): void {
     const stars = p.loadout.special ? (this.save.get().weapons[p.loadout.special] ?? 1) : 1;
     const r = applyItem(item, { health: p.health, loadout: p.loadout, buffs: p.buffs, stars });
+    this.showBanner(ITEM_NAMES[item], '#f3e9d2', 28, false);
     p.health = r.health;
     p.loadout = r.loadout;
     p.buffs = r.buffs;
@@ -3124,13 +3144,60 @@ export class TestRangeScene extends Phaser.Scene {
   /** 開槍:槍口閃一下(武器顏色);重武器往後頓一下、畫面輕震。 */
   private muzzleFlash(p: PlayerEntity, weapon: WeaponDef): void {
     const m = p.muzzlePoint();
-    const flash = this.add.circle(m.x, m.y, 10, weapon.color, 0.9).setDepth(6);
-    this.tweens.add({ targets: flash, scale: 1.6, alpha: 0, duration: MUZZLE_FLASH_MS, onComplete: () => flash.destroy() });
+    // 用火花貼圖(和其他圖同一種畫法,第一次閃光不會卡一下)。
+    const flash = this.add.image(m.x, m.y, SPARK_KEY).setTint(weapon.color).setAlpha(0.9).setScale(2.5).setDepth(6);
+    this.tweens.add({ targets: flash, scale: 4, alpha: 0, duration: MUZZLE_FLASH_MS, onComplete: () => flash.destroy() });
     this.flashes += 1;
     if (!RECOIL_WEAPONS.has(weapon.id)) return;
     const pb = p.body();
     pb.setVelocityX(pb.velocity.x - p.motor.facing * RECOIL_VX);
     this.cameras.main.shake(80, 0.002);
+  }
+
+  /** 打倒一隻:2 秒內接連打倒就累加,右上角的字彈一下;最多的記進統計。 */
+  private addCombo(): void {
+    this.combo = comboDefeat(this.combo);
+    this.stats = { ...this.stats, bestCombo: Math.max(this.stats.bestCombo ?? 0, this.combo.best) };
+    const n = this.combo.count;
+    if (n < 2) return;
+    const style = comboStyle(n);
+    this.tweens.killTweensOf(this.comboText);
+    this.comboText.setText(`連續哄睡 ×${n}!`).setColor(style.color).setFontSize(style.fontSize).setAlpha(1).setVisible(true).setScale(1.3);
+    this.tweens.add({ targets: this.comboText, scale: 1, duration: 120 });
+  }
+
+  private updateCombo(dtMs: number): void {
+    if (this.physics.world.isPaused) return;
+    const was = this.combo.count;
+    this.combo = comboTick(this.combo, Math.min(dtMs, MAX_DT_MS));
+    if (was >= 2 && this.combo.count === 0) {
+      this.tweens.killTweensOf(this.comboText);
+      this.tweens.add({ targets: this.comboText, alpha: 0, duration: 250, onComplete: () => this.comboText.setVisible(false) });
+    }
+  }
+
+  /** 畫面中央跳出大字(撿到武器、道具),停一下後淡出;SSR 多一圈金色光圈。 */
+  private showBanner(text: string, color: string, size: number, glow: boolean): void {
+    this.banner?.destroy();
+    const banner = this.add
+      .text(VIEW_W / 2, 200, text, { fontSize: `${size}px`, color, ...HUD_STROKE })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(10)
+      .setScale(0.6);
+    this.banner = banner;
+    this.tweens.add({ targets: banner, scale: 1, duration: 160, ease: 'Back.Out' });
+    this.tweens.add({
+      targets: banner,
+      alpha: 0,
+      delay: BANNER_MS,
+      duration: 300,
+      onComplete: () => {
+        if (this.banner === banner) this.banner = null;
+        banner.destroy();
+      },
+    });
+    if (glow) this.sparkBurst(this.scrollX + VIEW_W / 2, 200, 0xffd060, 16, 260);
   }
 
   /** 從 (x, y) 往四周噴小光點後淡出(打中火花、打倒的星星)。 */
@@ -3180,6 +3247,7 @@ export class TestRangeScene extends Phaser.Scene {
     audio.sfx('sleep');
     this.playDefeatEffect(enemy.body.x, enemy.body.y, impactScale);
     this.sparkBurst(enemy.body.x, enemy.body.y, DEFEAT_STAR, 8, 160);
+    this.addCombo();
     this.sleepAway(enemy, false);
     const drop = this.riggedDrop ?? rollDrop(Math.random);
     this.riggedDrop = null;
@@ -3406,7 +3474,14 @@ export class TestRangeScene extends Phaser.Scene {
       stampede: { warnings: this.herdWarnings.length, herds: this.herdsReleased, beasts: this.beasts.length, hits: this.herdHits },
       wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
       darkness: { alpha: this.darkAlpha, lights: this.lightCount, blackout: this.blackoutMs > 0 },
-      feel: { sparks: this.sparks, flashes: this.flashes, knocks: this.knocks },
+      feel: {
+        sparks: this.sparks,
+        flashes: this.flashes,
+        knocks: this.knocks,
+        combo: this.combo.count,
+        bestCombo: this.combo.best,
+        banner: this.banner?.text ?? null,
+      },
       w10: {
         stars: this.collectedStarIndexes().length,
         starsTotal: this.stars.length,
