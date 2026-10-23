@@ -143,7 +143,8 @@ export interface GkDebug {
   /** 手感:噴過幾次火花、槍口閃光幾次、魔物被打退幾次、連續哄睡(現在與最多)、畫面中央的大字。 */
   feel?: { sparks: number; flashes: number; knocks: number; combo: number; bestCombo: number; banner: string | null };
   /** 雜魚:魔王叫的還在場上的數量、魔王叫了幾次、零星雜魚多生了幾隻跟班。 */
-  fodder?: { bossAlive: number; bossCalls: number; echoes: number };
+  fodder?: { bossAlive: number; bossCalls: number; echoes: number; ambientAlive: number; ambientCalls: number };
+  setAmbient?: (on: boolean) => void;
   /** 機關:移動平台現在的左上角、會掉的平台的狀態、彈跳次數、被移動平台載的次數。 */
   gadgets?: { movers: { x: number; y: number; w: number }[]; crumbles: ('solid' | 'shaking' | 'fallen')[]; bounces: number };
   w10?: { stars: number; starsTotal: number; reversed: boolean; inhaling: boolean; slowed: boolean[]; mochiHits: number; pulls: number; nightmare: { safeX: number; halfW: number } | null; nightmareHits: number };

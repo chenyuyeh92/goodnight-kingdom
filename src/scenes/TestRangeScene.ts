@@ -7,7 +7,7 @@ import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type HitResult, type ProjectileHit } from '../game/projectileSystem';
 import { BASE_LOADOUT, MAX_STARS, WEAPONS, activeWeapon, equip, type Loadout, type SpecialWeaponId, type WeaponDef } from '../game/weapons';
 import { GadgetSystem } from '../game/gadgetSystem';
-import { WORLD_FODDER, addArenaFodder, bossFodderSide, fodderEchoes, initialBossFodder, isFodder, stepBossFodder, type BossFodder } from '../game/fodder';
+import { WORLD_FODDER, addArenaFodder, ambientGroup, bossFodderSide, fodderEchoes, initialAmbientFodder, initialBossFodder, isFodder, stepAmbientFodder, stepBossFodder, type AmbientFodder, type BossFodder } from '../game/fodder';
 import { NO_COMBO, RECOIL_VX, RECOIL_WEAPONS, comboDefeat, comboStyle, comboTick, knockbackSpeed, type Combo } from '../game/feel';
 import { chestRatesText, openChest, resultFor, type ChestResult } from '../game/chest';
 import { createSaveStore, type SaveStore } from '../game/save';
@@ -582,6 +582,11 @@ export class TestRangeScene extends Phaser.Scene {
   private bossFodderSet = new Set<EnemyEntity>();
   private bossCalls = 0;
   private echoes = 0;
+  /** 路上的雜魚潮:計時、叫出來的(還在場上的)、叫了幾次;測試可以關掉。 */
+  private ambient: AmbientFodder = initialAmbientFodder();
+  private ambientSet = new Set<EnemyEntity>();
+  private ambientCalls = 0;
+  private ambientOff = false;
   /** 夢貘的大惡夢:月光在哪、多寬,畫面上的東西。 */
   private nightmare: { safeX: number; halfW: number; views: Phaser.GameObjects.GameObject[] } | null = null;
   private nightmareHits = 0;
@@ -803,6 +808,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.bossFodderSet = new Set();
     this.bossCalls = 0;
     this.echoes = 0;
+    this.ambient = initialAmbientFodder();
+    this.ambientSet = new Set();
+    this.ambientCalls = 0;
     this.makeSparkTexture();
     this.nightmare = null;
     this.nightmareHits = 0;
@@ -1028,6 +1036,7 @@ export class TestRangeScene extends Phaser.Scene {
 
     const awake = this.players.filter((p) => !p.health.down);
     this.updateEncounters(dtMs, time);
+    this.updateAmbientFodder(dtMs);
     const target = applyLock(
       advanceTeamCamera(this.scrollX, awake.map((p) => p.x), VIEW_W, this.level.worldW, CAMERA_LEAD, SCREEN_MARGIN),
       this.bossLock ?? this.lockScrollX,
@@ -3212,15 +3221,36 @@ export class TestRangeScene extends Phaser.Scene {
     if (r.count === 0) return;
     this.bossCalls += 1;
     const side = bossFodderSide(r.side, this.scrollX, VIEW_W, this.level.worldW, SIDE_SPAWN_MARGIN);
-    const group = [
-      { type: f.ground, delayMs: 0 },
-      { type: f.flying, delayMs: 150 },
-      { type: f.ground, delayMs: 300 },
-    ].slice(0, r.count);
-    for (const g of group) {
+    for (const g of ambientGroup(this.level.world, side, r.count, this.scrollX)) {
       this.time.delayedCall(g.delayMs, () => {
         if (this.bossDefeated || !this.boss) return;
-        this.bossFodderSet.add(this.spawnFrom({ type: g.type, from: side, delayMs: 0 }, false));
+        this.bossFodderSet.add(this.spawnFrom({ ...g, delayMs: 0 }, false));
+      });
+    }
+  }
+
+  /**
+   * 路上的雜魚潮:戰鬥區、魔王區以外,每幾秒從右、上、左、上輪流來一群(連擊用)。
+   * 靶場、機關測試場沒有;魔王區前一個畫面就停。
+   */
+  private updateAmbientFodder(dtMs: number): void {
+    for (const e of [...this.ambientSet]) if (!this.enemies.includes(e)) this.ambientSet.delete(e);
+    const lock = this.level.boss?.lockScrollX;
+    const active =
+      !this.ambientOff &&
+      lock !== undefined &&
+      this.lockScrollX === null &&
+      !this.bossTriggered &&
+      this.scrollX + VIEW_W * 2 <= lock &&
+      !this.physics.world.isPaused;
+    const r = stepAmbientFodder(this.ambient, { alive: this.ambientSet.size, active, dtMs });
+    this.ambient = r.state;
+    if (r.count === 0) return;
+    this.ambientCalls += 1;
+    for (const g of ambientGroup(this.level.world, r.from, r.count, this.scrollX)) {
+      this.time.delayedCall(g.delayMs, () => {
+        if (this.bossTriggered || this.lockScrollX !== null) return;
+        this.ambientSet.add(this.spawnFrom({ ...g, delayMs: 0 }, false));
       });
     }
   }
@@ -3547,7 +3577,8 @@ export class TestRangeScene extends Phaser.Scene {
       wind: { strength: this.windNow(), gust: this.bossGust, pushes: this.windPushes },
       darkness: { alpha: this.darkAlpha, lights: this.lightCount, blackout: this.blackoutMs > 0 },
       gadgets: this.gadgets.debug(),
-      fodder: { bossAlive: this.bossFodderSet.size, bossCalls: this.bossCalls, echoes: this.echoes },
+      fodder: { bossAlive: this.bossFodderSet.size, bossCalls: this.bossCalls, echoes: this.echoes, ambientAlive: this.ambientSet.size, ambientCalls: this.ambientCalls },
+      setAmbient: this.testHooks ? (on: boolean) => void (this.ambientOff = !on) : undefined,
       feel: {
         sparks: this.sparks,
         flashes: this.flashes,
