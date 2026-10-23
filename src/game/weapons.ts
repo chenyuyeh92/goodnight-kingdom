@@ -40,16 +40,21 @@ export interface WeaponDef {
   overheat?: OverheatDef;
 }
 
+/**
+ * 強度階級(對單一魔物每秒傷害,稀有度越高越強):
+ * 哈欠泡泡 6.7 < 枕頭砲 8.9(穿透)、牛奶噴霧近距離 20(射程約 290)、數羊機槍 14.3
+ * < 搖籃曲豎琴 16.7(追蹤不會打歪)、棉被迴力鏢 15(穿透、穿牆)< 月亮催眠燈約 20(連射時 33,無限彈藥)。
+ */
 export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
   yawnBubble: { id: 'yawnBubble', name: '哈欠泡泡', rarity: 'base', kind: 'straight', fireIntervalMs: null, damage: 1, speed: null, size: 14, color: 0xd6f0ff, lifeMs: 1000, baseAmmo: null },
   sheepGun: { id: 'sheepGun', name: '數羊機槍', rarity: 'R', kind: 'straight', fireIntervalMs: 70, damage: 1, speed: 700, size: 10, color: 0xffffff, lifeMs: 900, baseAmmo: 120 },
-  pillowCannon: { id: 'pillowCannon', name: '枕頭砲', rarity: 'R', kind: 'pierce', fireIntervalMs: 450, damage: 3, speed: 380, size: 22, color: 0xf6d6e8, lifeMs: 1600, baseAmmo: 30 },
-  milkSpray: { id: 'milkSpray', name: '晚安牛奶噴霧', rarity: 'R', kind: 'spread', fireIntervalMs: 220, damage: 1, speed: 520, size: 10, color: 0xfffaf0, lifeMs: 260, baseAmmo: 60, pellets: 5, spreadDeg: 50 },
-  lullabyHarp: { id: 'lullabyHarp', name: '搖籃曲豎琴', rarity: 'SR', kind: 'homing', fireIntervalMs: 200, damage: 1, speed: 420, size: 10, color: 0xffe08a, lifeMs: 1600, baseAmmo: 50 },
-  blanketBoomerang: { id: 'blanketBoomerang', name: '棉被迴力鏢', rarity: 'SR', kind: 'boomerang', fireIntervalMs: 600, damage: 2, speed: 520, size: 20, color: 0x9fc5ff, lifeMs: 2000, baseAmmo: 25 },
+  pillowCannon: { id: 'pillowCannon', name: '枕頭砲', rarity: 'R', kind: 'pierce', fireIntervalMs: 450, damage: 4, speed: 380, size: 22, color: 0xf6d6e8, lifeMs: 1600, baseAmmo: 30 },
+  milkSpray: { id: 'milkSpray', name: '晚安牛奶噴霧', rarity: 'R', kind: 'spread', fireIntervalMs: 250, damage: 1, speed: 600, size: 10, color: 0xfffaf0, lifeMs: 480, baseAmmo: 60, pellets: 5, spreadDeg: 36 },
+  lullabyHarp: { id: 'lullabyHarp', name: '搖籃曲豎琴', rarity: 'SR', kind: 'homing', fireIntervalMs: 120, damage: 2, speed: 420, size: 10, color: 0xffe08a, lifeMs: 1600, baseAmmo: 80 },
+  blanketBoomerang: { id: 'blanketBoomerang', name: '棉被迴力鏢', rarity: 'SR', kind: 'boomerang', fireIntervalMs: 400, damage: 6, speed: 520, size: 20, color: 0x9fc5ff, lifeMs: 2000, baseAmmo: 35 },
   moonLamp: {
-    id: 'moonLamp', name: '月亮催眠燈', rarity: 'SSR', kind: 'beam', fireIntervalMs: 60, damage: 1, speed: 900, size: 12, color: 0xfff3a8, lifeMs: 300, baseAmmo: null,
-    overheat: { heatPerShot: 8, maxHeat: 100, coolPerSec: 40, resumeAt: 30 },
+    id: 'moonLamp', name: '月亮催眠燈', rarity: 'SSR', kind: 'beam', fireIntervalMs: 60, damage: 2, speed: 900, size: 12, color: 0xfff3a8, lifeMs: 300, baseAmmo: null,
+    overheat: { heatPerShot: 5, maxHeat: 100, coolPerSec: 40, resumeAt: 30 },
   },
 };
 

@@ -95,6 +95,22 @@ test.describe('世界 10 月亮城堡', () => {
     await page.waitForFunction(() => window.__GK__!.enemies!.some((e) => e.type === 'pillowSoldier' || e.type === 'noisyStar'), undefined, { timeout: 15000 });
   });
 
+  for (const inMoon of [false, true]) {
+    test(`夢貘換階段放大惡夢:${inMoon ? '躲進月光不扣愛心' : '沒躲扣 3 顆愛心'}`, async ({ page }) => {
+      await toBoss(page, 'w10-3', 'tapir');
+      await page.evaluate(() => window.__GK__!.hurtBoss!(60));
+      await page.waitForFunction(() => window.__GK__!.w10!.nightmare !== null, undefined, { timeout: 4000 });
+      const { safeX, halfW } = (await gk(page)).w10!.nightmare!;
+      await page.evaluate((x) => window.__GK__!.warp!(x), inMoon ? safeX : safeX + (safeX < 9550 ? 1 : -1) * (halfW + 120));
+      const hearts = (await gk(page)).players![0].hearts;
+      await page.waitForFunction(() => window.__GK__!.w10!.nightmare === null, undefined, { timeout: 5000 });
+      await page.waitForTimeout(100);
+      const s = await gk(page);
+      expect(s.w10!.nightmareHits).toBe(inMoon ? 0 : 1);
+      expect(s.players![0].hearts).toBe(inMoon ? hearts : hearts - 3);
+    });
+  }
+
   test('打倒夢貘就是破關:結算畫面變成結局', async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem('gk.save.v1'));
     await toBoss(page, 'w10-3', 'tapir');

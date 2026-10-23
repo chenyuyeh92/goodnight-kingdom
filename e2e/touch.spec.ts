@@ -100,3 +100,25 @@ test('開場選單在手機上點得到', async ({ page }) => {
   await page.mouse.click(box.x + (200 / 960) * box.width, box.y + (290 / 540) * box.height);
   await page.waitForFunction(() => window.__GK__?.screen === 'range');
 });
+
+test.describe('手機:關卡結束時手指還按著', () => {
+  test.use({ hasTouch: true });
+
+  test('按著射擊時通關,放開後結算畫面的「下一關」點得動', async ({ page }) => {
+    await page.goto('./?mode=single&test=1&touch=1&level=w1-1');
+    await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 30000 });
+    const cdp = await page.context().newCDPSession(page);
+    const shoot = (await page.locator('#touch-shoot').boundingBox())!;
+    await page.evaluate(() => window.__GK__!.warp!(9700));
+    await page.waitForTimeout(1500);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: shoot.x + shoot.width / 2, y: shoot.y + shoot.height / 2, id: 1 }] });
+    await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
+    await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 10000 });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(page.locator('#touch-controls')).toHaveCount(0);
+    await page.waitForTimeout(300);
+    const c = (await page.locator('canvas').boundingBox())!;
+    await page.touchscreen.tap(c.x + (c.width * 740) / 960, c.y + (c.height * 450) / 540);
+    await page.waitForFunction(() => window.__GK__!.level === 'w1-2', undefined, { timeout: 5000 });
+  });
+});

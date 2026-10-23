@@ -49,12 +49,12 @@ test('流星期間不扣彈藥', () => {
   expect(fireWeapon(equip('sheepGun', 1), true).ammo).toBe(120);
 });
 
-test('月亮燈連射 13 發過熱', () => {
+test('月亮燈連射 20 發過熱', () => {
   let l = equip('moonLamp', 1);
-  for (let i = 0; i < 12; i++) l = fireWeapon(l, false);
+  for (let i = 0; i < 19; i++) l = fireWeapon(l, false);
   expect(l.overheated).toBe(false);
   l = fireWeapon(l, false);
-  expect(l.heat).toBe(104);
+  expect(l.heat).toBe(100);
   expect(l.overheated).toBe(true);
   expect(canFire(l)).toBe(false);
 });

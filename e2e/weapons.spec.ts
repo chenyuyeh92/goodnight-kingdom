@@ -94,7 +94,8 @@ test.describe('武器', () => {
     await spawn(page, 'hedgehog', 320);
     await give(page, 'blanketBoomerang');
     await hold(page, 'KeyC', 60);
-    await page.waitForFunction(() => window.__GK__!.enemies![0].hp < 6, undefined, { timeout: 1500 });
+    // 迴力鏢一下 6 點,刺蝟(6 血)回程被打到就睡著。
+    await page.waitForFunction(() => (window.__GK__!.enemiesDefeated ?? 0) > 0 || window.__GK__!.enemies![0].hp < 6, undefined, { timeout: 1500 });
     expect((await gk(page)).blockedShots).toBeGreaterThan(0);
   });
 
@@ -115,7 +116,7 @@ test.describe('武器', () => {
     await open(page);
     await give(page, 'moonLamp');
     await page.keyboard.down('KeyC');
-    await page.waitForFunction(() => window.__GK__!.players![0].overheated, undefined, { timeout: 3000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].overheated, undefined, { timeout: 5000 });
     await page.keyboard.up('KeyC');
     await page.waitForFunction(() => !window.__GK__!.players![0].overheated, undefined, { timeout: 4000 });
   });

@@ -53,7 +53,7 @@ import { QUEEN_HOVER_Y, initialQueenBrain, stepQueen, type QueenBrain } from '..
 import { initialAxolotlBrain, stepAxolotl, type AxolotlBrain } from '../game/axolotl';
 import { MOCHI_GRAVITY, initialRabbitBrain, stepRabbit, type RabbitBrain } from '../game/rabbit';
 import { DART_SPEED, REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain } from '../game/peacock';
-import { INHALE_PULL, MIST_SPEED, TAPIR_SCALE, initialTapirBrain, stepTapir, type TapirBrain } from '../game/tapir';
+import { INHALE_PULL, MIST_SPEED, NIGHTMARE_HEARTS, TAPIR_SCALE, initialTapirBrain, stepTapir, type TapirBrain } from '../game/tapir';
 import { owlPhase } from '../game/owl';
 import { REGRAB_MS, canGrab, grabOmega, releaseVelocity, restingVine, stepVine, vineHand, type VineState } from '../game/vine';
 import { initialCrabBrain, stepCrab, type CrabBrain } from '../game/crab';
@@ -153,6 +153,11 @@ const STAR_R = 12;
 const INHALE_FX_MS = 90;
 /** 離夢貘這麼近(圖的半寬再加這些)就不再吸。 */
 const INHALE_STOP_GAP = 30;
+/** 大惡夢的月光離王座左邊、夢貘多遠,與離玩家至少多遠(要走過去才躲得到)。 */
+const NIGHTMARE_EDGE = 100;
+const NIGHTMARE_MIN_MOVE = 180;
+/** 紫霧蓋在背景上、地形與角色底下(角色看得清楚)。 */
+const NIGHTMARE_DEPTH = -4;
 /** 巨鼴鼠的土堆比身體寬一點(冒出來會打到的範圍都看得到)。 */
 const MOLE_MOUND_RATIO = 1.4;
 /** 雲海(世界 8 的河溝)的顏色。 */
@@ -549,6 +554,9 @@ export class TestRangeScene extends Phaser.Scene {
   private slowMs: number[] = [];
   private mochiHits = 0;
   private pulls = 0;
+  /** 夢貘的大惡夢:月光在哪、多寬,畫面上的東西。 */
+  private nightmare: { safeX: number; halfW: number; views: Phaser.GameObjects.GameObject[] } | null = null;
+  private nightmareHits = 0;
   /** 地形配色跟著這一關第一個場景。 */
   private get palette(): TerrainPalette {
     return SCENE_PALETTE[this.level.scenes[0].scene];
@@ -754,6 +762,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.slowMs = this.players.map(() => 0);
     this.mochiHits = 0;
     this.pulls = 0;
+    this.nightmare = null;
+    this.nightmareHits = 0;
     this.createStars();
     if (this.level.darkness?.length) {
       this.makeLightTexture();
@@ -1566,9 +1576,9 @@ export class TestRangeScene extends Phaser.Scene {
 
   /** 無敵或睡著時不會受傷;碰到荊棘時小彈跳一下。打倒關主後不再受傷。 */
   /** 回傳這一下有沒有真的打到(無敵時間內不算)。 */
-  private hurtPlayer(p: PlayerEntity, bounce: boolean): boolean {
+  private hurtPlayer(p: PlayerEntity, bounce: boolean, damage = 1): boolean {
     if (this.bossDefeated) return false;
-    const r = applyHit(p.health);
+    const r = applyHit(p.health, damage);
     p.health = r.health;
     if (r.hit) audio.sfx('hurt');
     if (r.hit && bounce && !r.health.down) p.body().setVelocityY(THORN_BOUNCE_VY);
@@ -2183,6 +2193,54 @@ export class TestRangeScene extends Phaser.Scene {
     // 手下從夢貘背後(右邊)出來,不擋在玩家逃開吸氣的方向。
     for (const type of step.summon) boss.minions.add(this.spawnFrom({ type, from: 'right', delayMs: 0 }, false));
     if (step.enteredPhase) this.announcePhase(boss);
+    if (step.nightmareStart) this.startNightmare(enemy, step.nightmareStart.halfW, step.nightmareStart.chargeMs);
+    if (step.nightmareBlast) this.blastNightmare();
+  }
+
+  /** 大惡夢集氣:王座慢慢變紫,只有一道月光是安全的(離玩家有段距離,要走過去)。 */
+  private startNightmare(tapir: EnemyEntity, halfW: number, chargeMs: number): void {
+    this.endNightmare();
+    const lock = this.bossLock ?? this.scrollX;
+    const left = lock + NIGHTMARE_EDGE;
+    const right = Math.max(left, tapir.x - (tapir.def.w / 2) * tapir.artScaleMul - NIGHTMARE_EDGE);
+    const awake = this.players.filter((p) => !p.health.down);
+    const at = awake.length ? awake.reduce((sum, p) => sum + p.x, 0) / awake.length : left;
+    let safeX = left + Math.random() * (right - left);
+    for (let i = 0; i < 12 && Math.abs(safeX - at) < NIGHTMARE_MIN_MOVE; i++) safeX = left + Math.random() * (right - left);
+    const fog = this.add.rectangle(0, 0, VIEW_W, WORLD_H, 0x2a0a4a).setOrigin(0, 0).setScrollFactor(0).setDepth(NIGHTMARE_DEPTH).setAlpha(0.15);
+    const moon = this.add.rectangle(safeX, 0, halfW * 2, GROUND_Y, 0xfff3a8).setOrigin(0.5, 0).setDepth(NIGHTMARE_DEPTH + 0.5).setAlpha(0.35);
+    const text = this.add
+      .text(VIEW_W / 2, 110, '大惡夢來了!躲進月光裡!', { fontSize: '26px', color: '#fff3a8', ...HUD_STROKE })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(10);
+    this.tweens.add({ targets: fog, alpha: 0.75, duration: chargeMs });
+    this.tweens.add({ targets: moon, alpha: 0.65, duration: 300, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: text, scale: 1.12, duration: 400, yoyo: true, repeat: -1 });
+    this.nightmare = { safeX, halfW, views: [fog, moon, text] };
+    audio.sfx('bossPhase');
+  }
+
+  /** 大惡夢炸開:沒躲進月光的醒著的玩家扣好幾顆愛心。 */
+  private blastNightmare(): void {
+    const n = this.nightmare;
+    if (!n) return;
+    this.endNightmare();
+    this.cameras.main.flash(350, 120, 60, 180);
+    this.cameras.main.shake(400, 0.012);
+    audio.sfx('bossDown');
+    for (const p of this.players) {
+      if (p.health.down || Math.abs(p.x - n.safeX) <= n.halfW) continue;
+      if (this.hurtPlayer(p, false, NIGHTMARE_HEARTS)) this.nightmareHits += 1;
+    }
+  }
+
+  private endNightmare(): void {
+    for (const v of this.nightmare?.views ?? []) {
+      this.tweens.killTweensOf(v);
+      v.destroy();
+    }
+    this.nightmare = null;
   }
 
   /** 失眠寄居蟹:走一走,輪流縮進殼裡滑過來(打不動)與吐慢慢飄的泡泡。 */
@@ -3050,6 +3108,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.reverseMs = 0;
     this.reverseText.setVisible(false);
     this.slowMs.fill(0);
+    this.endNightmare();
     audio.music(null);
     audio.sfx('bossDown');
     const { x, y } = boss.enemy.body;
@@ -3262,6 +3321,8 @@ export class TestRangeScene extends Phaser.Scene {
         slowed: this.slowMs.map((ms) => ms > 0),
         mochiHits: this.mochiHits,
         pulls: this.pulls,
+        nightmare: this.nightmare && { safeX: this.nightmare.safeX, halfW: this.nightmare.halfW },
+        nightmareHits: this.nightmareHits,
       },
       desert: this.desert.debug(),
       dropBlock: this.testHooks ? (x: number) => this.desert.dropBlock(x) : undefined,

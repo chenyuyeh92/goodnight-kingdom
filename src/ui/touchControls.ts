@@ -122,6 +122,12 @@ export function mountTouchControls(parent: HTMLElement): TouchControls {
   }
 
   on(root, 'contextmenu', (e) => e.preventDefault());
+  // 記住螢幕上還有幾根手指(關卡結束時可能還按著)。
+  let fingers = 0;
+  const countFingers = (e: Event): void => {
+    fingers = (e as TouchEvent).touches?.length ?? 0;
+  };
+  for (const type of ['touchstart', 'touchend', 'touchcancel']) on(window, type, countFingers);
   const clearAll = (): void => {
     state.clear();
     for (const [el] of buttons) el.classList.remove('active');
@@ -147,8 +153,23 @@ export function mountTouchControls(parent: HTMLElement): TouchControls {
     destroy() {
       for (const [target, type, fn] of listeners) target.removeEventListener(type, fn);
       if (typeof portrait.addEventListener !== 'function') portrait.removeListener?.(updateRotate);
-      root.remove();
-      style.remove();
+      // 手指還按在搖桿或按鈕上就先藏起來,等放開才拿掉:
+      // 拿掉後放開手指的事件傳不到遊戲,遊戲會以為一直按著,之後的選單點不動。
+      const remove = (): void => {
+        root.remove();
+        style.remove();
+      };
+      if (fingers === 0) return remove();
+      root.style.visibility = 'hidden';
+      root.querySelectorAll<HTMLElement>('*').forEach((el) => (el.style.pointerEvents = 'none'));
+      const done = (e: Event): void => {
+        if ((e as TouchEvent).touches?.length) return;
+        window.removeEventListener('touchend', done);
+        window.removeEventListener('touchcancel', done);
+        remove();
+      };
+      window.addEventListener('touchend', done);
+      window.addEventListener('touchcancel', done);
     },
   };
 }

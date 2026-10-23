@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { MOCHI_GRAVITY, RABBIT_WALK_MS, RABBIT_WINDUP_MS, initialRabbitBrain, stepRabbit, type RabbitBrain, type RabbitSense } from '../src/game/rabbit';
 import { DART_GAP_MS, DART_HIGH_Y, DART_LOW_Y, DART_SPEED, PEACOCK_WALK_MS, PEACOCK_WINDUP_MS, REVERSE_MS, initialPeacockBrain, reverseIntent, stepPeacock, type PeacockBrain, type PeacockSense } from '../src/game/peacock';
-import { INHALE_MS, INHALE_PULL, MIST_GAP_MS, MIST_HIGH_Y, MIST_LOW_Y, MIST_SPEED, TAPIR_SCALE, TAPIR_WINDUP_MS, initialTapirBrain, stepTapir, type TapirBrain, type TapirSense } from '../src/game/tapir';
+import { INHALE_MS, INHALE_PULL, MIST_GAP_MS, NIGHTMARE_CHARGE_MS, NIGHTMARE_HEARTS, NIGHTMARE_SAFE_HALF_W, MIST_HIGH_Y, MIST_LOW_Y, MIST_SPEED, TAPIR_SCALE, TAPIR_WINDUP_MS, initialTapirBrain, stepTapir, type TapirBrain, type TapirSense } from '../src/game/tapir';
 import { ENEMY_DEFS, VULTURE_SWOOP_Y, initialBrain, stepEnemy, type EnemySense } from '../src/game/enemies';
 import { CROUCH_HITBOX, STAND_HITBOX } from '../src/game/playerMotor';
 import { DEFAULT_TUNING } from '../src/config/tuning';
@@ -150,14 +150,18 @@ describe('偷走睡意的夢貘', () => {
     const mist: { y: number; delayMs: number }[] = [];
     let inhaleMs = 0;
     const summon: string[] = [];
+    const starts: { halfW: number; chargeMs: number }[] = [];
+    let blasts = 0;
     for (let t = 0; t < ms; t += 50) {
       const r = stepTapir(b, sense(over));
       b = r.brain;
       mist.push(...r.mist);
       if (r.inhaling) inhaleMs += 50;
       summon.push(...r.summon);
+      if (r.nightmareStart) starts.push(r.nightmareStart);
+      if (r.nightmareBlast) blasts += 1;
     }
-    return { b, mist, inhaleMs, summon };
+    return { b, mist, inhaleMs, summon, starts, blasts };
   };
 
   test('第一階段:吐 3 團有高有低的惡夢雲、吸 2 秒,第三招改成再吐雲(不叫手下)', () => {
@@ -179,6 +183,28 @@ describe('偷走睡意的夢貘', () => {
     expect(s.summon).toEqual(['pillowSoldier', 'noisyStar']);
     const full = run({ ...b }, 1700 + TAPIR_WINDUP_MS + 100, { hpRatio: 0.6, minionsAlive: 3 });
     expect(full.summon).toHaveLength(0);
+  });
+
+  test('大惡夢:每次換階段放一次(整場兩次),集氣時不吐雲也不吸,第三階段月光更窄、集氣更短', () => {
+    const p2 = run(initialTapirBrain(), 12000, { hpRatio: 0.6 });
+    expect(p2.starts).toEqual([{ halfW: NIGHTMARE_SAFE_HALF_W[2], chargeMs: NIGHTMARE_CHARGE_MS[2] }]);
+    expect(p2.blasts).toBe(1);
+    // 發抖 1 秒 + 集氣,這段時間沒有別的招。
+    const early = run(initialTapirBrain(), 1000 + NIGHTMARE_CHARGE_MS[2] + 50, { hpRatio: 0.6 });
+    expect(early.blasts).toBe(1);
+    expect(early.mist).toHaveLength(0);
+    expect(early.inhaleMs).toBe(0);
+    const p3 = run(p2.b, 12000, { hpRatio: 0.3 });
+    expect(p3.starts).toEqual([{ halfW: NIGHTMARE_SAFE_HALF_W[3], chargeMs: NIGHTMARE_CHARGE_MS[3] }]);
+    expect(p3.blasts).toBe(1);
+    // 同一階段不會再放。
+    expect(run(p3.b, 30000, { hpRatio: 0.3 }).blasts).toBe(0);
+    expect(run(initialTapirBrain(), 30000).blasts).toBe(0);
+    expect(NIGHTMARE_HEARTS).toBe(3);
+    expect(NIGHTMARE_SAFE_HALF_W[3]).toBeLessThan(NIGHTMARE_SAFE_HALF_W[2]);
+    expect(NIGHTMARE_CHARGE_MS[3]).toBeLessThan(NIGHTMARE_CHARGE_MS[2]);
+    // 集氣的時間走得到王座裡最遠的月光(關主區 960 寬,月光最遠離玩家約 460)。
+    expect((NIGHTMARE_CHARGE_MS[3] / 1000) * DEFAULT_TUNING.walkSpeed).toBeGreaterThan(460 + 60);
   });
 
   test('惡夢雲:高的站著過、低的要跳;吸的力量比走路小(往反方向跑得掉);越來越大', () => {

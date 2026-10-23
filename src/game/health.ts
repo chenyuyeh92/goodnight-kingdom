@@ -18,10 +18,10 @@ export function freshHealth(invulnMs = 0): Health {
   return { hearts: MAX_HEARTS, invulnMs, down: false, downMs: 0 };
 }
 
-/** 無敵或睡著時不扣愛心。 */
-export function applyHit(h: Health): { health: Health; hit: boolean; wentDown: boolean } {
+/** 無敵或睡著時不扣愛心。一般扣 1 顆;夢貘的大惡夢一次扣好幾顆。 */
+export function applyHit(h: Health, damage = 1): { health: Health; hit: boolean; wentDown: boolean } {
   if (h.down || h.invulnMs > 0) return { health: h, hit: false, wentDown: false };
-  const hearts = h.hearts - 1;
+  const hearts = h.hearts - damage;
   if (hearts <= 0) {
     return { health: { hearts: 0, invulnMs: HIT_INVULN_MS, down: true, downMs: 0 }, hit: true, wentDown: true };
   }

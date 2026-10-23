@@ -2,7 +2,7 @@ import { MAX_DT_MS } from '../config/tuning';
 import { GROUND_Y } from '../levels/levelDef';
 import { owlPhase } from './owl';
 
-export type TapirMode = 'idle' | 'windup' | 'inhale' | 'angry';
+export type TapirMode = 'idle' | 'windup' | 'inhale' | 'angry' | 'nightmare';
 export type TapirAttack = 'mist' | 'inhale' | 'summon';
 
 /** 招式輪流:吐惡夢雲 → 吸睡意 → 叫手下(第一階段改成再吐一次惡夢雲)。 */
@@ -14,6 +14,8 @@ export interface TapirBrain {
   phase: 1 | 2 | 3;
   attacks: number;
   pending: TapirAttack;
+  /** 剛換階段:發抖完要放一次「大惡夢」。 */
+  nightmareNext: boolean;
 }
 
 export interface TapirSense {
@@ -34,6 +36,10 @@ export interface TapirStep {
   summon: ('pillowSoldier' | 'noisyStar')[];
   enteredPhase: 2 | 3 | null;
   invulnerable: boolean;
+  /** 開始集氣放大惡夢(這一格才有):月光安全區多寬、集氣多久。 */
+  nightmareStart: { halfW: number; chargeMs: number } | null;
+  /** 大惡夢炸開(這一格才有):沒躲進月光的扣 NIGHTMARE_HEARTS 顆愛心。 */
+  nightmareBlast: boolean;
 }
 
 const IDLE_MS = { 1: 2000, 2: 1700, 3: 1400 } as const;
@@ -54,29 +60,41 @@ const MIST_COUNT = { 1: 3, 2: 4, 3: 5 } as const;
 const ANGRY_MS = 1000;
 const SHAKE = 40;
 const MAX_MINIONS = 3;
+/** 大惡夢:每次換階段放一次(整場兩次),越後面月光越窄、集氣越短。 */
+export const NIGHTMARE_CHARGE_MS = { 2: 3000, 3: 2400 } as const;
+export const NIGHTMARE_SAFE_HALF_W = { 2: 80, 3: 60 } as const;
+export const NIGHTMARE_HEARTS = 3;
 
 export function initialTapirBrain(): TapirBrain {
-  return { mode: 'idle', timerMs: 0, phase: 1, attacks: 0, pending: 'mist' };
+  return { mode: 'idle', timerMs: 0, phase: 1, attacks: 0, pending: 'mist', nightmareNext: false };
 }
 
 /**
  * 偷走睡意的夢貘(最終魔王):站在月光王座右邊,輪流吐惡夢雲(有高有低)、用鼻子把玩家吸過來 2 秒、
  * 叫手下(第二階段起);三個階段越來越大,換階段發抖打不動。
+ * 每次換階段發抖完放一次「大惡夢」:集氣幾秒,整個王座只剩一道月光是安全的,沒躲進去扣 3 顆愛心。
  */
 export function stepTapir(b: TapirBrain, s: TapirSense): TapirStep {
   const dt = Math.min(s.dtMs, MAX_DT_MS);
-  const none = { mist: [], inhaling: false, summon: [], enteredPhase: null, invulnerable: false };
+  const none = { mist: [], inhaling: false, summon: [], enteredPhase: null, invulnerable: false, nightmareStart: null, nightmareBlast: false };
 
   const wanted = owlPhase(s.hpRatio);
   if (s.hpRatio > 0 && wanted > b.phase && (b.mode === 'idle' || b.mode === 'angry')) {
     const phase = wanted as 2 | 3;
-    return { ...none, vx: SHAKE, brain: { ...b, mode: 'angry', timerMs: 0, phase }, enteredPhase: phase, invulnerable: true };
+    return { ...none, vx: SHAKE, brain: { ...b, mode: 'angry', timerMs: 0, phase, nightmareNext: true }, enteredPhase: phase, invulnerable: true };
   }
 
   const timerMs = b.timerMs + dt;
   switch (b.mode) {
     case 'angry': {
-      if (timerMs >= ANGRY_MS) return { ...none, vx: 0, brain: { ...b, mode: 'idle', timerMs: 0 } };
+      if (timerMs >= ANGRY_MS) {
+        if (b.nightmareNext && b.phase !== 1) {
+          const phase = b.phase;
+          const nightmareStart = { halfW: NIGHTMARE_SAFE_HALF_W[phase], chargeMs: NIGHTMARE_CHARGE_MS[phase] };
+          return { ...none, vx: 0, nightmareStart, brain: { ...b, mode: 'nightmare', timerMs: 0, nightmareNext: false } };
+        }
+        return { ...none, vx: 0, brain: { ...b, mode: 'idle', timerMs: 0 } };
+      }
       const vx = Math.floor(timerMs / 100) % 2 === 0 ? SHAKE : -SHAKE;
       return { ...none, vx, invulnerable: true, brain: { ...b, timerMs } };
     }
@@ -102,6 +120,13 @@ export function stepTapir(b: TapirBrain, s: TapirSense): TapirStep {
       const room = Math.max(0, MAX_MINIONS - s.minionsAlive);
       const summon = (['pillowSoldier', 'noisyStar'] as const).slice(0, Math.min(2, room));
       return { ...none, vx: 0, summon: [...summon], brain: done };
+    }
+    case 'nightmare': {
+      const phase = b.phase === 1 ? 2 : b.phase;
+      if (timerMs >= NIGHTMARE_CHARGE_MS[phase]) return { ...none, vx: 0, nightmareBlast: true, brain: { ...b, mode: 'idle', timerMs: 0 } };
+      // 集氣:慢慢地抖。
+      const vx = Math.floor(timerMs / 200) % 2 === 0 ? SHAKE / 2 : -SHAKE / 2;
+      return { ...none, vx, brain: { ...b, timerMs } };
     }
     case 'inhale': {
       if (timerMs >= INHALE_MS) return { ...none, vx: 0, brain: { ...b, mode: 'idle', timerMs: 0 } };
