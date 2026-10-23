@@ -7,8 +7,11 @@ import { CRUMBLE_SHAKE_MS, MOVER_H, SPRING_H, SPRING_VY, SPRING_W, moverOffset, 
 import type { PlayerEntity } from './playerEntity';
 
 const OUTLINE = 0x3a2a5a;
-/** 腳底離平台頂這麼近就算站在上面。 */
+/** 腳底離平台頂這麼近就算站在上面;載人時放寬一點(被頂起來的那一格)。 */
 const STAND_EPS = 6;
+const RIDE_EPS = 10;
+/** 比平台往上快這麼多就是自己跳起來的,不跟著平台。 */
+const JUMP_MARGIN = 250;
 /** 彈跳墊的造型(依世界):蘑菇有白點點,其他是軟墊。 */
 const SPRING_STYLE: Record<number, { top: number; base: number; dots: boolean }> = {
   1: { top: 0xe8505a, base: 0xf3e9d2, dots: true },
@@ -128,12 +131,12 @@ export class GadgetSystem {
     // 速度 = (這一格結束時該在的位置 − 現在的位置) / 這一格的時間。
     const at = moverOffset(m.def, this.tMs);
     body.setVelocity(((m.def.x + at.x - body.x) * 1000) / dtMs, ((m.def.y + at.y - body.y) * 1000) / dtMs);
-    // 往下時:站在上面的玩家至少用一樣快的速度往下(不會飄起來再掉下去)。
-    if (body.velocity.y <= 0) return;
+    // 站在上面的玩家上下都跟平台一樣快(往上時不會被彈飛、往下時不會飄起來);剛起跳的不管。
+    const vy = body.velocity.y;
     for (const p of players) {
-      if (p.health.down || !this.standingOn(p, body.x, body.y, m.def.w)) continue;
+      if (p.health.down || !this.standingOn(p, body.x, body.y, m.def.w, RIDE_EPS)) continue;
       const pb = p.body();
-      if (pb.velocity.y >= 0 && pb.velocity.y < body.velocity.y) pb.velocity.y = body.velocity.y;
+      if (pb.velocity.y > vy - JUMP_MARGIN) pb.velocity.y = vy;
     }
   }
 
@@ -176,9 +179,9 @@ export class GadgetSystem {
     }
   }
 
-  private standingOn(p: PlayerEntity, left: number, top: number, w: number): boolean {
+  private standingOn(p: PlayerEntity, left: number, top: number, w: number, eps = STAND_EPS): boolean {
     const pb = p.body();
-    return Math.abs(pb.bottom - top) <= STAND_EPS && pb.right > left && pb.left < left + w;
+    return Math.abs(pb.bottom - top) <= eps && pb.right > left && pb.left < left + w;
   }
 
   private overlaps(p: PlayerEntity, r: Rect): boolean {
