@@ -103,7 +103,7 @@ test.describe('世界 6 熱帶雨林', () => {
     await open(page, 'w6-3');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'gorilla', undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(40));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(120));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     await page.waitForTimeout(300);
     expect((await gk(page)).enemies!.find((e) => e.type === 'gorilla')!.artKey).toMatch(/^(gorilla-2|w6-gorilla-boss-phase2-)/);

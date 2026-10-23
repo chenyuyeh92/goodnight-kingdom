@@ -27,7 +27,7 @@ test.describe('1-1 草原', () => {
     await enterBoss(page);
     const s = await gk(page);
     expect(s.boss!.type).toBe('squirrel');
-    expect(s.boss!.maxHp).toBe(35);
+    expect(s.boss!.maxHp).toBe(105);
     await page.waitForFunction(() => (window.__GK__!.enemyShots ?? 0) > 0, undefined, { timeout: 4000 });
     await page.waitForFunction(() => window.__GK__!.boss!.armored, undefined, { timeout: 5000 });
     // 擋的時候背對玩家(圖朝左,背對玩家 = 面向右)。
@@ -37,7 +37,7 @@ test.describe('1-1 草原', () => {
   test('雙人時小頭目血量 1.5 倍', async ({ page }) => {
     await open(page, 'duo');
     await enterBoss(page);
-    expect((await gk(page)).boss!.maxHp).toBe(53);
+    expect((await gk(page)).boss!.maxHp).toBe(158);
   });
 
   test('大松鼠會跳到不同位置(不會卡在平台下面原地跳)', async ({ page }) => {

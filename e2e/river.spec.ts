@@ -84,7 +84,7 @@ test.describe('1-2 河邊', () => {
     await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
     await page.waitForFunction(() => !!window.__GK__!.boss, undefined, { timeout: 15000 });
     expect((await gk(page)).boss!.type).toBe('beaver');
-    expect((await gk(page)).boss!.maxHp).toBe(40);
+    expect((await gk(page)).boss!.maxHp).toBe(120);
     await page.waitForFunction(() => window.__GK__!.desert!.waves > 0, undefined, { timeout: 5000 });
     await page.waitForFunction(() => window.__GK__!.desert!.blocks > 0, undefined, { timeout: 6000 });
     await page.evaluate(() => window.__GK__!.hurtBoss!(9999));

@@ -37,7 +37,7 @@ test.describe('雜魚變多', () => {
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'tapir', undefined, { timeout: 8000 });
     // 先等 3 秒:叫雜魚的計時(第二階段 5 秒)會在集氣的 3 秒裡到期,不暫停就會叫。
     await page.waitForTimeout(3000);
-    await page.evaluate(() => window.__GK__!.hurtBoss!(60));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(180));
     await page.waitForFunction(() => window.__GK__!.w10!.nightmare !== null, undefined, { timeout: 4000 });
     const calls0 = (await gk(page)).fodder!.bossCalls;
     await page.waitForFunction(() => window.__GK__!.w10!.nightmare === null, undefined, { timeout: 5000 });

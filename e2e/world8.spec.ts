@@ -97,7 +97,7 @@ test.describe('世界 8 雲端高山', () => {
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'thunderbird', undefined, { timeout: 8000 });
     await page.waitForFunction(() => window.__GK__!.desert!.blocks > 0, undefined, { timeout: 8000 });
     await page.waitForFunction(() => window.__GK__!.wind!.gust, undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(45));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(135));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 4000 });
     await page.waitForTimeout(300);
     expect((await gk(page)).enemies!.find((e) => e.type === 'thunderbird')!.artKey).toMatch(/^(thunderbird-2|w8-thunderbird-boss-phase2-)/);

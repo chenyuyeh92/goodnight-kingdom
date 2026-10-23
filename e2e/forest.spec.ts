@@ -30,7 +30,7 @@ test.describe('關主戰', () => {
     expect((await gk(page)).level).toBe('forest');
     await enterBoss(page);
     const s = await gk(page);
-    expect(s.boss!.maxHp).toBe(60);
+    expect(s.boss!.maxHp).toBe(180);
     expect(s.cameraX).toBe(10000);
   });
 
@@ -63,10 +63,10 @@ test.describe('關主戰', () => {
     expect((await gk(page)).players![0].hearts).toBe(6);
   });
 
-  test('雙人時貓頭鷹血量 90', async ({ page }) => {
+  test('雙人時貓頭鷹血量 270', async ({ page }) => {
     await openForest(page, './?mode=duo&test=1');
     await enterBoss(page);
-    expect((await gk(page)).boss!.maxHp).toBe(90);
+    expect((await gk(page)).boss!.maxHp).toBe(270);
   });
 
   test('貓頭鷹會放羽毛,羽毛打到會扣愛心', async ({ page }) => {
@@ -79,12 +79,12 @@ test.describe('關主戰', () => {
   test('打到 66% 以下進入第二階段並暫時無敵', async ({ page }) => {
     await openForest(page);
     await enterBoss(page);
-    await page.evaluate(() => window.__GK__!.hurtBoss!(21));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(63));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2);
     const s = await gk(page);
     expect(s.boss!.mode).toBe('angry');
     const hp = s.boss!.hp;
-    await page.evaluate(() => window.__GK__!.hurtBoss!(5));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(15));
     await page.waitForTimeout(100);
     expect((await gk(page)).boss!.hp).toBe(hp);
   });
@@ -92,17 +92,17 @@ test.describe('關主戰', () => {
   test('階段轉換時打到 0 血直接倒下', async ({ page }) => {
     await openForest(page);
     await enterBoss(page);
-    await page.evaluate(() => window.__GK__!.hurtBoss!(59));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(177));
     await page.waitForFunction(() => window.__GK__!.boss!.mode === 'angry');
     await page.waitForFunction(() => window.__GK__!.boss!.mode !== 'angry', undefined, { timeout: 3000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(1));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(3));
     await page.waitForFunction(() => window.__GK__!.bossDefeated === true, undefined, { timeout: 2000 });
   });
 
   test('關主戰睡著重來,貓頭鷹血量回滿、羽毛與小怪清空', async ({ page }) => {
     await openForest(page);
     await enterBoss(page);
-    await page.evaluate(() => window.__GK__!.hurtBoss!(30));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(90));
     await hurtUntilDown(page);
     await page.waitForFunction(() => window.__GK__!.restarts === 1, undefined, { timeout: 3000 });
     let s = await gk(page);
@@ -173,7 +173,7 @@ test.describe('通關結算', () => {
   test('一擊打到 0 血直接倒下,不進入暴躁', async ({ page }) => {
     await openForest(page);
     await enterBoss(page);
-    await page.evaluate(() => window.__GK__!.hurtBoss!(60));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(180));
     await page.waitForFunction(() => window.__GK__!.bossDefeated === true);
     const s = await gk(page);
     expect(s.bossDefeated).toBe(true);

@@ -88,7 +88,8 @@ export interface EnemyDef {
   shield: boolean;
 }
 
-export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
+/** 原始數值(魔王的血量在 ENEMY_DEFS 乘上 BOSS_HP_MULT)。 */
+export const BASE_ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   alarmBug: { type: 'alarmBug', name: '吵鬧鬧鐘蟲', tier: 'minion', hp: 2, w: 38, h: 44, color: 0xe8a87c, flying: false, shield: false },
   coffeeBean: { type: 'coffeeBean', name: '咖啡豆精靈', tier: 'minion', hp: 2, w: 30, h: 40, color: 0x8b5e3c, flying: false, shield: false },
   nightBat: { type: 'nightBat', name: '熬夜蝙蝠', tier: 'minion', hp: 1, w: 42, h: 30, color: 0x5c4b8a, flying: true, shield: false },
@@ -172,6 +173,13 @@ export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = {
   peacock: { type: 'peacock', name: '熬夜孔雀', tier: 'boss', hp: 55, w: 95, h: 120, color: 0x3a8ac0, flying: false, shield: false },
   tapir: { type: 'tapir', name: '偷走睡意的夢貘', tier: 'boss', hp: 150, w: 150, h: 155, color: 0x6a5a8a, flying: false, shield: false },
 };
+
+/** 魔王(小頭目與關主)的血量倍數:2026-10-25 試玩後覺得太快打完,全部三倍。 */
+export const BOSS_HP_MULT = 3;
+
+export const ENEMY_DEFS: Readonly<Record<EnemyType, EnemyDef>> = Object.fromEntries(
+  Object.entries(BASE_ENEMY_DEFS).map(([t, d]) => [t, d.tier === 'boss' ? { ...d, hp: d.hp * BOSS_HP_MULT } : d]),
+) as Record<EnemyType, EnemyDef>;
 
 export type EnemyPhase = 'walk' | 'hop' | 'hover' | 'swoop' | 'roll' | 'dash' | 'idle' | 'swim' | 'puff' | 'hide' | 'burrow';
 

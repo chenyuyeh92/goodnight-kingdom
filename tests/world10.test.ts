@@ -223,7 +223,7 @@ describe('偷走睡意的夢貘', () => {
     expect(INHALE_PULL).toBeLessThan(DEFAULT_TUNING.walkSpeed * 0.75);
     expect(TAPIR_SCALE[3]).toBeGreaterThan(TAPIR_SCALE[2]);
     expect(TAPIR_SCALE[2]).toBeGreaterThan(TAPIR_SCALE[1]);
-    expect(ENEMY_DEFS.tapir.hp).toBe(150);
+    expect(ENEMY_DEFS.tapir.hp).toBe(450);
   });
 });
 

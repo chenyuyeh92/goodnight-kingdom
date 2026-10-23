@@ -93,7 +93,7 @@ test.describe('世界 7 非洲大草原', () => {
     await open(page, 'w7-3');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'lion', undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(45));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(135));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     await page.waitForTimeout(300);
     expect((await gk(page)).enemies!.find((e) => e.type === 'lion')!.artKey).toMatch(/^(lion-2|w7-lion-king-boss-phase2-)/);

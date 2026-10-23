@@ -19,7 +19,7 @@ import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
 import { decideTeam, reachedCheckpoint } from '../game/team';
-import { ENEMY_DEFS, SPIT_GRAVITY, bulletEffect, pufferHit, wearShield, type EnemyType } from '../game/enemies';
+import { BOSS_HP_MULT, ENEMY_DEFS, SPIT_GRAVITY, bulletEffect, pufferHit, wearShield, type EnemyType } from '../game/enemies';
 import { EnemyEntity } from '../game/enemyEntity';
 import { EnemyShotSystem } from '../game/enemyShots';
 import { addWeapon, newRunStats, summaryLines, type RunStats } from '../game/runStats';
@@ -2198,7 +2198,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (was !== 'windup' && step.brain.mode === 'windup') this.tell(enemy);
     for (const b of step.bubbles) this.shots.fire(mouthX, mouthY, b.vx, b.vy, 'waterBubble', 0, BUBBLE_LIFE_MS);
     if (step.heal > 0 && enemy.hp > 0) {
-      enemy.hp = Math.min(boss.maxHp, enemy.hp + step.heal);
+      enemy.hp = Math.min(boss.maxHp, enemy.hp + step.heal * BOSS_HP_MULT);
       // 頭上冒出綠色的「+」,看得出來在回血。
       const plus = this.add
         .text(enemy.x, enemy.body.y - enemy.def.h / 2 - 6, '+', { fontSize: '26px', color: '#8fe08f', stroke: '#2a4a2a', strokeThickness: 5 })

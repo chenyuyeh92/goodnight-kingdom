@@ -92,7 +92,7 @@ test.describe('世界 4 冰雪極地', () => {
     await open(page, 'w4-3');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'yeti', undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(35));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(105));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     // 第二階段的圖真的畫出來(不會被換回第一階段)。
     await page.waitForTimeout(300);

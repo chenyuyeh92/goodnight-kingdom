@@ -71,7 +71,7 @@ test.describe('世界 9 地底洞窟', () => {
     await open(page, 'w9-2');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'axolotl', undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(20));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(60));
     const hp = (await gk(page)).boss!.hp;
     await page.waitForFunction((h) => window.__GK__!.boss!.hp > h, hp, { timeout: 6000 });
   });
@@ -82,7 +82,7 @@ test.describe('世界 9 地底洞窟', () => {
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'mole', undefined, { timeout: 8000 });
     await page.waitForFunction(() => window.__GK__!.boss?.hidden === true, undefined, { timeout: 8000 });
     await page.waitForFunction(() => window.__GK__!.boss?.hidden === false, undefined, { timeout: 6000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(50));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(150));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     await page.waitForTimeout(300);
     expect((await gk(page)).enemies!.find((e) => e.type === 'mole')!.artKey).toMatch(/^(mole-2|w9-giant-mole-boss-phase2-)/);

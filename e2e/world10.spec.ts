@@ -88,7 +88,7 @@ test.describe('世界 10 月亮城堡', () => {
     const x0 = (await gk(page)).players![0].x;
     await page.waitForTimeout(400);
     expect((await gk(page)).players![0].x).toBeGreaterThan(x0 + 20);
-    await page.evaluate(() => window.__GK__!.hurtBoss!(60));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(180));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     await page.waitForTimeout(300);
     expect((await gk(page)).enemies!.find((e) => e.type === 'tapir')!.artKey).toMatch(/^(tapir-2|w10-dream-tapir-boss-phase2)/);
@@ -99,7 +99,7 @@ test.describe('世界 10 月亮城堡', () => {
     test(`夢貘換階段放大惡夢:${inMoon ? '躲進月光不扣愛心' : '沒躲扣 3 顆愛心'}`, async ({ page }) => {
       await toBoss(page, 'w10-3', 'tapir');
       // 一下打很多也只掉到第二階段(血的底線 99),不會跳過第二階段的大惡夢。
-      await page.evaluate(() => window.__GK__!.hurtBoss!(140));
+      await page.evaluate(() => window.__GK__!.hurtBoss!(420));
       expect((await gk(page)).enemies!.find((e) => e.type === 'tapir')!.hp).toBe(99);
       await page.waitForFunction(() => window.__GK__!.w10!.nightmare !== null, undefined, { timeout: 4000 });
       const { safeX, halfW } = (await gk(page)).w10!.nightmare!;

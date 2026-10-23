@@ -100,7 +100,7 @@ test.describe('世界 5 火山島', () => {
     await open(page, 'w5-3');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'dragon', undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(35));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(105));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     // 第二階段的圖真的畫出來(不會被換回第一階段)。
     await page.waitForTimeout(300);

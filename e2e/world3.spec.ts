@@ -142,7 +142,7 @@ test.describe('世界 3 亞特蘭提斯海底王國', () => {
     await open(page, 'w3-3');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'nessie', undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(30));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(90));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     await page.waitForFunction(() => ['windup', 'charge'].includes(window.__GK__!.boss!.mode) || (window.__GK__!.enemyShots ?? 0) > 0, undefined, { timeout: 8000 });
   });

@@ -147,7 +147,7 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     await open(page, 'w2-3');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'sphinx', undefined, { timeout: 8000 });
-    await page.evaluate(() => window.__GK__!.hurtBoss!(30));
+    await page.evaluate(() => window.__GK__!.hurtBoss!(90));
     await page.waitForFunction(() => window.__GK__!.boss!.phase === 2, undefined, { timeout: 3000 });
     await page.waitForTimeout(300);
     // 第二階段的圖(或它的動畫格)。
