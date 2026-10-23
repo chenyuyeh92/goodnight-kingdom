@@ -36,10 +36,14 @@ test('森林:五段加關主,每段開頭有檢查點', () => {
   expect(F.targets).toHaveLength(0);
 });
 
-test('森林:四個寶箱,蘑菇坡上路一個、隱藏寶箱在高處', () => {
-  expect(F.chests).toHaveLength(4);
-  expect(F.chests[1].bottom).toBeLessThan(320);
-  expect(F.chests[2].bottom).toBeLessThan(300);
+/** 森林的兩個高處寶箱:蘑菇坡上路一個、隱藏寶箱一個。 */
+const FOREST_HIGH = F.chests.filter((c) => c.bottom < GROUND_Y).sort((a, b) => a.x - b.x);
+
+test('森林:六個寶箱(路上四個),蘑菇坡上路一個、隱藏寶箱在高處', () => {
+  expect(F.chests).toHaveLength(6);
+  expect(FOREST_HIGH).toHaveLength(2);
+  expect(FOREST_HIGH[0].bottom).toBeLessThan(320);
+  expect(FOREST_HIGH[1].bottom).toBeLessThan(300);
 });
 
 /** 從地面出發,能往上跳 ≤ 140、橫向間隔 ≤ 80 的平台都算到得了;寶箱所在的平台要到得了。 */
@@ -63,8 +67,8 @@ function expectReachable(chest: { x: number; bottom: number }, L = F): void {
 }
 
 test('森林:高處寶箱跳得上去', () => {
-  expectReachable(F.chests[1]);
-  expectReachable(F.chests[2]);
+  expectReachable(FOREST_HIGH[0]);
+  expectReachable(FOREST_HIGH[1]);
 });
 
 test('森林:零星魔物至少 25 組,每一段至少 3 組', () => {
