@@ -62,6 +62,17 @@ test.describe('觸控操作', () => {
     await pointer(page, '#touch-shoot', 'pointerup', 2, 700, 400);
   });
 
+  test('催眠懷錶:按住射擊按鈕集氣,放開射出', async ({ page }) => {
+    await page.goto('./?level=range&mode=single&touch=1&test=1');
+    await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
+    await page.evaluate(() => window.__GK__!.giveWeapon!(0, 'hypnoWatch' as never));
+    await pointer(page, '#touch-shoot', 'pointerdown', 2, 700, 400);
+    await page.waitForFunction(() => window.__GK__!.players![0].chargeMs > 300, undefined, { timeout: 2000 });
+    expect((await gk(page)).bullets).toBe(0);
+    await pointer(page, '#touch-shoot', 'pointerup', 2, 700, 400);
+    await page.waitForFunction(() => (window.__GK__!.shots ?? []).some((s) => s.id === 'hypnoWatch' && s.damage > 3), undefined, { timeout: 1000 });
+  });
+
   test('按跳躍按鈕會跳', async ({ page }) => {
     const y0 = (await gk(page)).players![0].y;
     await pointer(page, '#touch-jump', 'pointerdown', 3, 800, 400);
