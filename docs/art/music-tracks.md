@@ -1,6 +1,6 @@
 # 十個世界的配樂音檔（給遊戲組）
 
-2026-10-24 由美術／配樂這邊交付。每個世界 3 首（白天、黃昏、晚上），**晚上那首同時用在深夜關主戰**；只有世界 1 的關主戰另外有一首（`w01-boss.mp3`）。共 31 個檔案，放在 `public/assets/music/`。
+2026-10-24 由美術／配樂這邊交付。每個世界 3 首（白天、黃昏、晚上），**晚上那首同時用在深夜關主戰**；只有世界 1 的關主戰另外有一首（`w01-boss.mp3`）。共 31 個檔案，放在 `public/assets/music/`。2026-10-25 另外補交主選單 `menu.mp3`（見「怎麼接進遊戲」最後的「主選單」）。
 
 ## 檔案規格
 
@@ -46,6 +46,7 @@
 | w10 月亮城堡 | 白天 | `w10-day.mp3` | 48 | 2304000 | 750 KB |
 | w10 月亮城堡 | 黃昏 | `w10-dusk.mp3` | 48 | 2304000 | 750 KB |
 | w10 月亮城堡 | 晚上、深夜關主戰 | `w10-night.mp3` | 48 | 2304000 | 750 KB |
+| 主選單 | 主頁、選關、背包、守衛房間、設定、開頭動畫、結尾動畫 | `menu.mp3` | 43.6364 | 2094545 | 683 KB |
 
 ## 怎麼接進遊戲
 
@@ -58,10 +59,12 @@
 }
 ```
 
-（世界 2–10 的 `boss` 都指向該世界的 `night` 檔。）注意：光在 `tracks.json` 加 `w01-day` 這類名稱沒有用——`audio.ts` 的 `init` 只接受 `TUNES` 裡已有的名稱（`id in TUNES`），要同時擴充 `TrackId` 和 `TUNES`。美術這邊沒有改 `tracks.json` 和 `src/`，接法交給遊戲組決定。主頁 `menu` 這次沒有做，維持原本的合成搖籃曲。
+（世界 2–10 的 `boss` 都指向該世界的 `night` 檔。）（2026-10-25 更新：遊戲組已經接上——main 的 `tunes.ts` 有 `WorldTrackId`，`tracks.json` 也已登記 40 筆世界曲目。）美術這邊沒有改 `tracks.json` 和 `src/`。
+
+**主選單 `menu.mp3`（2026-10-25 補交）**：負責人選定「冒險前的晚安」（C 大調 ♩88、柔和鋼琴＋法國號，每四小節用月亮城堡號角的節奏起句）。負責人指定用在**主選單（主頁、選關、背包、守衛房間、設定）以及開頭動畫、結尾動畫**。`StoryScene` 開頭已經是 `audio.music('menu')`、`menu` 也已在 `TUNES` 裡，所以只要在 `tracks.json` 加一行 `"menu": "menu.mp3"` 就會換掉原本的合成搖籃曲（美術這邊沒動 `tracks.json`，避免跟 main 衝突）。錄音時整首加大 4 dB，跟各世界的音量差不多。
 
 ## 來源與重做
 
 - 曲子都是這次原創、用程式即時合成（Web Audio），沒有用任何取樣或別人的錄音。試聽頁原始檔在 `docs/art/music-sources/`。
-- 錄音工具在 `docs/art/tools/music/`：`server.js`＋`harness.html`，用無頭 Chrome 的 OfflineAudioContext 離線算出聲音，再用 lamejs（npm `lamejs@1.2.1`）編成 MP3。重做方法：在該資料夾 `npm install lamejs@1.2.1`，執行 `node server.js ../../../../public/assets/music`（`server.js` 裡的 Chrome 路徑是 Windows 的預設位置）。產生的 `_render-report.json` 要搬到 `docs/art/music-render-report.json`，不要留在音樂資料夾；`node_modules`、`chrome-profile`、`render-log.txt`、`package*.json` 已列進 `.gitignore`。
+- 錄音工具在 `docs/art/tools/music/`：`server.js`＋`harness.html`，用無頭 Chrome 的 OfflineAudioContext 離線算出聲音，再用 lamejs（npm `lamejs@1.2.1`）編成 MP3。重做方法：在該資料夾 `npm install lamejs@1.2.1`，執行 `node server.js ../../../../public/assets/music`（只重錄主選單：`node server.js ../../../../public/assets/music "?only=menu"`）（`server.js` 裡的 Chrome 路徑是 Windows 的預設位置）。產生的 `_render-report.json` 要搬到 `docs/art/music-render-report.json`，不要留在音樂資料夾（只重錄部分曲子時，報告裡只有那幾筆，要**合併**進去、不要整個覆蓋）；`node_modules`、`chrome-profile`、`render-log.txt`、`package*.json` 已列進 `.gitignore`。
 - 各首的定案過程記在工作室的 `CLAUDE.md`「配樂」一節。
