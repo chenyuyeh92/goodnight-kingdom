@@ -10,6 +10,9 @@ const CSS = `
 #guest-status { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 80%; text-align: center;
   color: #f3e9d2; font: 600 22px system-ui, sans-serif; background: rgba(13, 11, 36, 0.85); padding: 14px 20px; border-radius: 12px; }
 #guest-status:empty { display: none; }
+#guest-sound { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 25; color: #3a2a5a;
+  font: 600 18px system-ui, sans-serif; background: #ffe08a; padding: 8px 16px; border-radius: 10px; pointer-events: none; }
+#guest-sound[hidden] { display: none; }
 #guest-leave { position: absolute; right: 12px; top: 10px; z-index: 25; font: 600 16px system-ui, sans-serif; color: #3a2a5a;
   background: #f3e9d2; border: 0; border-radius: 10px; padding: 8px 14px; }
 `;
@@ -45,7 +48,7 @@ export function mountGuestView(link: GuestLink, touch: boolean): void {
   document.head.append(style);
   const root = document.createElement('div');
   root.id = 'guest-view';
-  root.innerHTML = `<video playsinline autoplay></video><div id="guest-status"></div><button id="guest-leave">${tr('離開', 'Leave')}</button>`;
+  root.innerHTML = `<video playsinline autoplay muted></video><div id="guest-status"></div><div id="guest-sound" hidden>${tr('點一下畫面(或按任意鍵)打開聲音', 'Tap the screen (or press a key) for sound')}</div><button id="guest-leave">${tr('離開', 'Leave')}</button>`;
   document.body.append(root);
   const video = root.querySelector('video') as HTMLVideoElement;
   const status = root.querySelector('#guest-status') as HTMLElement;
@@ -54,27 +57,31 @@ export function mountGuestView(link: GuestLink, touch: boolean): void {
     location.reload();
   });
 
-  // 瀏覽器不讓網頁自己出聲:播不出來時請朋友點一下。
-  const play = (): void => {
+  const sound = root.querySelector('#guest-sound') as HTMLElement;
+  // 先靜音播放(手機瀏覽器允許靜音自動播放),再請朋友點一下打開聲音。
+  video.muted = true;
+  const unmute = (): void => {
+    if (!video.srcObject) return;
+    video.muted = false;
     void video.play().then(
       () => {
-        if (status.dataset.tap) {
-          status.textContent = statusText(link.state);
-          delete status.dataset.tap;
-        }
+        sound.hidden = true;
+        document.removeEventListener('pointerdown', unmute, true);
+        document.removeEventListener('keydown', unmute, true);
       },
       () => {
-        status.textContent = tr('點一下畫面開始', 'Tap the screen to start');
-        status.dataset.tap = '1';
+        video.muted = true;
+        void video.play().catch(() => undefined);
       },
     );
   };
-  root.addEventListener('pointerdown', () => {
-    if (video.paused) play();
-  });
+  // 用 capture:點觸控按鈕(蓋在畫面上)或按鍵盤也算。
+  document.addEventListener('pointerdown', unmute, true);
+  document.addEventListener('keydown', unmute, true);
   link.onStream = (stream) => {
     video.srcObject = stream;
-    play();
+    void video.play().catch(() => undefined);
+    if (video.muted) sound.hidden = false;
   };
   link.onState = (s) => {
     status.textContent = statusText(s);
@@ -95,7 +102,7 @@ export function mountGuestView(link: GuestLink, touch: boolean): void {
     ready: true,
     screen: 'guest',
     get guest() {
-      return { state: link.state, videoWidth: video.videoWidth, playing: !video.paused };
+      return { state: link.state, videoWidth: video.videoWidth, playing: !video.paused, bits: link.sentBits };
     },
   };
 }

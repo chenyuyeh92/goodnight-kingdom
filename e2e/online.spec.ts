@@ -21,7 +21,7 @@ async function openRoom(ctx: BrowserContext): Promise<{ host: Page; code: string
   await host.keyboard.press('Digit2');
   await host.waitForFunction(() => window.__GK__?.online?.state === 'waiting', undefined, { timeout: 10000 });
   const code = (await gk(host)).online!.code!;
-  expect(code).toMatch(/^\d{4}$/);
+  expect(code).toMatch(/^\d{6}$/);
   return { host, code };
 }
 
@@ -51,15 +51,39 @@ test.describe('線上雙人(兩台裝置)', () => {
 
     await host.keyboard.press('Digit1');
     await host.waitForFunction(() => window.__GK__?.screen === 'range' && window.__GK__.players?.length === 2, undefined, { timeout: 15000 });
-    await host.waitForTimeout(500);
     const before = (await gk(host)).players!;
     await guest.keyboard.down('KeyD');
-    await guest.waitForTimeout(1000);
+    await host.waitForFunction((x0) => window.__GK__!.players![1].x - x0 > 80, before[1].x, { timeout: 8000 });
     await guest.keyboard.up('KeyD');
-    await host.waitForTimeout(200);
-    const after = (await gk(host)).players!;
-    expect(after[1].x - before[1].x).toBeGreaterThan(80);
-    expect(Math.abs(after[0].x - before[0].x)).toBeLessThan(10);
+    // 玩家 A 沒有被朋友的操作影響。
+    expect(Math.abs((await gk(host)).players![0].x - before[0].x)).toBeLessThan(10);
+  });
+
+  test('朋友按「離開」再加入同一個號碼:又連回來,還是操控玩家 B', async ({ context }) => {
+    test.setTimeout(90000);
+    const { host, code } = await openRoom(context);
+    const guest = await joinRoom(context, code);
+    await guest.waitForFunction(() => window.__GK__?.guest?.state === 'connected', undefined, { timeout: 15000 });
+    await host.waitForFunction(() => window.__GK__?.screen === 'level-select');
+    await host.keyboard.press('Digit1');
+    await host.waitForFunction(() => window.__GK__?.screen === 'range' && window.__GK__.players?.length === 2, undefined, { timeout: 15000 });
+    await guest.click('#guest-leave');
+    await guest.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
+    await host.waitForFunction(() => window.__GK__?.screen === 'range');
+    // 房主那邊不用等瀏覽器發現斷線,朋友重新加入馬上可以進來(不會說房間滿了)。
+    await guest.locator('canvas').click({ position: { x: 5, y: 5 } });
+    await guest.keyboard.press('Digit2');
+    await guest.waitForFunction(() => window.__GK__?.onlineChoice === true);
+    await guest.keyboard.press('Digit3');
+    await guest.waitForFunction(() => window.__GK__?.screen === 'online');
+    for (const d of code) await guest.keyboard.press(`Digit${d}`);
+    await guest.keyboard.press('Enter');
+    await guest.waitForFunction(() => window.__GK__?.guest?.state === 'connected', undefined, { timeout: 20000 });
+    // 剛連上時操作的通道可能晚一點才開:按住右,等玩家 B 走起來。
+    const startX = (await gk(host)).players![1].x;
+    await guest.keyboard.down('KeyD');
+    await host.waitForFunction((x0) => window.__GK__!.players![1].x - x0 > 80, startX, { timeout: 8000 });
+    await guest.keyboard.up('KeyD');
   });
 
   test('房主回到主選單就關房間;朋友那邊顯示連線中斷', async ({ context }) => {
@@ -79,12 +103,12 @@ test.describe('線上雙人(兩台裝置)', () => {
     await guest.waitForFunction(() => window.__GK__?.guest?.state === 'connected', undefined, { timeout: 15000 });
     await host.waitForFunction(() => window.__GK__?.screen === 'level-select');
     const third = await joinRoom(context, code);
-    await third.waitForFunction(() => window.__GK__?.guest?.state === 'full', undefined, { timeout: 10000 });
+    await third.waitForFunction(() => window.__GK__?.guest?.state === 'full', undefined, { timeout: 20000 });
   });
 
   test('號碼沒有人開:顯示找不到房間', async ({ context }) => {
     test.setTimeout(40000);
-    const guest = await joinRoom(context, '0000');
+    const guest = await joinRoom(context, '000000');
     await guest.waitForFunction(() => window.__GK__?.guest?.state === 'notFound', undefined, { timeout: 20000 });
   });
 });

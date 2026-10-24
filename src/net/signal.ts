@@ -11,6 +11,8 @@ export interface Signal {
 }
 
 const EVENT = 'sig';
+/** 連線服務這麼久還沒連上就放棄,顯示連不上網路。 */
+const READY_TIMEOUT_MS = 10000;
 
 /** 正式用:Supabase Realtime 的廣播頻道(不存資料,只轉送)。套件用到才載入,不拖慢遊戲開啟。 */
 export function supabaseSignal(code: string): Signal {
@@ -30,9 +32,19 @@ export function supabaseSignal(code: string): Signal {
           void channel.unsubscribe();
           client.disconnect();
         };
+        // 網路很差時不要一直卡在「連線中」。
+        const timer = setTimeout(() => {
+          close();
+          reject(new Error('timeout'));
+        }, READY_TIMEOUT_MS);
         channel.subscribe((status) => {
-          if (status === 'SUBSCRIBED') resolve();
-          else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') reject(new Error(status));
+          if (status === 'SUBSCRIBED') {
+            clearTimeout(timer);
+            resolve();
+          } else {
+            clearTimeout(timer);
+            reject(new Error(status));
+          }
         });
       }),
   );

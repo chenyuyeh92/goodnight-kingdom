@@ -74,7 +74,7 @@ export interface GkDebug {
   screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings' | 'story' | 'online' | 'guest';
   /** 線上雙人:房主開房間的狀態、號碼;朋友那台的連線狀態與畫面。 */
   online?: { role: 'host' | 'guest'; state: string; code: string | null };
-  guest?: { state: string; videoWidth: number; playing: boolean };
+  guest?: { state: string; videoWidth: number; playing: boolean; bits: number };
   onlineChoice?: boolean;
   /** 故事畫面:哪個故事、第幾幕、這一幕打出來的字、打完了沒。 */
   story?: { id: string; beat: number; beats: number; beatId: string; text: string[]; done: boolean; skippable: boolean };

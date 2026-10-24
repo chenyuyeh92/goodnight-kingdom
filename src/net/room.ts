@@ -1,13 +1,14 @@
 import type { Intent } from '../input/intent';
 
-/** 房間號碼:4 位數字,念給朋友聽、手機上用數字鍵盤就能輸入。 */
-export const CODE_LEN = 4;
+/** 房間號碼:6 位數字,念給朋友聽、用數字鍵就能輸入;一百萬種,陌生人很難剛好猜中。 */
+export const CODE_LEN = 6;
+const CODES = 10 ** CODE_LEN;
 
 export function makeRoomCode(rand: () => number = Math.random): string {
-  return String(Math.min(9999, Math.floor(rand() * 10000))).padStart(CODE_LEN, '0');
+  return String(Math.min(CODES - 1, Math.floor(rand() * CODES))).padStart(CODE_LEN, '0');
 }
 
-/** 朋友輸入的號碼:去掉空白、全形數字轉半形;不是剛好 4 位數字就回傳 null。 */
+/** 朋友輸入的號碼:去掉空白、全形數字轉半形;不是剛好 6 位數字就回傳 null。 */
 export function cleanCode(input: string): string | null {
   const s = input.replace(/\s+/g, '').replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0));
   return new RegExp(`^\\d{${CODE_LEN}}$`).test(s) ? s : null;

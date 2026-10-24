@@ -2,19 +2,19 @@ import { test, expect } from 'vitest';
 import { cleanCode, isSignalMsg, makeRoomCode, packIntent, unpackIntent } from '../src/net/room';
 import { EMPTY_INTENT } from '../src/input/intent';
 
-test('房間號碼是 4 位數字,可以是 0 開頭', () => {
-  expect(makeRoomCode(() => 0)).toBe('0000');
-  expect(makeRoomCode(() => 0.99999)).toBe('9999');
-  expect(makeRoomCode(() => 0.0421)).toBe('0421');
-  for (let i = 0; i < 50; i++) expect(makeRoomCode()).toMatch(/^\d{4}$/);
+test('房間號碼是 6 位數字(一百萬種,陌生人猜不到),可以是 0 開頭', () => {
+  expect(makeRoomCode(() => 0)).toBe('000000');
+  expect(makeRoomCode(() => 0.9999999)).toBe('999999');
+  expect(makeRoomCode(() => 0.0421)).toBe('042100');
+  for (let i = 0; i < 50; i++) expect(makeRoomCode()).toMatch(/^\d{6}$/);
 });
 
-test('輸入的號碼:去掉空白、全形數字轉半形,不是 4 位數字就不算', () => {
-  expect(cleanCode(' 12 34 ')).toBe('1234');
-  expect(cleanCode('０４２１')).toBe('0421');
-  expect(cleanCode('123')).toBeNull();
-  expect(cleanCode('12345')).toBeNull();
-  expect(cleanCode('12a4')).toBeNull();
+test('輸入的號碼:去掉空白、全形數字轉半形,不是 6 位數字就不算', () => {
+  expect(cleanCode(' 123 456 ')).toBe('123456');
+  expect(cleanCode('０４２１００')).toBe('042100');
+  expect(cleanCode('1234')).toBeNull();
+  expect(cleanCode('1234567')).toBeNull();
+  expect(cleanCode('12a456')).toBeNull();
 });
 
 test('操作打包成一個數字再拆回來,每個按鍵都對得上', () => {

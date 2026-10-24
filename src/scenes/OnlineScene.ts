@@ -7,7 +7,8 @@ import { tr } from '../i18n/lang';
 import { CODE_LEN, cleanCode, makeRoomCode } from '../net/room';
 import { openSignal } from '../net/signal';
 import { GuestLink, HostLink, type HostState } from '../net/link';
-import { endOnline, online } from '../net/session';
+import { endOnline, isCurrent, nextGeneration, online } from '../net/session';
+import { captureGame } from '../net/hostMedia';
 import { mountGuestView } from '../net/guestView';
 
 export interface OnlineData extends TestRangeData {
@@ -16,8 +17,6 @@ export interface OnlineData extends TestRangeData {
 
 /** 號碼剛好有人用時換號碼,最多試幾次。 */
 const MAX_CODE_TRIES = 5;
-/** 遊戲畫面每秒傳幾張給朋友。 */
-const STREAM_FPS = 30;
 const TEXT = { color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 };
 
 /** 測試用:網址加 ?net=local 時,同一個瀏覽器的分頁直接互傳,不連外部網路。 */
@@ -27,7 +26,7 @@ function localNet(): boolean {
 
 /**
  * 線上雙人:
- * 房主開房間 → 顯示 4 位數號碼,等朋友加入 → 連上後進選關,房主這台跑遊戲,畫面傳給朋友。
+ * 房主開房間 → 顯示 6 位數號碼,等朋友加入 → 連上後進選關,房主這台跑遊戲,畫面傳給朋友。
  * 朋友加入房間 → 輸入號碼 → 整個畫面換成房主傳來的遊戲畫面,自己的按鈕操控玩家 B。
  */
 export class OnlineScene extends Phaser.Scene {
@@ -86,12 +85,20 @@ export class OnlineScene extends Phaser.Scene {
   // ---------- 房主 ----------
 
   private async openRoom(): Promise<void> {
+    const gen = nextGeneration();
+    const media = captureGame(this.game);
+    if (!media) {
+      this.setStatus(tr('這個瀏覽器不能傳送遊戲畫面,請改用加入房間,或換一個瀏覽器開房間。', "This browser can't share the game picture. Join a room instead, or open the room in another browser."));
+      return;
+    }
+    online.media = media;
     this.setStatus(tr('準備房間中…', 'Opening a room…'));
-    for (let i = 0; i < MAX_CODE_TRIES && !this.left; i++) {
+    for (let i = 0; i < MAX_CODE_TRIES && isCurrent(gen); i++) {
       const code = makeRoomCode();
-      const link = new HostLink(openSignal(code, localNet()), () => this.media());
+      const link = new HostLink(openSignal(code, localNet()), media.stream);
       const ok = await link.open();
-      if (this.left) {
+      // 等待時按了返回(或又開了新房間):這個舊的不要了。
+      if (!isCurrent(gen)) {
         link.close();
         return;
       }
@@ -99,7 +106,7 @@ export class OnlineScene extends Phaser.Scene {
         online.host = link;
         this.code = code;
         this.showCode(code);
-        link.onState = (s) => this.onHostState(s);
+        link.onState = (st) => this.onHostState(st);
         this.onHostState(link.state);
         return;
       }
@@ -107,15 +114,6 @@ export class OnlineScene extends Phaser.Scene {
       if (link.state === 'error') break;
     }
     this.setStatus(tr('連不上網路,請確認有連上網路後再試一次。', "Can't connect. Check your internet connection and try again."));
-  }
-
-  /** 給朋友的畫面與聲音:遊戲畫布錄成影片,加上遊戲的聲音。 */
-  private media(): MediaStream | null {
-    const canvas = this.game.canvas as HTMLCanvasElement & { captureStream?: (fps: number) => MediaStream };
-    if (!canvas.captureStream) return null;
-    const stream = canvas.captureStream(STREAM_FPS);
-    audio.streamOut()?.getAudioTracks().forEach((t) => stream.addTrack(t));
-    return stream;
   }
 
   private showCode(code: string): void {
@@ -176,11 +174,13 @@ export class OnlineScene extends Phaser.Scene {
   private join(): void {
     const code = cleanCode(this.typed);
     if (!code) {
-      this.setStatus(tr('號碼是 4 位數字。', 'The room number has 4 digits.'));
+      this.setStatus(tr(`號碼是 ${CODE_LEN} 位數字。`, `The room number has ${CODE_LEN} digits.`));
       return;
     }
     this.joined = true;
     const link = new GuestLink(openSignal(code, localNet()));
+    // 朋友這台不放自己的音樂,聽房主傳來的。
+    audio.music(null);
     // 朋友這台不跑遊戲了:停掉遊戲畫面省電,換成房主傳來的畫面。
     this.game.loop.sleep();
     mountGuestView(link, this.data_.touch ?? false);

@@ -70,7 +70,7 @@ Who stole everyone's sleep? The opening and ending unfold page by page like a mo
 Draw your own guard with a finger or mouse, take it on your adventure, and save the picture to share.
 
 👫 Play together
-Link two phones with a 4-digit room number and play together, or share one computer. Touch controls on phones and tablets.
+Link two phones with a 6-digit room number and play together, or share one computer. Touch controls on phones and tablets.
 
 ✨ Made for families
 No ads, no personal data collected, no account needed. Progress stays on your device. Available in English and Chinese.

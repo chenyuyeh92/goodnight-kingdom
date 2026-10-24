@@ -889,7 +889,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.maxReachedX = startX;
     this.restarting = false;
 
-    for (const h of this.level.hints ?? []) this.drawSign(h.x, hintText(h.kind, this.mode, this.initData.touch ?? false));
+    // 線上雙人:這台的按鍵全部給玩家 A,提示照單人的寫。
+    const hintMode = online.host ? 'single' : this.mode;
+    for (const h of this.level.hints ?? []) this.drawSign(h.x, hintText(h.kind, hintMode, this.initData.touch ?? false));
     this.flags = this.level.checkpoints.map((cp) => ({ x: cp, g: this.add.graphics().setDepth(-1), on: null }));
     const thorns = this.physics.add.staticGroup();
     for (const t of this.level.thorns) {
@@ -944,7 +946,7 @@ export class TestRangeScene extends Phaser.Scene {
     });
 
     this.add
-      .text(16, 12, controlHint(this.mode, this.initData.touch), {
+      .text(16, 12, controlHint(online.host ? 'single' : this.mode, this.initData.touch), {
         fontSize: this.mode === 'duo' ? '15px' : '18px',
         color: '#f3e9d2',
         ...HUD_STROKE,
@@ -1078,7 +1080,9 @@ export class TestRangeScene extends Phaser.Scene {
       if (intro.leftMs <= 0) this.endIntro();
       return;
     }
-    const held = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent(), remoteIntent()).some((i) => Object.values(i).some(Boolean));
+    // 朋友那邊(線上雙人)的按鍵不算:不然朋友一直按著,開頭句會一直等下去。
+    const remote = remoteIntent() === undefined ? undefined : null;
+    const held = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent(), remote).some((i) => Object.values(i).some(Boolean));
     if (held) return;
     this.intro = null;
     this.stats = { ...this.stats, startedAt: this.stats.startedAt + (Date.now() - intro.startedAt) };
@@ -1854,7 +1858,7 @@ export class TestRangeScene extends Phaser.Scene {
         if (h.texture.key !== key) h.setTexture(key);
         h.setVisible(!down);
       });
-      const friendGone = i === 1 && online.host !== null && online.host.state !== 'connected';
+      const friendGone = i === 1 && online.host !== null && !online.host.friendHere();
       row.text.setText(friendGone ? tr('朋友斷線了,等他連回來…', 'Friend disconnected, waiting…') : down ? tr('睡著了…', 'Asleep…') : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
       // 英文武器名比較長:超出這一列就橫向縮小,不蓋到玩家 B 那一列。
       const rowEnd = Math.min(960 - 8, 16 + (i + 1) * HUD_ROW_W - 8);
@@ -3768,6 +3772,7 @@ export class TestRangeScene extends Phaser.Scene {
       sfx: { ...audio.counts },
       music: audio.currentTrack(),
       musicSource: audio.musicSource,
+      online: online.host ? { role: 'host', state: online.host.friendHere() ? 'friendHere' : online.host.state, code: null } : undefined,
       intro: this.intro && !this.intro.ending ? this.intro.text : null,
       introPaused: this.intro !== null,
       bossSay: this.speech?.active ? this.speech.text : null,
