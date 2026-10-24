@@ -7,10 +7,8 @@
 - MP3、**單聲道、128 kbps、48 kHz**（符合 `public/assets/music/README.md` 的建議）。總共約 19 MB。
 - 每個檔案就是**剛好一輪**，頭尾可以無縫接上（錄的是第二輪的穩定狀態，已經包含上一輪殘響的尾巴）。
 - 每個檔案最前面有一個 **Info／LAME 標頭**，記錄 MP3 編碼器的延遲（標頭寫 576，解碼器再加 529，總共開頭多出 1105 個樣本）與尾端的補零。Chrome 的 `decodeAudioData` 會依這個標頭自動裁掉，解碼後長度跟原始樣本數完全相同（已用 Chrome 全部驗證，見 `docs/art/music-render-report.json` 的 `decodedSamples`）。所以照現在 `src/audio/audio.ts` 的 `source.loop = true` 直接循環就會無縫。
-- **iPhone Safari 還沒驗證**會不會裁掉這段（負責人會用 iPhone 測試頁實測，結果會補在這裡）。如果 iPhone 解碼出來的長度比下表的樣本數多，就是沒有裁：請在 `playRecorded()` 裡用秒數設定 `source.loopStart`／`source.loopEnd`：
-  - Safari 認得 Info 標頭、只是沒裁：`loopStart = 1105 / 48000` 秒；
-  - Safari 不認得 Info 標頭（把它當成一格靜音）：`loopStart = 2257 / 48000` 秒；
-  - `loopEnd = loopStart + 樣本數 / 48000` 秒（下表樣本數是 48 kHz 的；iPhone 的 AudioContext 可能是 44.1 kHz，用秒數設定就不受影響），最後用耳朵確認接縫，並用 `source.start(0, source.loopStart)` 開始播。
+- **iPhone 也驗證過**（2026-10-24，負責人的 iPhone，iOS 18.7 Safari）：測試的三首解碼長度都等於原始樣本數、開頭沒有空白，取樣率 48000，循環播放接縫正常。所以 iPhone 上也不用設定 loopStart／loopEnd。
+  - 備案（萬一之後遇到不會裁的瀏覽器，解碼長度比下表多）：用秒數設定 `source.loopStart = 1105 / 48000`（若該瀏覽器不認得 Info 標頭則用 `2257 / 48000`）、`source.loopEnd = loopStart + 樣本數 / 48000`，並用 `source.start(0, source.loopStart)` 開始播。
 - 音量：只有超過 −1 dBFS 的地方才壓低（世界 2 白天、黃昏、世界 5 晚上），其餘保持各首原本的大小，所以晚上的曲子本來就比白天小聲一點，是刻意的。
 
 ## 檔案對照
