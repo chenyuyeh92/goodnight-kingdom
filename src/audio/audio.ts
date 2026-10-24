@@ -26,6 +26,9 @@ interface Playing {
 class AudioManager {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private limiter: DynamicsCompressorNode | null = null;
+  /** 線上雙人時傳給朋友的聲音。 */
+  private out: MediaStreamAudioDestinationNode | null = null;
   private musicBus: GainNode | null = null;
   private sfxBus: GainNode | null = null;
   private storage: StorageLike | null = null;
@@ -96,6 +99,7 @@ class AudioManager {
     limiter.threshold.value = -6;
     limiter.ratio.value = 12;
     this.master.connect(limiter).connect(this.ctx.destination);
+    this.limiter = limiter;
     this.musicBus = this.ctx.createGain();
     this.sfxBus = this.ctx.createGain();
     this.musicBus.gain.value = volumeGain(this.settings.music, this.settings.muted) * MUSIC_BASE;
@@ -104,6 +108,16 @@ class AudioManager {
     this.sfxBus.connect(this.master);
     this.applySettings();
     if (this.wantTrack) this.startTrack(this.wantTrack);
+  }
+
+  /** 線上雙人:遊戲聲音也做成串流傳給朋友(房主這台照常會響)。還沒有聲音時是 null。 */
+  streamOut(): MediaStream | null {
+    if (!this.ctx || !this.limiter) return null;
+    if (!this.out) {
+      this.out = this.ctx.createMediaStreamDestination();
+      this.limiter.connect(this.out);
+    }
+    return this.out.stream;
   }
 
   /** 設定畫面調音量時的試聽:用新的音量、不受頻率限制。 */

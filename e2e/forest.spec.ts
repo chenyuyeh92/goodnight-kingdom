@@ -220,6 +220,11 @@ async function openMenu(page: Page, save: string | null): Promise<void> {
 /** 主頁選單人(1)或雙人(2),再在選關畫面選 1-1。 */
 async function pickMode(page: Page, key: 'Digit1' | 'Digit2'): Promise<void> {
   await page.keyboard.press(key);
+  // 雙人:再選「同一台裝置」。
+  if (key === 'Digit2') {
+    await page.waitForFunction(() => window.__GK__!.onlineChoice === true);
+    await page.keyboard.press('Digit1');
+  }
   await page.waitForFunction(() => window.__GK__!.screen === 'level-select');
   await page.keyboard.press('Digit1');
 }

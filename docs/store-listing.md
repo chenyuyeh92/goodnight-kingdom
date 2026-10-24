@@ -32,14 +32,14 @@
 用手指或滑鼠畫出自己的守衛,帶著它上場冒險,也可以存成圖片分享。
 
 👫 兩個人一起玩
-同一台電腦,兩個人一起闖關。手機、平板用觸控就能玩。
+兩支手機連線,一個人開房間、一個人輸入房間號碼,就能一起闖關;也可以同一台電腦兩個人一起玩。手機、平板用觸控就能玩。
 
 ✨ 安心給孩子玩
-沒有廣告、不收集任何個人資料、不需要帳號。進度只存在你的裝置裡。支援中文與 English。
+沒有廣告、不收集任何個人資料、不需要帳號(線上雙人只用來連線,不存任何資料)。進度只存在你的裝置裡。支援中文與 English。
 
 **關鍵字:** 射擊, 橫向卷軸, 平台跳躍, 療癒, 可愛, 親子, 雙人, 繪本, 睡覺, 魔物
 
-**分級參考:** 卡通風格的輕度奇幻打鬥(魔物被「哄睡」而不是打死,沒有血腥)。沒有廣告、沒有內購以外的付費、沒有聊天或社群功能、不收集資料。
+**分級參考:** 卡通風格的輕度奇幻打鬥(魔物被「哄睡」而不是打死,沒有血腥)。沒有廣告、沒有內購以外的付費、沒有聊天或社群功能、不收集資料。線上雙人只跟輸入同一個房間號碼的朋友連線(沒有文字或語音聊天)。
 
 ---
 
@@ -70,11 +70,11 @@ Who stole everyone's sleep? The opening and ending unfold page by page like a mo
 Draw your own guard with a finger or mouse, take it on your adventure, and save the picture to share.
 
 👫 Play together
-Two players on one computer. Touch controls on phones and tablets.
+Link two phones with a 4-digit room number and play together, or share one computer. Touch controls on phones and tablets.
 
 ✨ Made for families
 No ads, no personal data collected, no account needed. Progress stays on your device. Available in English and Chinese.
 
 **Keywords:** shooter, side-scroller, platformer, cozy, cute, family, co-op, picture book, bedtime, monsters
 
-**Rating notes:** Mild cartoon fantasy action (monsters are lulled to sleep, not killed; no blood). No ads, no chat or social features, no data collection.
+**Rating notes:** Mild cartoon fantasy action (monsters are lulled to sleep, not killed; no blood). No ads, no chat or social features, no data collection. Online two-player only connects to a friend who enters the same room number (no text or voice chat).

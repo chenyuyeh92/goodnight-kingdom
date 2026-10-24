@@ -55,3 +55,13 @@ test('觸控 Intent 合併給玩家 A(雙人),玩家 B 不受影響', () => {
 test('觸控版操作提示', () => {
   expect(controlHint('single', true)).toBe('左邊拖曳:移動/往上瞄準/蹲下   右邊:射擊、跳躍');
 });
+
+test('線上雙人(房主這台):兩組按鍵和觸控都給玩家 A,玩家 B 用網路收到的操作;斷線時 B 不動', () => {
+  const remote = { left: false, right: true, up: false, down: false, jump: true, shoot: false };
+  const [a, b] = intentsForMode(new Set(['KeyD', 'Comma']), 'duo', undefined, remote);
+  expect(a.right).toBe(true);
+  expect(a.shoot).toBe(true);
+  expect(b).toEqual(remote);
+  const [, lost] = intentsForMode(new Set(['ArrowLeft']), 'duo', undefined, null);
+  expect(Object.values(lost).some(Boolean)).toBe(false);
+});

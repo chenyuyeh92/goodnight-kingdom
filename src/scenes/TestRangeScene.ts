@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { DEFAULT_TUNING, MAX_DT_MS, type Tuning } from '../config/tuning';
 import { KeyboardSource } from '../input/keyboardSource';
 import { controlHint, intentsForMode, type PlayMode } from '../input/playMode';
+import { online, remoteIntent } from '../net/session';
 import { advanceTeamCamera, applyLock, limitCameraStep, minPlayerX } from '../game/camera';
 import { PlayerEntity } from '../game/playerEntity';
 import { ProjectileSystem, type Blast, type HitResult, type ProjectileHit } from '../game/projectileSystem';
@@ -1077,7 +1078,7 @@ export class TestRangeScene extends Phaser.Scene {
       if (intro.leftMs <= 0) this.endIntro();
       return;
     }
-    const held = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent()).some((i) => Object.values(i).some(Boolean));
+    const held = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent(), remoteIntent()).some((i) => Object.values(i).some(Boolean));
     if (held) return;
     this.intro = null;
     this.stats = { ...this.stats, startedAt: this.stats.startedAt + (Date.now() - intro.startedAt) };
@@ -1125,7 +1126,7 @@ export class TestRangeScene extends Phaser.Scene {
     // 卡頓時物理也只前進 MAX_DT_MS,不會一次衝過頭(例如蝙蝠俯衝低到打到蹲著的人)。
     this.gadgets.beforePhysics(dtMs, this.players, this.physics.world.isPaused);
     this.physics.world.update(time, dtMs);
-    const raw = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent());
+    const raw = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent(), remoteIntent());
     // 孔雀開屏後一陣子左右顛倒。
     const intents = this.reverseMs > 0 ? raw.map((i) => reverseIntent(i)) : raw;
 
@@ -1853,7 +1854,8 @@ export class TestRangeScene extends Phaser.Scene {
         if (h.texture.key !== key) h.setTexture(key);
         h.setVisible(!down);
       });
-      row.text.setText(down ? tr('睡著了…', 'Asleep…') : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
+      const friendGone = i === 1 && online.host !== null && online.host.state !== 'connected';
+      row.text.setText(friendGone ? tr('朋友斷線了,等他連回來…', 'Friend disconnected, waiting…') : down ? tr('睡著了…', 'Asleep…') : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
       // 英文武器名比較長:超出這一列就橫向縮小,不蓋到玩家 B 那一列。
       const rowEnd = Math.min(960 - 8, 16 + (i + 1) * HUD_ROW_W - 8);
       row.text.setScale(Math.min(1, (rowEnd - row.text.x) / Math.max(1, row.text.width)), 1);

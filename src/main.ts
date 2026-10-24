@@ -14,6 +14,7 @@ import { LevelCompleteScene } from './scenes/LevelCompleteScene';
 import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { GuardRoomScene } from './scenes/GuardRoomScene';
 import { SettingsScene } from './scenes/SettingsScene';
+import { OnlineScene } from './scenes/OnlineScene';
 import { StoryScene } from './scenes/StoryScene';
 import { audio } from './audio/audio';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
@@ -70,7 +71,11 @@ export interface EnemyDebug {
 
 export interface GkDebug {
   ready: boolean;
-  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings' | 'story';
+  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings' | 'story' | 'online' | 'guest';
+  /** 線上雙人:房主開房間的狀態、號碼;朋友那台的連線狀態與畫面。 */
+  online?: { role: 'host' | 'guest'; state: string; code: string | null };
+  guest?: { state: string; videoWidth: number; playing: boolean };
+  onlineChoice?: boolean;
   /** 故事畫面:哪個故事、第幾幕、這一幕打出來的字、打完了沒。 */
   story?: { id: string; beat: number; beats: number; beatId: string; text: string[]; done: boolean; skippable: boolean };
   /** 主選單「故事」的選擇(開場/結局)正在顯示。 */
@@ -249,6 +254,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('LevelSelect', LevelSelectScene, false);
   game.scene.add('GuardRoom', GuardRoomScene, false);
   game.scene.add('Settings', SettingsScene, false);
+  game.scene.add('Online', OnlineScene, false);
   game.scene.add('Story', StoryScene, false);
   game.scene.add('Boot', BootScene, false);
   const noArt = params.get('noart') === '1';

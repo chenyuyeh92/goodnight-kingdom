@@ -25,6 +25,8 @@ test.describe('開場選單', () => {
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
     await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__?.onlineChoice === true);
+    await page.keyboard.press('Digit1');
     await page.waitForFunction(() => window.__GK__?.screen === 'level-select');
     await page.keyboard.press('Digit1');
     await page.waitForFunction(() => window.__GK__?.screen === 'range');

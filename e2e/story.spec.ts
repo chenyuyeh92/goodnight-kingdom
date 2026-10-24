@@ -60,6 +60,8 @@ test.describe('故事', () => {
   test('右上角「跳過」(或 Esc)直接結束開場', async ({ page }) => {
     await openMenu(page);
     await page.keyboard.press('Digit2');
+    await page.waitForFunction(() => window.__GK__?.onlineChoice === true);
+    await page.keyboard.press('Digit1');
     await page.waitForFunction(() => window.__GK__?.screen === 'story', undefined, { timeout: 5000 });
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => window.__GK__?.screen === 'level-select', undefined, { timeout: 5000 });

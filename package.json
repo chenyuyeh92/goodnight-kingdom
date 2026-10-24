@@ -9,6 +9,7 @@
     "e2e": "npm run build && playwright test"
   },
   "dependencies": {
+    "@supabase/realtime-js": "2.117.2",
     "phaser": "4.2.1"
   },
   "private": true,
