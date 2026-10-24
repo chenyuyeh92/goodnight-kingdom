@@ -37,11 +37,20 @@ test.describe('聲音', () => {
     expect(s.voices!).toBeGreaterThanOrEqual(s.sfx!.shootSheep! - 3);
   });
 
-  test('每一關播自己的配樂,關主戰換成關主曲', async ({ page }) => {
+  test('每一關播自己世界、自己時段的配樂(錄音檔),關主戰換成關主曲', async ({ page }) => {
     await open(page, './?mode=single&test=1&level=w1-1');
-    expect((await gk(page)).music).toBe('day');
+    expect((await gk(page)).music).toBe('w01-day');
+    await page.waitForFunction(() => window.__GK__!.musicSource === 'recorded', undefined, { timeout: 15000 });
     await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
-    await page.waitForFunction(() => window.__GK__!.music === 'boss', undefined, { timeout: 15000 });
+    await page.waitForFunction(() => window.__GK__!.music === 'w01-boss', undefined, { timeout: 15000 });
+  });
+
+  test('世界 3 黃昏的關卡播世界 3 的黃昏曲;世界 3 的關主戰用晚上那首', async ({ page }) => {
+    await open(page, './?mode=single&test=1&level=w3-2');
+    expect((await gk(page)).music).toBe('w03-dusk');
+    await page.waitForFunction(() => window.__GK__!.musicSource === 'recorded', undefined, { timeout: 15000 });
+    await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
+    await page.waitForFunction(() => window.__GK__!.music === 'w03-boss', undefined, { timeout: 15000 });
   });
 
   test('真的有發出聲音;全部靜音後完全沒有', async ({ page }) => {
@@ -67,18 +76,18 @@ test.describe('聲音', () => {
   test('換關、重來後只有一首配樂在播', async ({ page }) => {
     await open(page, './?mode=single&test=1&level=w1-1');
     await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
-    await page.waitForFunction(() => window.__GK__!.music === 'boss', undefined, { timeout: 15000 });
+    await page.waitForFunction(() => window.__GK__!.music === 'w01-boss', undefined, { timeout: 15000 });
     await page.waitForTimeout(1000);
-    expect((await gk(page)).musicSchedulers).toBe(1);
+    expect((await gk(page)).musicTracks).toBe(1);
     await page.evaluate(() => {
       for (let i = 0; i < 6; i++) window.__GK__!.hurt!(0);
     });
     // 等真的重來了(睡著後還要一下子才會重來),再看配樂。
     await page.waitForFunction(() => (window.__GK__!.restarts ?? 0) >= 1 && window.__GK__!.screen === 'range', undefined, { timeout: 15000 });
     // 換配樂時舊的會淡出一下(兩首重疊是正常的);要確認的是舊的最後一定會停,不會一直疊上去。
-    await page.waitForFunction(() => (window.__GK__!.musicSchedulers ?? 0) <= 1, undefined, { timeout: 6000 });
+    await page.waitForFunction(() => (window.__GK__!.musicTracks ?? 0) <= 1, undefined, { timeout: 6000 });
     await page.waitForTimeout(1000);
-    expect((await gk(page)).musicSchedulers).toBeLessThanOrEqual(1);
+    expect((await gk(page)).musicTracks).toBeLessThanOrEqual(1);
   });
 
   test('設定:調音量、靜音,重新整理後還在', async ({ page }) => {

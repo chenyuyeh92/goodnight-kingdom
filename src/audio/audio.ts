@@ -3,7 +3,7 @@ import { noteFreq } from './notes';
 import { SFX, THROTTLE_MS, type SfxName } from './recipes';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, volumeGain, type AudioSettings } from './settings';
 import { makeThrottle, voiceCap } from './throttle';
-import { TUNES, type TrackId, type Tune } from './tunes';
+import { isTrackId, tuneFor, type TrackId, type Tune } from './tunes';
 
 /** 整體音量上限,避免合成音疊起來爆音。 */
 const MASTER = 0.6;
@@ -44,6 +44,10 @@ class AudioManager {
   private activeVoices = 0;
   /** 正在排程的配樂數(測試用:換場景後應該只剩 1)。 */
   activeSchedulers = 0;
+  /** 正在播的配樂數(合成或錄音檔都算;測試用:換場景後應該只剩 1)。 */
+  activeTracks = 0;
+  /** 現在的配樂是錄音檔還是合成的(測試用;錄音檔還在下載解碼時是 loading)。 */
+  musicSource: 'recorded' | 'synth' | 'loading' | null = null;
 
   init(storage: StorageLike | null, recordedTracksUrl: string): void {
     this.storage = storage;
@@ -54,7 +58,7 @@ class AudioManager {
         if (typeof json !== 'object' || json === null) return;
         const base = recordedTracksUrl.replace(/[^/]*$/, '');
         for (const [id, file] of Object.entries(json as Record<string, unknown>)) {
-          if (id in TUNES && typeof file === 'string' && /^[\w.-]+$/.test(file)) this.recorded[id as TrackId] = base + file;
+          if (isTrackId(id) && typeof file === 'string' && /^[\w.-]+$/.test(file)) this.recorded[id] = base + file;
         }
       })
       .catch(() => undefined);
@@ -202,7 +206,16 @@ class AudioManager {
     gain.gain.linearRampToValueAtTime(1, ctx.currentTime + FADE_S);
     gain.connect(this.musicBus!);
     const url = this.recorded[id];
-    const stop = url ? this.playRecorded(url, gain, TUNES[id]) : this.playSynth(TUNES[id], gain);
+    this.musicSource = url ? 'loading' : 'synth';
+    const stopTune = url ? this.playRecorded(url, gain, tuneFor(id)) : this.playSynth(tuneFor(id), gain);
+    this.activeTracks++;
+    let stopped = false;
+    const stop = (): void => {
+      if (stopped) return;
+      stopped = true;
+      this.activeTracks--;
+      stopTune();
+    };
     this.playing = { id, gain, stop };
   }
 
@@ -237,9 +250,12 @@ class AudioManager {
         out.gain.setValueAtTime(0, ctx.currentTime);
         out.gain.linearRampToValueAtTime(1, ctx.currentTime + FADE_S);
         source.start();
+        this.musicSource = 'recorded';
       })
       .catch(() => {
-        if (!stopped) synthStop = this.playSynth(fallback, out);
+        if (stopped) return;
+        synthStop = this.playSynth(fallback, out);
+        this.musicSource = 'synth';
       });
     return () => {
       stopped = true;

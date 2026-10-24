@@ -70,7 +70,7 @@ import type { Intent } from '../input/intent';
 import { ParallaxBackground } from '../game/background';
 import { audio } from '../audio/audio';
 import { HARP_PITCH, SHOOT_SFX } from '../audio/recipes';
-import type { TrackId } from '../audio/tunes';
+import { levelTrack, worldTrack, type TrackId } from '../audio/tunes';
 import { hintText } from '../ui/hints';
 import type { GuardPlayer, GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
@@ -482,8 +482,8 @@ function makeHeartTextures(scene: Phaser.Scene): void {
 }
 
 /** 每一關的配樂依第一個場景的時段:白天、黃昏、晚上。 */
-function levelTrack(level: LevelDef): TrackId {
-  return SCENE_TIME[level.scenes[0].scene];
+function musicFor(level: LevelDef): TrackId {
+  return levelTrack(level.world, SCENE_TIME[level.scenes[0].scene]);
 }
 
 /** 只保留跨關卡的設定(存檔、觸控、模式等),去掉這一輪的進度。 */
@@ -702,7 +702,7 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, this.level.worldW, WORLD_H + 200);
     this.background = new ParallaxBackground(this, this.level.scenes);
-    audio.music(levelTrack(this.level));
+    audio.music(musicFor(this.level));
     this.cameras.main.setBounds(0, 0, this.level.worldW, WORLD_H);
 
     this.terrain = this.physics.add.staticGroup();
@@ -3082,7 +3082,7 @@ export class TestRangeScene extends Phaser.Scene {
   }
 
   private startBoss(type: BossType, lockScrollX: number, spawnX: number): void {
-    audio.music('boss');
+    audio.music(worldTrack(this.level.world, 'boss'));
     audio.sfx('bossAppear');
     this.bossTriggered = true;
     this.bossLock = lockScrollX;
@@ -3622,8 +3622,10 @@ export class TestRangeScene extends Phaser.Scene {
       cameraX: this.scrollX,
       sfx: { ...audio.counts },
       music: audio.currentTrack(),
+      musicSource: audio.musicSource,
       voices: audio.voicesStarted,
       musicSchedulers: audio.activeSchedulers,
+      musicTracks: audio.activeTracks,
       art: { loaded: artStatus.loaded, missing: [...artStatus.missing], disabled: artStatus.disabled },
       boss: this.boss
         ? {

@@ -74,9 +74,11 @@ export interface GkDebug {
   /** 每種音效觸發的次數、目前的配樂。 */
   sfx?: Partial<Record<string, number>>;
   music?: string | null;
+  musicSource?: 'recorded' | 'synth' | 'loading' | null;
   /** 實際發出聲音的音效次數、正在排程的配樂數。 */
   voices?: number;
   musicSchedulers?: number;
+  musicTracks?: number;
   /** 守衛房間:已存的守衛、A/B 選用、正在幫誰選。 */
   guardList?: { id: string; name: string }[];
   guardSelected?: { A: string | null; B: string | null };
