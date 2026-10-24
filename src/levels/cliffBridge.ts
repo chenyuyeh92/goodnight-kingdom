@@ -76,6 +76,7 @@ export const CLIFF_BRIDGE: LevelDef = {
   thorns: [],
   checkpoints: [150, 2400, 3880, 6250, 8100, 9050],
   chests: [
+    { x: 9400, bottom: GROUND_Y }, // 魔王區的武器寶箱(每次打魔王都拿得到)
     { x: 6000, bottom: GROUND_Y },
     { x: 3000, bottom: GROUND_Y },
     { x: 600, bottom: GROUND_Y },

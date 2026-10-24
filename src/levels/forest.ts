@@ -72,6 +72,7 @@ export const FOREST: LevelDef = {
   // 檢查點都放在戰鬥區鎖住的畫面之外(A 700–1660、B 5300–6260、C 7300–8260)。
   checkpoints: [150, 2250, 4250, 6300, 8450, 9900],
   chests: [
+    { x: 10120, bottom: GROUND_Y }, // 魔王區的武器寶箱(每次打魔王都拿得到)
     { x: 5800, bottom: GROUND_Y },
     { x: 3000, bottom: GROUND_Y },
     { x: 820, bottom: GROUND_Y },

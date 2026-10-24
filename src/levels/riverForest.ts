@@ -70,6 +70,7 @@ export const RIVER_FOREST: LevelDef = {
   thorns: [],
   checkpoints: [150, 2100, 4060, 5800, 8100, 9100],
   chests: [
+    { x: 9400, bottom: GROUND_Y }, // 魔王區的武器寶箱(每次打魔王都拿得到)
     { x: 5920, bottom: GROUND_Y },
     { x: 3000, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },

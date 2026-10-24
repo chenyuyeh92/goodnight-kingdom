@@ -138,3 +138,13 @@ export function isLevelId(v: unknown): v is LevelId {
 export function parseLevelId(v: string | null): LevelId {
   return isLevelId(v) ? v : 'forest';
 }
+
+/** 魔王區(鎖定畫面之後)的寶箱:每次打魔王都拿得到武器。 */
+export function isBossChest(level: LevelDef, chest: { x: number }): boolean {
+  return level.boss !== null && chest.x > level.boss.lockScrollX;
+}
+
+/** 睡著重來時維持打開的寶箱:路上開過的不再出現(避免刷寶箱),魔王區的會再出現。 */
+export function keepOpenedOnRestart(level: LevelDef, opened: readonly number[]): number[] {
+  return opened.filter((i) => !isBossChest(level, level.chests[i]));
+}

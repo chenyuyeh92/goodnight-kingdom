@@ -67,6 +67,6 @@ test.describe('1-1 草原', () => {
     await enterBoss(page);
     await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
     await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
-    expect((await gk(page)).summary!.join('\n')).toContain('找到寶箱 0 / 5');
+    expect((await gk(page)).summary!.join('\n')).toContain('找到寶箱 0 / 6');
   });
 });

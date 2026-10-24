@@ -15,7 +15,7 @@ import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
 import { weaponHud } from '../game/hud';
 import { mountTouchControls, type TouchControls } from '../ui/touchControls';
-import { GROUND_Y, WORLD_H, type BossType, type LevelDef, type LevelId } from '../levels/levelDef';
+import { GROUND_Y, WORLD_H, keepOpenedOnRestart, type BossType, type LevelDef, type LevelId } from '../levels/levelDef';
 import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
@@ -1814,7 +1814,8 @@ export class TestRangeScene extends Phaser.Scene {
         checkpointX: reachedCheckpoint(this.level.checkpoints, this.maxReachedX),
         restarts: this.restarts + 1,
         loadouts: this.players.map((p) => p.loadout),
-        openedChests: this.openedChestIndexes(),
+        // 魔王區的寶箱每次重來都會再出現(每次打魔王都拿得到武器)。
+        openedChests: keepOpenedOnRestart(this.level, this.openedChestIndexes()),
         collectedStars: this.collectedStarIndexes(),
         arenasCleared: this.encounters.nextArena,
         stats: { ...this.stats, defeated: this.stats.defeated + this.enemiesDefeated },

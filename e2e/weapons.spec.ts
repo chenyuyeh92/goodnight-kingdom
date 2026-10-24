@@ -409,3 +409,18 @@ test.describe('背包畫面', () => {
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select');
   });
 });
+
+test.describe('魔王區的武器寶箱', () => {
+  test('一進魔王區就有一個寶箱;睡著重來後會再出現(每次打魔王都拿得到武器)', async ({ page }) => {
+    await open(page, './?level=w1-1&mode=single&test=1');
+    const lock = (await gk(page)).bossLockX!;
+    await page.evaluate((x) => window.__GK__!.warp!(x), lock + 160);
+    await page.waitForFunction(() => window.__GK__!.chestsOpened === 1, undefined, { timeout: 4000 });
+    expect((await gk(page)).players![0].weapon).not.toBe('yawnBubble');
+    const opened = (await gk(page)).openedChests!.length;
+    const restarts = (await gk(page)).restarts!;
+    await hurtUntilDown(page);
+    await page.waitForFunction((r) => window.__GK__!.restarts === r + 1, restarts, { timeout: 6000 });
+    expect((await gk(page)).openedChests!.length).toBe(opened - 1);
+  });
+});

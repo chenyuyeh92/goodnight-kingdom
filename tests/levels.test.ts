@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { GROUND_Y, parseLevelId, type LevelDef } from '../src/levels/levelDef';
 import { LEVELS } from '../src/levels';
+import { isBossChest, keepOpenedOnRestart } from '../src/levels/levelDef';
 import { ENEMY_DEFS } from '../src/game/enemies';
 import { STAND_HITBOX } from '../src/game/playerMotor';
 
@@ -39,8 +40,8 @@ test('森林:五段加關主,每段開頭有檢查點', () => {
 /** 森林的兩個高處寶箱:蘑菇坡上路一個、隱藏寶箱一個。 */
 const FOREST_HIGH = F.chests.filter((c) => c.bottom < GROUND_Y).sort((a, b) => a.x - b.x);
 
-test('森林:六個寶箱(路上四個),蘑菇坡上路一個、隱藏寶箱在高處', () => {
-  expect(F.chests).toHaveLength(6);
+test('森林:七個寶箱(路上四個、魔王區一個),蘑菇坡上路一個、隱藏寶箱在高處', () => {
+  expect(F.chests).toHaveLength(7);
   expect(FOREST_HIGH).toHaveLength(2);
   expect(FOREST_HIGH[0].bottom).toBeLessThan(320);
   expect(FOREST_HIGH[1].bottom).toBeLessThan(300);
@@ -181,7 +182,16 @@ describe.each(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2',
     expect(ground.length).toBeGreaterThanOrEqual(4);
     expect(ground[0]).toBeLessThanOrEqual(1500);
     for (let i = 1; i < ground.length; i++) expect(ground[i] - ground[i - 1], `寶箱 ${ground[i - 1]} → ${ground[i]}`).toBeLessThanOrEqual(3000);
-    expect(ground[ground.length - 1]).toBeLessThan(L.boss!.lockScrollX);
+  });
+
+  test('魔王區有一個武器寶箱,在地上、一進魔王區就拿得到(魔王出來的地方之前)', () => {
+    const lock = L.boss!.lockScrollX;
+    const inBoss = L.chests.filter((c) => isBossChest(L, c));
+    expect(inBoss).toHaveLength(1);
+    expect(inBoss[0].bottom).toBe(GROUND_Y);
+    expect(inBoss[0].x).toBeGreaterThanOrEqual(lock + 60);
+    expect(inBoss[0].x).toBeLessThanOrEqual(lock + 400);
+    expect(inBoss[0].x).toBeLessThan(L.boss!.spawnX - 100);
   });
 
   test('地上的寶箱不在危險的地面、壓力板、檢查點、冰柱、彈跳墊上', () => {
@@ -800,4 +810,11 @@ test('世界 10:小頭目月兔、孔雀,最終魔王夢貘;10-1 有淺水、荊
   expect(h.scenes.map((s) => s.scene)).toEqual(['w10-s3', 'w10-s4']);
   // 王座有月光,不暗。
   for (const z of h.darkness ?? []) expect(z.x + z.w).toBeLessThanOrEqual(h.boss!.lockScrollX);
+});
+
+test('重來時魔王區的寶箱會再出現(每次打魔王都拿得到武器),路上開過的維持打開', () => {
+  const L = LEVELS['w1-1'];
+  const boss = L.chests.findIndex((c) => isBossChest(L, c));
+  const all = L.chests.map((_, i) => i);
+  expect(keepOpenedOnRestart(L, all)).toEqual(all.filter((i) => i !== boss));
 });

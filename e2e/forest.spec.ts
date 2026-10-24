@@ -127,7 +127,7 @@ test.describe('通關結算', () => {
     await defeatBoss(page);
     const text = (await gk(page)).summary!.join('\n');
     expect(text).toContain('通關時間');
-    expect(text).toContain('找到寶箱 0 / 6');
+    expect(text).toContain('找到寶箱 0 / 7');
     expect(text).toContain('這次拿到:沒有');
     await page.keyboard.press('Digit2');
     await page.waitForFunction(() => window.__GK__!.screen === 'mode-select');
