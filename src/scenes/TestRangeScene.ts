@@ -72,6 +72,7 @@ import { audio } from '../audio/audio';
 import { HARP_PITCH, SHOOT_SFX } from '../audio/recipes';
 import { levelTrack, worldTrack, type TrackId } from '../audio/tunes';
 import { TAPIR_LINES, WORLD_INTRO, introWorldOf } from '../story/script';
+import type { StoryData } from './StoryScene';
 import { hintText } from '../ui/hints';
 import type { GuardPlayer, GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
@@ -3586,6 +3587,12 @@ export class TestRangeScene extends Phaser.Scene {
       // 打倒最終魔王夢貘就是破關,結算畫面變成結局。
       ending: this.level.boss?.type === 'tapir',
     };
+    // 破關先播結局的動態繪本,再到結算畫面。
+    if (data.ending && this.initData.stories !== false) {
+      const story: StoryData = { ...sessionData(this.initData), story: 'ending', then: { scene: 'LevelComplete', data } };
+      this.scene.start('Story', story);
+      return;
+    }
     this.scene.start('LevelComplete', data);
   }
 

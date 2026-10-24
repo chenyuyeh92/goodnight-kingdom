@@ -134,4 +134,40 @@ test.describe('故事', () => {
     await page.evaluate(() => window.__GK__!.hurtBoss!(420));
     await page.waitForFunction(() => window.__GK__!.bossSay === '我……快裝不下了……!', undefined, { timeout: 3000 });
   });
+
+  test('打倒夢貘播結局(13 幕),第一次不能整段跳過;點到底進破關結算', async ({ page }) => {
+    test.setTimeout(90000);
+    await page.goto('./?test=1&story=1&mode=single&level=w10-3');
+    await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
+    await page.keyboard.press('KeyD');
+    await page.evaluate(() => window.__GK__!.warp!(9700));
+    await page.waitForFunction(() => window.__GK__!.boss?.type === 'tapir', undefined, { timeout: 8000 });
+    await page.evaluate(() => window.__GK__!.hurtBoss!(9999));
+    await page.waitForFunction(() => window.__GK__?.screen === 'story', undefined, { timeout: 15000 });
+    let s = await gk(page);
+    expect(s.story!.id).toBe('ending');
+    expect(s.story!.beats).toBe(13);
+    expect(s.story!.skippable).toBe(false);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+    s = await gk(page);
+    expect(s.screen).toBe('story');
+    await tapThrough(page);
+    await page.waitForFunction(() => window.__GK__?.screen === 'complete', undefined, { timeout: 5000 });
+    expect((await gk(page)).ending).toBe(true);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gk.save.v1')!).story.ending)).toBe(true);
+  });
+
+  test('看過結局後:主選單「故事」可以選開場或結局,結局可以跳過', async ({ page }) => {
+    await openMenu(page, { version: 1, weapons: {}, story: { opening: true, ending: true } });
+    await page.keyboard.press('Digit6');
+    await page.waitForFunction(() => window.__GK__?.storyChoice === true, undefined, { timeout: 3000 });
+    await page.keyboard.press('KeyE');
+    await page.waitForFunction(() => window.__GK__?.screen === 'story', undefined, { timeout: 5000 });
+    const s = await gk(page);
+    expect(s.story!.id).toBe('ending');
+    expect(s.story!.skippable).toBe(true);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 5000 });
+  });
 });

@@ -70,7 +70,9 @@ export interface GkDebug {
   ready: boolean;
   screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings' | 'story';
   /** 故事畫面:哪個故事、第幾幕、這一幕打出來的字、打完了沒。 */
-  story?: { id: string; beat: number; beats: number; beatId: string; text: string[]; done: boolean };
+  story?: { id: string; beat: number; beats: number; beatId: string; text: string[]; done: boolean; skippable: boolean };
+  /** 主選單「故事」的選擇(開場/結局)正在顯示。 */
+  storyChoice?: boolean;
   /** 世界第一關的開頭句(正在顯示時)。 */
   intro?: string | null;
   /** 開頭句還沒結束(跳過後等按鍵放開時也算),遊戲停著。 */

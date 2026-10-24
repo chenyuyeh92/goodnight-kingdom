@@ -4,12 +4,12 @@ import { artStatus, assetPath, enemySprite, type SpriteKey } from '../art/sprite
 import { sceneKeys } from '../art/scenes';
 import { createSaveStore } from '../game/save';
 import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
-import { OPENING, type StoryBeat } from '../story/script';
+import { ENDING, OPENING, type StoryBeat } from '../story/script';
 import { initialTypewriter, stepTypewriter, tapTypewriter, typedText, type Typewriter } from '../story/typewriter';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 
-export type StoryId = 'opening';
+export type StoryId = 'opening' | 'ending';
 
 export interface StoryData extends TestRangeData {
   story: StoryId;
@@ -25,10 +25,14 @@ const FADE_MS = 400;
 const KINGDOM_SCENE = 'w10-s2' as const;
 const NIGHT_TINT = 0x5a63b0;
 const FOREST_SCENE = 'w1-s3' as const;
+/** 結局:月光王座(世界 10 的大廳)。 */
+const HALL_SCENE = 'w10-s3' as const;
+/** 結局第 8 幕走進來圍著夢貘坐的:一路哄睡過的魔王。 */
+const FRIENDS = ['nightOwl', 'sphinx', 'nessie', 'yeti', 'dragon', 'gorilla', 'lion', 'thunderbird', 'mole', 'rabbit', 'peacock'] as const;
 const WINDOWS_JSON = 'story-town-windows';
 const LIGHT = 0xffe08a;
 
-const STORIES: Record<StoryId, readonly StoryBeat[]> = { opening: OPENING };
+const STORIES: Record<StoryId, readonly StoryBeat[]> = { opening: OPENING, ending: ENDING };
 
 interface Rect {
   x: number;
@@ -49,6 +53,8 @@ export class StoryScene extends Phaser.Scene {
   private layer: Phaser.GameObjects.Container | null = null;
   private lineTexts: Phaser.GameObjects.Text[] = [];
   private finished = false;
+  /** 可以整段跳過:開場隨時可以;結局第一次要看完。 */
+  private skippable = true;
 
   constructor() {
     super('Story');
@@ -60,6 +66,7 @@ export class StoryScene extends Phaser.Scene {
     this.index = 0;
     this.finished = false;
     this.layer = null;
+    this.skippable = data.story === 'opening' || (data.save?.get().story.ending ?? false);
   }
 
   /** 背景圖在關卡裡才載入,故事用到的這裡先載(王國只用前兩層)。 */
@@ -67,7 +74,14 @@ export class StoryScene extends Phaser.Scene {
     const base = import.meta.env.BASE_URL;
     if (!this.cache.json.exists(WINDOWS_JSON)) this.load.json(WINDOWS_JSON, `${base}assets/story/town-houses-windows.json`);
     if (artStatus.disabled) return;
-    const wanted = [...sceneKeys([KINGDOM_SCENE]).slice(0, 2), ...sceneKeys([FOREST_SCENE])];
+    const wanted: SpriteKey[] =
+      this.data_.story === 'opening'
+        ? [...sceneKeys([KINGDOM_SCENE]).slice(0, 2), ...sceneKeys([FOREST_SCENE])]
+        : [
+            ...sceneKeys([HALL_SCENE]),
+            ...sceneKeys([KINGDOM_SCENE]).slice(0, 1),
+            ...([enemySprite('tapir', 'awake'), enemySprite('tapir', 'sleep'), ...FRIENDS.map((f) => enemySprite(f, 'sleep'))] as SpriteKey[]),
+          ];
     const keys = wanted.filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
     if (keys.length === 0) return;
     const label = this.add.text(W / 2, H / 2, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
@@ -95,20 +109,23 @@ export class StoryScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setDepth(11),
     );
-    const skip = this.add
-      .text(W - 16, 16, '跳過 ▶▶', { fontSize: '20px', color: '#f3e9d2', backgroundColor: '#2b2a6b', padding: { x: 10, y: 6 } })
-      .setOrigin(1, 0)
-      .setDepth(12)
-      .setInteractive({ useHandCursor: true });
-    skip.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
-      e.stopPropagation();
-      this.finish();
-    });
+    if (this.skippable) {
+      const skip = this.add
+        .text(W - 16, 16, '跳過 ▶▶', { fontSize: '20px', color: '#f3e9d2', backgroundColor: '#2b2a6b', padding: { x: 10, y: 6 } })
+        .setOrigin(1, 0)
+        .setDepth(12)
+        .setInteractive({ useHandCursor: true });
+      skip.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
+        e.stopPropagation();
+        this.finish();
+      });
+    }
     this.input.on('pointerdown', () => this.tap());
     // 用選單的按鍵監聽:同一格收到好幾個按鍵事件時,一次按鍵只算一次(不會一下子跳過一幕)。
     onMenuKey(this, (e) => {
-      if (e.code === 'Escape') this.finish();
-      else this.tap();
+      if (e.code === 'Escape') {
+        if (this.skippable) this.finish();
+      } else this.tap();
     });
     this.showBeat(0);
   }
@@ -158,7 +175,7 @@ export class StoryScene extends Phaser.Scene {
     window.__GK__ = {
       ready: true,
       screen: 'story',
-      story: { id: this.data_.story, beat: this.index, beats: this.beats.length, beatId: this.beats[this.index].id, text: typed, done: this.typer.done },
+      story: { id: this.data_.story, beat: this.index, beats: this.beats.length, beatId: this.beats[this.index].id, text: typed, done: this.typer.done, skippable: this.skippable },
     };
   }
 
@@ -205,6 +222,56 @@ export class StoryScene extends Phaser.Scene {
       layer.add(light);
       return light;
     });
+  }
+
+  /** 圖放成指定高度,底部對齊 (x, y)。 */
+  sized(layer: Phaser.GameObjects.Container, key: string, x: number, y: number, h: number): Phaser.GameObjects.Image | null {
+    const img = this.image(layer, key, x, y);
+    if (!img) return null;
+    return img.setOrigin(0.5, 1).setScale(h / img.height);
+  }
+
+  /** 夢貘(醒著或睡著),睡著時慢慢呼吸。 */
+  tapir(layer: Phaser.GameObjects.Container, sleeping: boolean, x: number, y: number, h: number): Phaser.GameObjects.Image | null {
+    const img = this.sized(layer, enemySprite('tapir', sleeping ? 'sleep' : 'awake'), x, y, h);
+    if (img && sleeping) this.tweens.add({ targets: img, scaleY: img.scaleY * 1.03, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    return img;
+  }
+
+  /** 月光王座(結局的背景)。 */
+  hall(layer: Phaser.GameObjects.Container, tint = 0xb8b8ff): void {
+    this.bg(layer, sceneKeys([HALL_SCENE]), 0, tint);
+  }
+
+  /** 一顆泡泡(裡面可以放惡夢的小圖)。 */
+  bubble(layer: Phaser.GameObjects.Container, x: number, y: number, r: number, icon?: string): Phaser.GameObjects.Container {
+    const c = this.add.container(x, y);
+    c.add(this.add.circle(0, 0, r, 0xdce8ff, 0.22).setStrokeStyle(3, 0xffffff, 0.8));
+    c.add(this.add.circle(-r * 0.4, -r * 0.4, r * 0.15, 0xffffff, 0.7));
+    if (icon && this.textures.exists(icon)) {
+      const img = this.add.image(0, 0, icon);
+      img.setScale((r * 1.3) / Math.max(img.width, img.height));
+      c.add(img);
+    }
+    layer.add(c);
+    return c;
+  }
+
+  /** 往上飄的字(Zzz、音符)。 */
+  floatText(layer: Phaser.GameObjects.Container, x: number, y: number, text: string, color = '#f3e9d2'): void {
+    const t = this.add.text(x, y, text, { fontSize: '26px', color, stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
+    layer.add(t);
+    this.tweens.add({ targets: t, y: y - 80, x: x + Phaser.Math.Between(-20, 20), alpha: 0, duration: 1800, onComplete: () => t.destroy() });
+  }
+
+  /** 滿天星星(一閃一閃)。 */
+  starrySky(layer: Phaser.GameObjects.Container, count: number): void {
+    layer.add(this.add.rectangle(W / 2, H / 2, W, H, 0x0d0b24));
+    for (let i = 0; i < count; i++) {
+      const star = this.add.circle(Phaser.Math.Between(10, W - 10), Phaser.Math.Between(10, TEXT_TOP - 10), Phaser.Math.Between(1, 3), 0xfff6c8);
+      layer.add(star);
+      this.tweens.add({ targets: star, alpha: { from: 1, to: 0.15 }, duration: Phaser.Math.Between(700, 1900), yoyo: true, repeat: -1 });
+    }
   }
 
   /** 兩位守衛:玩家畫了守衛就用畫的(A、B),沒畫就用美術組畫的背影。 */
@@ -333,5 +400,116 @@ const BUILD: Record<string, (s: StoryScene, layer: Phaser.GameObjects.Container)
       s.tweens.add({ targets: img, x: img.x + 260, y: TEXT_TOP - 70, scale: img.scale * 0.6, duration: 7000, ease: 'Sine.easeInOut' });
       s.tweens.add({ targets: img, angle: { from: -2, to: 2 }, duration: 380, yoyo: true, repeat: -1 });
     }
+  },
+
+  // ---- 結局 ----
+  // 1 月光王座,夢貘慢慢閉上眼睛、趴下。
+  closeEyes(s, layer) {
+    s.hall(layer, 0x9a9ae0);
+    const awake = s.tapir(layer, false, W / 2, TEXT_TOP - 20, 230);
+    const asleep = s.tapir(layer, true, W / 2, TEXT_TOP - 20, 210);
+    if (!awake || !asleep) return;
+    asleep.setAlpha(0);
+    s.tweens.add({ targets: awake, alpha: 0, delay: 1400, duration: 1400 });
+    s.tweens.add({ targets: asleep, alpha: 1, delay: 1400, duration: 1400 });
+  },
+  // 2 夢貘張開嘴,一顆一顆惡夢泡泡飄出來。
+  bubbles(s, layer) {
+    s.hall(layer, 0x9a9ae0);
+    s.tapir(layer, true, W / 2, TEXT_TOP - 20, 210);
+    s.repeat(layer, 450, () => {
+      const b = s.bubble(layer, W / 2 - 60, TEXT_TOP - 150, Phaser.Math.Between(14, 30));
+      s.tweens.add({ targets: b, x: Phaser.Math.Between(120, 840), y: Phaser.Math.Between(40, 180), alpha: 0, duration: 4200, ease: 'Sine.easeOut', onComplete: () => b.destroy() });
+    });
+  },
+  // 3 泡泡特寫:考卷、打破的杯子、黑黑的衣櫥、找不到回家的路、忘記帶的便當(美術組畫的整幕插圖)。
+  nightmares(s, layer) {
+    const art = s.image(layer, 'story-ending-3', W / 2, H / 2);
+    if (art) {
+      s.tweens.add({ targets: art, scale: 1.05, duration: 9000, ease: 'Sine.easeInOut' });
+      return;
+    }
+    s.hall(layer, 0x7070b0);
+    ['exam', 'cup', 'closet', 'lost', 'lunch'].forEach((n, i) => {
+      const b = s.bubble(layer, 140 + i * 170, 200 + (i % 2) * 60, 62, `story-nightmare-${n}`);
+      s.tweens.add({ targets: b, y: b.y - 14, duration: 1400 + i * 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    });
+  },
+  // 4 一顆比較大的泡泡飄到守衛面前,裡面是守衛自己的惡夢(怎麼跑都到不了的城門)。
+  guardsDream(s, layer) {
+    s.hall(layer, 0x8080c8);
+    s.tapir(layer, true, 680, TEXT_TOP - 20, 180);
+    s.guards(layer, 260, TEXT_TOP - 10);
+    const b = s.bubble(layer, 620, TEXT_TOP - 130, 90, 'story-nightmare-gate').setScale(0.3);
+    s.tweens.add({ targets: b, x: 300, y: 190, scale: 1, duration: 2800, ease: 'Sine.easeInOut' });
+    s.tweens.add({ targets: b, y: 176, delay: 2800, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  },
+  // 5 守衛看著睡著的夢貘(背影)。
+  realize(s, layer) {
+    s.hall(layer);
+    s.tapir(layer, true, 620, TEXT_TOP - 20, 200);
+    s.guards(layer, 300, TEXT_TOP - 10);
+  },
+  // 6 夢貘在夢裡小聲說話。
+  sleepTalk(s, layer) {
+    s.hall(layer, 0x8a8ad0);
+    s.tapir(layer, true, W / 2, TEXT_TOP + 20, 320);
+    s.repeat(layer, 900, () => s.floatText(layer, W / 2 + 120, 150, 'z'));
+  },
+  // 7 守衛在夢貘旁邊坐下,輕輕唱起搖籃曲。
+  lullaby(s, layer) {
+    s.hall(layer);
+    s.tapir(layer, true, 600, TEXT_TOP - 20, 200);
+    s.guards(layer, 380, TEXT_TOP - 10);
+    s.repeat(layer, 700, () => s.floatText(layer, Phaser.Math.Between(330, 430), TEXT_TOP - 120, Phaser.Math.RND.pick(['♪', '♫']), '#ffe08a'));
+  },
+  // 8 一路哄睡過的魔王一隻一隻走進來,圍著夢貘坐下。
+  friends(s, layer) {
+    s.hall(layer);
+    s.tapir(layer, true, W / 2, TEXT_TOP - 30, 170);
+    const spots = FRIENDS.map((_, i) => {
+      const side = i % 2 === 0 ? -1 : 1;
+      const k = Math.floor(i / 2);
+      return { x: W / 2 + side * (150 + k * 70), y: TEXT_TOP - 6 - (k % 2) * 30 };
+    });
+    FRIENDS.forEach((f, i) => {
+      const img = s.sized(layer, enemySprite(f, 'sleep'), spots[i].x < W / 2 ? -80 : W + 80, spots[i].y, 84);
+      if (!img) return;
+      s.tweens.add({ targets: img, x: spots[i].x, delay: 300 + i * 380, duration: 1400, ease: 'Sine.easeOut' });
+    });
+  },
+  // 9 大家一起唱,惡夢泡泡一顆一顆變成星星飛上夜空(美術組畫的整幕插圖)。
+  stars(s, layer) {
+    const art = s.image(layer, 'story-ending-9', W / 2, H / 2);
+    if (!art) s.starrySky(layer, 40);
+    s.repeat(layer, 350, () => {
+      const star = s.add.text(Phaser.Math.Between(200, 760), TEXT_TOP - 40, '★', { fontSize: '22px', color: '#ffe070' }).setOrigin(0.5);
+      layer.add(star);
+      s.tweens.add({ targets: star, y: Phaser.Math.Between(20, 160), alpha: 0.2, duration: 3200, ease: 'Sine.easeOut', onComplete: () => star.destroy() });
+    });
+  },
+  // 10 夢貘睡著的樣子,微微笑(美術組畫的整幕插圖)。
+  smile(s, layer) {
+    const art = s.image(layer, 'story-ending-10', W / 2, H / 2);
+    if (art) s.tweens.add({ targets: art, scale: 1.06, duration: 9000, ease: 'Sine.easeInOut' });
+    else {
+      s.hall(layer, 0x9a9ae0);
+      s.tapir(layer, true, W / 2, TEXT_TOP - 20, 260);
+    }
+  },
+  // 11 月亮城堡夜景,城裡的燈一盞一盞熄滅。
+  townSleeps(s, layer) {
+    s.kingdom(layer);
+    s.town(layer, true).forEach((light, i, all) => {
+      s.tweens.add({ targets: light, alpha: 0, duration: 600, delay: 700 + ((i * 7) % all.length) * 300 });
+    });
+  },
+  // 12 全黑。
+  goodnight(s, layer) {
+    layer.add(s.add.rectangle(W / 2, H / 2, W, H, 0x000000));
+  },
+  // 13 星空,一行字慢慢浮現。
+  message(s, layer) {
+    s.starrySky(layer, 70);
   },
 };

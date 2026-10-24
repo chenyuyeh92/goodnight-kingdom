@@ -28,6 +28,8 @@ const SLEEPERS = [
 
 export class ModeSelectScene extends Phaser.Scene {
   private data_: TestRangeData = {};
+  /** 「故事」的選擇(開場/結局)正在顯示。 */
+  private storyChoice = false;
 
   constructor() {
     super('ModeSelect');
@@ -57,7 +59,14 @@ export class ModeSelectScene extends Phaser.Scene {
     // 右上角小小的「故事」:重看開場。
     (menuButton(this, 860, 40, '故事', () => this.choose('story')) as Phaser.GameObjects.Image).setScale(0.55);
     this.add.text(930, 40, '6', { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
+    this.storyChoice = false;
     onMenuKey(this, (e) => {
+      if (this.storyChoice) {
+        const back = { scene: 'ModeSelect', data: this.data_ };
+        if (e.code === 'KeyO') this.playStory(back, 'opening');
+        else if (e.code === 'KeyE') this.playStory(back, 'ending');
+        return;
+      }
       if (e.code === 'Digit6') this.choose('story');
       const b = BUTTONS.find((x) => x.code === e.code);
       if (b) this.choose(b.choice);
@@ -75,7 +84,7 @@ export class ModeSelectScene extends Phaser.Scene {
     if (choice === 'backpack') this.scene.start('Backpack', this.data_);
     else if (choice === 'draw') this.scene.start('GuardRoom', this.data_);
     else if (choice === 'settings') this.scene.start('Settings', this.data_);
-    else if (choice === 'story') this.playStory({ scene: 'ModeSelect', data: this.data_ });
+    else if (choice === 'story') this.storyMenu();
     else {
       const next = { scene: 'LevelSelect', data: { ...this.data_, mode: choice } };
       // 第一次開始遊戲先播開場。
@@ -85,8 +94,35 @@ export class ModeSelectScene extends Phaser.Scene {
     }
   }
 
-  private playStory(then: StoryData['then']): void {
-    const data: StoryData = { ...this.data_, story: 'opening', then };
+  private playStory(then: StoryData['then'], story: StoryData['story'] = 'opening'): void {
+    const data: StoryData = { ...this.data_, story, then };
     this.scene.start('Story', data);
+  }
+
+  /** 「故事」:看過結局後可以選開場或結局;還沒看過就直接播開場。 */
+  private storyMenu(): void {
+    const back = { scene: 'ModeSelect', data: this.data_ };
+    if (!(this.data_.save?.get().story.ending ?? false)) {
+      this.playStory(back);
+      return;
+    }
+    if (this.storyChoice) return;
+    const shade = this.add.rectangle(480, 270, 960, 540, 0x0d0b24, 0.75).setDepth(20).setInteractive();
+    const title = this.add.text(480, 200, '要看哪一段故事?', { fontSize: '28px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
+    const option = (x: number, label: string, story: StoryData['story']): Phaser.GameObjects.Text =>
+      this.add
+        .text(x, 290, label, { fontSize: '26px', color: '#3a2a5a', backgroundColor: '#f3e9d2', padding: { x: 18, y: 10 } })
+        .setOrigin(0.5)
+        .setDepth(21)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', () => this.playStory(back, story));
+    const objs = [shade, title, option(380, '開場(O)', 'opening'), option(580, '結局(E)', 'ending')];
+    // 點旁邊關掉。
+    shade.on('pointerup', () => {
+      objs.forEach((o) => o.destroy());
+      this.storyChoice = false;
+    });
+    this.storyChoice = true;
+    window.__GK__ = { ...window.__GK__, ready: true, storyChoice: true };
   }
 }
