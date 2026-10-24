@@ -420,6 +420,21 @@ const BASE_SPRITES = {
   'b-marshmallow': { file: 'bullets/marshmallow.png', w: 20, h: 18 },
   'b-hypno': { file: 'bullets/hypno-wave.png', w: 24, h: 48 },
   'b-meteor': { file: 'bullets/meteor.png', w: 24, h: 40 },
+  // 故事畫面(動態繪本):整幕插圖與拼畫面用的小圖。
+  'story-opening-3': { file: 'story/opening-3.png', w: 960, h: 540 },
+  'story-ending-3': { file: 'story/ending-3.png', w: 960, h: 540 },
+  'story-ending-9': { file: 'story/ending-9.png', w: 960, h: 540 },
+  'story-ending-10': { file: 'story/ending-10.png', w: 960, h: 540 },
+  'story-castle-roof': { file: 'story/castle-roof.png', w: 400, h: 200 },
+  'story-guards-back': { file: 'story/guards-back.png', w: 140, h: 94 },
+  'story-tapir-silhouette': { file: 'story/tapir-silhouette.png', w: 167, h: 160 },
+  'story-town-houses': { file: 'story/town-houses.png', w: 960, h: 220 },
+  'story-nightmare-exam': { file: 'story/nightmare-exam.png', w: 96, h: 96 },
+  'story-nightmare-cup': { file: 'story/nightmare-cup.png', w: 96, h: 96 },
+  'story-nightmare-closet': { file: 'story/nightmare-closet.png', w: 96, h: 96 },
+  'story-nightmare-lost': { file: 'story/nightmare-lost.png', w: 96, h: 96 },
+  'story-nightmare-lunch': { file: 'story/nightmare-lunch.png', w: 96, h: 96 },
+  'story-nightmare-gate': { file: 'story/nightmare-gate.png', w: 160, h: 160 },
 } as const satisfies Record<string, { file: string; w: number; h: number }>;
 
 /** 全部素材:手寫的原圖與世界 1 動畫格,加上產生的世界 2–10 與 Boss 動畫格(animSprites.ts)。 */

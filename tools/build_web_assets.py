@@ -56,7 +56,7 @@ def build_font() -> None:
 
 
 # 魔物、角色、道具等小圖:全部轉成 WebP(有透明)。原圖沒變過就不重轉。
-SPRITE_DIRS = ('enemies', 'characters', 'items', 'bullets', 'weapons', 'fx', 'ui')
+SPRITE_DIRS = ('enemies', 'characters', 'items', 'bullets', 'weapons', 'fx', 'ui', 'story')
 
 
 def build_sprites() -> None:

@@ -10,17 +10,19 @@ export interface SaveData {
   weapons: Partial<Record<SpecialWeaponId, number>>;
   /** 通關過的關卡與最佳時間(ms);舊存檔沒有這一欄,讀進來是空的。 */
   cleared: Partial<Record<LevelId, number>>;
+  /** 故事看過了沒:開場、結局、哪幾個世界的開頭句(舊存檔沒有這一欄,當作都沒看過)。 */
+  story: { opening: boolean; ending: boolean; intros: number[] };
 }
 
 function emptySave(): SaveData {
-  return { version: 1, weapons: {}, cleared: {} };
+  return { version: 1, weapons: {}, cleared: {}, story: { opening: false, ending: false, intros: [] } };
 }
 
 /** 版本不符或格式錯就丟掉;未知武器與不合法的星等個別丟掉。 */
 export function sanitizeSave(raw: unknown): SaveData {
   const save = emptySave();
   if (typeof raw !== 'object' || raw === null) return save;
-  const r = raw as { version?: unknown; weapons?: unknown; cleared?: unknown };
+  const r = raw as { version?: unknown; weapons?: unknown; cleared?: unknown; story?: unknown };
   if (r.version !== 1 || typeof r.weapons !== 'object' || r.weapons === null) return save;
   const weapons = r.weapons as Record<string, unknown>;
   for (const id of SPECIAL_WEAPONS) {
@@ -32,6 +34,14 @@ export function sanitizeSave(raw: unknown): SaveData {
       if (isLevelId(id) && typeof ms === 'number' && Number.isFinite(ms) && ms > 0) save.cleared[id] = ms;
     }
   }
+  if (typeof r.story === 'object' && r.story !== null) {
+    const st = r.story as { opening?: unknown; ending?: unknown; intros?: unknown };
+    save.story = {
+      opening: st.opening === true,
+      ending: st.ending === true,
+      intros: Array.isArray(st.intros) ? [...new Set(st.intros.filter((w): w is number => Number.isInteger(w) && w >= 1 && w <= 10))] : [],
+    };
+  }
   return save;
 }
 
@@ -40,6 +50,10 @@ export interface SaveStore {
   setStars(id: SpecialWeaponId, stars: number): void;
   /** 記下通關,保留最佳時間。 */
   markCleared(id: LevelId, ms: number): void;
+  /** 記下看過開場或結局。 */
+  markStory(which: 'opening' | 'ending'): void;
+  /** 記下看過這個世界的開頭句。 */
+  markIntro(world: number): void;
   clear(): void;
   /** 是否真的存得進去;false 時進度重新整理後會不見。 */
   ok(): boolean;
@@ -78,6 +92,15 @@ export function createSaveStore(storage: StorageLike | null): SaveStore {
     markCleared(id, ms) {
       const best = current.cleared[id];
       current = { ...current, cleared: { ...current.cleared, [id]: best === undefined ? ms : Math.min(best, ms) } };
+      write();
+    },
+    markStory(which) {
+      current = { ...current, story: { ...current.story, [which]: true } };
+      write();
+    },
+    markIntro(world) {
+      if (current.story.intros.includes(world)) return;
+      current = { ...current, story: { ...current.story, intros: [...current.story.intros, world] } };
       write();
     },
     clear() {
