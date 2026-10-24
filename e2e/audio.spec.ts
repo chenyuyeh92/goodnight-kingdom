@@ -79,9 +79,8 @@ test.describe('聲音', () => {
     await page.waitForFunction(() => window.__GK__!.music === 'w01-boss', undefined, { timeout: 15000 });
     await page.waitForTimeout(1000);
     expect((await gk(page)).musicTracks).toBe(1);
-    await page.evaluate(() => {
-      for (let i = 0; i < 10; i++) window.__GK__!.hurt!(0);
-    });
+    // 直接睡著(受傷有無敵時間,連打只會扣一顆)。
+    await page.evaluate(() => window.__GK__!.knockOut!(0));
     // 等真的重來了(睡著後還要一下子才會重來),再看配樂。
     await page.waitForFunction(() => (window.__GK__!.restarts ?? 0) >= 1 && window.__GK__!.screen === 'range', undefined, { timeout: 15000 });
     // 換配樂時舊的會淡出一下(兩首重疊是正常的);要確認的是舊的最後一定會停,不會一直疊上去。
