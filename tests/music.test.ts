@@ -33,8 +33,9 @@ test('tracks.json 登記了十個世界的白天、黃昏、晚上、關主戰,�
   // 只有世界 1 有自己的關主戰曲;其他世界的關主戰用晚上那首。
   expect(tracks['w01-boss']).toBe('w01-boss.mp3');
   for (let w = 2; w <= 10; w++) expect(tracks[worldTrack(w, 'boss')]).toBe(tracks[worldTrack(w, 'night')]);
-  // 主頁維持合成的搖籃曲。
-  expect(tracks.menu).toBeUndefined();
+  // 主選單、選關、背包、守衛房間、設定、開場與結局都用美術組的 C 版「冒險前的晚安」。
+  expect(tracks.menu).toBe('menu.mp3');
+  expect(existsSync(DIR + tracks.menu)).toBe(true);
   for (const id of Object.keys(tracks)) expect(isTrackId(id), id).toBe(true);
 });
 

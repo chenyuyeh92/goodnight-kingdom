@@ -83,7 +83,17 @@ export class ModeSelectScene extends Phaser.Scene {
         .text(480, 520, tr('注意:這個瀏覽器無法存檔(例如無痕模式),背包重新整理後會不見。', 'Note: this browser cannot save (e.g. private mode). Progress is lost when you reload.'), { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 })
         .setOrigin(0.5);
     }
-    window.__GK__ = { ready: true, screen: 'mode-select', saveOk, lang: lang() };
+    window.__GK__ = {
+      ready: true,
+      screen: 'mode-select',
+      saveOk,
+      lang: lang(),
+      music: audio.currentTrack(),
+      // 錄音檔是非同步載入,用 getter 讓測試讀到最新狀態。
+      get musicSource() {
+        return audio.musicSource;
+      },
+    };
   }
 
   private choose(choice: Choice): void {

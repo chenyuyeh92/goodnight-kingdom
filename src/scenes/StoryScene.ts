@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { backRowFirst, friendSpots } from '../story/friendsLayout';
 import { audio } from '../audio/audio';
 import { artStatus, assetPath, enemySprite, type SpriteKey } from '../art/sprites';
 import { sceneKeys } from '../art/scenes';
@@ -484,12 +485,10 @@ const BUILD: Record<string, (s: StoryScene, layer: Phaser.GameObjects.Container)
   friends(s, layer) {
     s.hall(layer);
     s.tapir(layer, true, W / 2, TEXT_TOP - 30, 170);
-    const spots = FRIENDS.map((_, i) => {
-      const side = i % 2 === 0 ? -1 : 1;
-      const k = Math.floor(i / 2);
-      return { x: W / 2 + side * (150 + k * 56), y: TEXT_TOP - 6 - (k % 2) * 30 };
-    });
-    FRIENDS.forEach((f, i) => {
+    const spots = friendSpots(FRIENDS.length, W, TEXT_TOP - 6);
+    // 後排先加進 layer(後加的畫在上面);進場時間仍照原本的順序。
+    backRowFirst(spots).forEach((i) => {
+      const f = FRIENDS[i];
       const img = s.sized(layer, enemySprite(f, 'sleep'), spots[i].x < W / 2 ? -80 : W + 80, spots[i].y, 84);
       if (!img) return;
       s.tweens.add({ targets: img, x: spots[i].x, delay: 300 + i * 380, duration: 1400, ease: 'Sine.easeOut' });

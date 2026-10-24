@@ -45,6 +45,15 @@ test.describe('聲音', () => {
     await page.waitForFunction(() => window.__GK__!.music === 'w01-boss', undefined, { timeout: 15000 });
   });
 
+  test('主選單播美術組的主選單曲(錄音檔)', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('gk.save.v1', JSON.stringify({ version: 1, weapons: {}, story: { opening: true } })));
+    await page.goto('./?test=1');
+    await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
+    await page.locator('canvas').click({ position: { x: 5, y: 5 } });
+    expect((await gk(page)).music).toBe('menu');
+    await page.waitForFunction(() => window.__GK__!.musicSource === 'recorded', undefined, { timeout: 15000 });
+  });
+
   test('世界 3 黃昏的關卡播世界 3 的黃昏曲;世界 3 的關主戰用晚上那首', async ({ page }) => {
     await open(page, './?mode=single&test=1&level=w3-2');
     expect((await gk(page)).music).toBe('w03-dusk');
