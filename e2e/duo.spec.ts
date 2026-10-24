@@ -19,6 +19,8 @@ test.describe('開場選單', () => {
   });
 
   test('按 2 進入雙人', async ({ page }) => {
+    // 已經看過開場(這裡測選單,不測故事)。
+    await page.addInitScript(() => localStorage.setItem('gk.save.v1', JSON.stringify({ version: 1, weapons: {}, story: { opening: true } })));
     await page.goto('./');
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
@@ -32,6 +34,8 @@ test.describe('開場選單', () => {
   });
 
   test('點「開始遊戲」進入單人', async ({ page }) => {
+    // 已經看過開場(這裡測選單,不測故事)。
+    await page.addInitScript(() => localStorage.setItem('gk.save.v1', JSON.stringify({ version: 1, weapons: {}, story: { opening: true } })));
     await page.goto('./');
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
     const box = (await page.locator('canvas').boundingBox())!;

@@ -102,6 +102,8 @@ test.describe('觸控操作', () => {
 });
 
 test('開場選單在手機上點得到', async ({ page }) => {
+  // 已經看過開場(這裡測選單,不測故事)。
+  await page.addInitScript(() => localStorage.setItem('gk.save.v1', JSON.stringify({ version: 1, weapons: {}, story: { opening: true } })));
   await page.goto('./?touch=1');
   await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
   await expect(page.locator('#touch-controls')).toHaveCount(0);

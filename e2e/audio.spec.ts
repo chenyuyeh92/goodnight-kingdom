@@ -130,7 +130,7 @@ test.describe('聲音', () => {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(200);
     saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gk.save.v1')!));
-    expect(saved).toEqual({ version: 1, weapons: {}, cleared: {} });
+    expect(saved).toEqual({ version: 1, weapons: {}, cleared: {}, story: { opening: false, ending: false, intros: [] } });
     const guards = await page.evaluate(() => JSON.parse(localStorage.getItem('gk.guards.v1') ?? 'null'));
     expect(guards?.guards ?? []).toEqual([]);
   });

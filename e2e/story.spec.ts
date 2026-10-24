@@ -103,12 +103,12 @@ test.describe('故事', () => {
     await page.goto('./?test=1&story=1&mode=single&level=w4-1');
     await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
     const y0 = (await gk(page)).players![0].y;
-    await page.keyboard.down('Space');
+    await page.keyboard.down('KeyV');
     await page.waitForTimeout(300);
     let s = await gk(page);
     expect(s.intro).toBeNull();
     expect(s.introPaused).toBe(true);
-    await page.keyboard.up('Space');
+    await page.keyboard.up('KeyV');
     await page.waitForFunction(() => window.__GK__!.introPaused === false, undefined, { timeout: 2000 });
     await page.waitForTimeout(300);
     s = await gk(page);
