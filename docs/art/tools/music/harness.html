@@ -94,7 +94,7 @@ function encodeMp3(f32) {
         const dec = await new OfflineAudioContext(1, SR, SR).decodeAudioData(await mp3.blob.arrayBuffer()), d = dec.getChannelData(0);
         let err = 0, ref = 0; const m = Math.min(dec.length, n); for (let i = 0; i < m; i++) { err += (d[i] - mono[i]) ** 2; ref += mono[i] ** 2; }
         const r = { name, t0: +t0.toFixed(3), loopSec: +len.toFixed(4), samples: n, decodedSamples: dec.length, snrDb: +(10 * Math.log10(ref / err)).toFixed(1),
-          peakDb: +(20 * Math.log10(peak * gain)).toFixed(1), gainDb: +(20 * Math.log10(gain)).toFixed(1), rmsDb: +(10 * Math.log10(sum / n)).toFixed(1),
+          peakDb: +(20 * Math.log10(peak * gain)).toFixed(1), boostDb, gainDb: +(20 * Math.log10(gain)).toFixed(1), rmsDb: +(10 * Math.log10(sum / n)).toFixed(1),
           seam: +seam.toFixed(4), maxStep: +step.toFixed(4), bytes: mp3.blob.size, renderSec: +((performance.now() - t1) / 1000).toFixed(1) };
         report.push(r); await say(JSON.stringify(r));
       } catch (e) { await say("ERROR " + file + " " + key + " " + (e && e.stack || e)); }

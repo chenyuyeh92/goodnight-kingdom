@@ -477,6 +477,7 @@
   "seam": 0.0011,
   "maxStep": 0.0842,
   "bytes": 699264,
-  "renderSec": 16.4
+  "renderSec": 16.4,
+  "boostDb": 4
  }
 ]
