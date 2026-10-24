@@ -286,6 +286,8 @@ test.describe('寶箱、道具與背包', () => {
   });
 
   test('重複抽到升星,三星後還是拿到這把武器', async ({ page }) => {
+    // 每一輪要睡著重來一次(10 顆愛心,每次受傷有無敵時間),四輪比較久。
+    test.setTimeout(120000);
     await open(page);
     await page.evaluate(() => window.__GK__!.clearSave!());
     for (let round = 1; round <= 4; round++) {

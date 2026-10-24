@@ -58,7 +58,7 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     await page.waitForFunction(() => (window.__GK__!.desert?.sink[0] ?? 0) > 500, undefined, { timeout: 3000 });
     await page.waitForFunction(() => window.__GK__!.desert!.sinks === 1, undefined, { timeout: 3000 });
     const s = await gk(page);
-    expect(s.players![0].hearts).toBeLessThanOrEqual(5);
+    expect(s.players![0].hearts).toBeLessThanOrEqual(9);
     // 陷下去後重新計時,不會連續扣血。
     expect(s.desert!.sink[0]).toBeLessThan(500);
     expect(s.restarts).toBe(0);
