@@ -6,8 +6,11 @@
 
 - MP3、**單聲道、128 kbps、48 kHz**（符合 `public/assets/music/README.md` 的建議）。總共約 19 MB。
 - 每個檔案就是**剛好一輪**，頭尾可以無縫接上（錄的是第二輪的穩定狀態，已經包含上一輪殘響的尾巴）。
-- 每個檔案最前面有一個 **Info／LAME 標頭**，記錄 MP3 編碼器在開頭多出的 1105 個樣本與尾端的補零。Chrome 的 `decodeAudioData` 會依這個標頭自動裁掉，解碼後長度跟原始樣本數完全相同（已用 Chrome 全部驗證，見 `docs/art/music-render-report.json` 的 `decodedSamples`）。所以照現在 `src/audio/audio.ts` 的 `source.loop = true` 直接循環就會無縫。
-- **iPhone Safari 還沒驗證**會不會裁掉這段（負責人會用 iPhone 測試頁實測，結果會補在這裡）。如果 iPhone 解碼出來的長度比下表的樣本數多，就是沒有裁：請在 `playRecorded()` 裡用 `source.loopStart`／`source.loopEnd` 指定真正的音樂範圍（開頭要跳過多少，以測試頁量到的「開頭空白」為準，預期約 1105 個樣本），並用 `source.start(0, source.loopStart)` 開始播。
+- 每個檔案最前面有一個 **Info／LAME 標頭**，記錄 MP3 編碼器的延遲（標頭寫 576，解碼器再加 529，總共開頭多出 1105 個樣本）與尾端的補零。Chrome 的 `decodeAudioData` 會依這個標頭自動裁掉，解碼後長度跟原始樣本數完全相同（已用 Chrome 全部驗證，見 `docs/art/music-render-report.json` 的 `decodedSamples`）。所以照現在 `src/audio/audio.ts` 的 `source.loop = true` 直接循環就會無縫。
+- **iPhone Safari 還沒驗證**會不會裁掉這段（負責人會用 iPhone 測試頁實測，結果會補在這裡）。如果 iPhone 解碼出來的長度比下表的樣本數多，就是沒有裁：請在 `playRecorded()` 裡用秒數設定 `source.loopStart`／`source.loopEnd`：
+  - Safari 認得 Info 標頭、只是沒裁：`loopStart = 1105 / 48000` 秒；
+  - Safari 不認得 Info 標頭（把它當成一格靜音）：`loopStart = 2257 / 48000` 秒；
+  - `loopEnd = loopStart + 樣本數 / 48000` 秒（下表樣本數是 48 kHz 的；iPhone 的 AudioContext 可能是 44.1 kHz，用秒數設定就不受影響），最後用耳朵確認接縫，並用 `source.start(0, source.loopStart)` 開始播。
 - 音量：只有超過 −1 dBFS 的地方才壓低（世界 2 白天、黃昏、世界 5 晚上），其餘保持各首原本的大小，所以晚上的曲子本來就比白天小聲一點，是刻意的。
 
 ## 檔案對照
@@ -57,10 +60,10 @@
 }
 ```
 
-（世界 2–10 的 `boss` 都指向該世界的 `night` 檔。）美術這邊沒有改 `tracks.json` 和 `src/`，接法交給遊戲組決定。主頁 `menu` 這次沒有做，維持原本的合成搖籃曲。
+（世界 2–10 的 `boss` 都指向該世界的 `night` 檔。）注意：光在 `tracks.json` 加 `w01-day` 這類名稱沒有用——`audio.ts` 的 `init` 只接受 `TUNES` 裡已有的名稱（`id in TUNES`），要同時擴充 `TrackId` 和 `TUNES`。美術這邊沒有改 `tracks.json` 和 `src/`，接法交給遊戲組決定。主頁 `menu` 這次沒有做，維持原本的合成搖籃曲。
 
 ## 來源與重做
 
 - 曲子都是這次原創、用程式即時合成（Web Audio），沒有用任何取樣或別人的錄音。試聽頁原始檔在 `docs/art/music-sources/`。
-- 錄音工具在 `docs/art/tools/music/`：`server.js`＋`harness.html`，用無頭 Chrome 的 OfflineAudioContext 離線算出聲音，再用 lamejs（npm `lamejs@1.2.1`）編成 MP3。重做方法：在該資料夾 `npm install lamejs@1.2.1`，執行 `node server.js ../../../../public/assets/music`。
+- 錄音工具在 `docs/art/tools/music/`：`server.js`＋`harness.html`，用無頭 Chrome 的 OfflineAudioContext 離線算出聲音，再用 lamejs（npm `lamejs@1.2.1`）編成 MP3。重做方法：在該資料夾 `npm install lamejs@1.2.1`，執行 `node server.js ../../../../public/assets/music`（`server.js` 裡的 Chrome 路徑是 Windows 的預設位置）。產生的 `_render-report.json` 要搬到 `docs/art/music-render-report.json`，不要留在音樂資料夾；`node_modules`、`chrome-profile`、`render-log.txt`、`package*.json` 已列進 `.gitignore`。
 - 各首的定案過程記在工作室的 `CLAUDE.md`「配樂」一節。

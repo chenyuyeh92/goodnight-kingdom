@@ -4,3 +4,10 @@ test-results
 playwright-report
 .superpowers/
 __pycache__/
+
+# 配樂錄音工具的暫存
+docs/art/tools/music/node_modules/
+docs/art/tools/music/chrome-profile/
+docs/art/tools/music/render-log.txt
+docs/art/tools/music/package*.json
+public/assets/music/_render-report.json

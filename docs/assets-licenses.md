@@ -47,6 +47,6 @@
 | `public/assets/weapons/hypno-watch.png`、`wishing-star.png`、`public/assets/story/nightmare-gate.png`、`guards-back.png` | 本機 ComfyUI 生成，`docs/art/tools/process_story.py` 處理與合成 | Nova Cartoon XL v6.0（守衛背影、ending-10 加 Chibi Animal V2） | 見上表 | 2026-10-23 |
 | `public/assets/weapons/yarn-ball.png`、`marshmallow-bomb.png`、`public/assets/bullets/yarn-ball.png`、`marshmallow.png`、`hypno-wave.png`、`meteor.png`、`public/assets/story/town-houses.png`、`castle-roof.png`、`nightmare-exam/cup/lost/closet/lunch.png` | 程式繪製（`docs/art/tools/make_story.py`、`process_story.py`） | 無 | 自己畫的，沒有第三方授權問題 |
 | `public/assets/story/tapir-silhouette.png`、`opening-3.png`、`ending-3.png`、`ending-9.png`、`ending-10.png` | 用遊戲裡現有的 AI 素材（夢貘、世界 10 背景、守衛背影）以程式合成 | 同原圖 | 同原圖 | 2026-10-23 |
-
 | `public/assets/music/w01-day.mp3` 到 `w10-night.mp3`（31 首配樂） | 原創曲，用程式即時合成（Web Audio，試聽頁在 `docs/art/music-sources/`），以 `docs/art/tools/music/` 離線錄成 MP3（編碼器 lamejs，LGPL，只當工具用） | 無 | 自己作曲、自己合成，沒有用取樣或別人的錄音，沒有第三方授權問題 | 2026-10-24 |
+
 備註：純 AI 生成的圖，著作權保護在各國都還不明確（見企劃文件 8.3）。
