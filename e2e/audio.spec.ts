@@ -122,7 +122,8 @@ test.describe('聲音', () => {
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
     await page.keyboard.press('Digit5');
     await page.waitForFunction(() => window.__GK__!.screen === 'settings');
-    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+    for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown');
+    await page.waitForFunction(() => window.__GK__!.settingsRow === 'clear');
     await page.keyboard.press('Enter');
     let saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gk.save.v1')!));
     expect(saved.weapons.sheepGun).toBe(2);
