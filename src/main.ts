@@ -170,7 +170,8 @@ export interface GkDebug {
   dropBlock?: (x: number) => void;
   backpack?: Partial<Record<SpecialWeaponId, number>>;
   chestsOpened?: number;
-  lastChest?: 'new' | 'starUp' | 'maxed' | null;
+  /** 最後一次開寶箱:新拿到、升星、已滿三星,或魔王區寶箱重來後再開(again,同一把)。 */
+  lastChest?: 'new' | 'starUp' | 'maxed' | 'again' | null;
   /** 場上的道具數。 */
   items?: number;
   arena?: { locked: boolean; wave: number; nextArena: number };

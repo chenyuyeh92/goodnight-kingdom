@@ -13,7 +13,7 @@ async function openMenu(page: Page, save?: object): Promise<void> {
 
 /** 一幕點兩下:先把字顯示完,再到下一幕。 */
 async function tapThrough(page: Page): Promise<void> {
-  for (let i = 0; i < 20 && (await gk(page)).screen === 'story'; i++) {
+  for (let i = 0; i < 40 && (await gk(page)).screen === 'story'; i++) {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(60);
     await page.keyboard.press('Enter');
@@ -43,7 +43,7 @@ test.describe('故事', () => {
     await openMenu(page);
     await page.keyboard.press('Digit1');
     await page.waitForFunction(() => window.__GK__?.screen === 'story', undefined, { timeout: 5000 });
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(450);
     let s = await gk(page);
     expect(s.story!.done).toBe(false);
     expect(s.story!.text[0].length).toBeLessThan('在很遠很遠的地方,有一個晚安王國。'.length);
@@ -169,5 +169,15 @@ test.describe('故事', () => {
     expect(s.story!.skippable).toBe(true);
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 5000 });
+  });
+
+  test('「故事」的選擇按 Esc 可以關掉', async ({ page }) => {
+    await openMenu(page, { version: 1, weapons: {}, story: { opening: true, ending: true } });
+    await page.keyboard.press('Digit6');
+    await page.waitForFunction(() => window.__GK__?.storyChoice === true, undefined, { timeout: 3000 });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => window.__GK__?.storyChoice === false, undefined, { timeout: 3000 });
+    await page.keyboard.press('Digit4');
+    await page.waitForFunction(() => window.__GK__?.screen === 'backpack', undefined, { timeout: 3000 });
   });
 });

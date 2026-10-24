@@ -21,6 +21,7 @@ const W = 960;
 const H = 540;
 const TEXT_TOP = 432;
 const FADE_MS = 400;
+const INPUT_LOCK_MS = 400;
 /** 晚安王國(世界 10 黃昏的城堡外面,調成夜晚的藍色)、失眠森林的晚上。 */
 const KINGDOM_SCENE = 'w10-s2' as const;
 const NIGHT_TINT = 0x5a63b0;
@@ -55,6 +56,8 @@ export class StoryScene extends Phaser.Scene {
   private finished = false;
   /** 可以整段跳過:開場隨時可以;結局第一次要看完。 */
   private skippable = true;
+  /** 換幕後短暫不收點擊(上一個畫面還在連按的手指不會一下子跳過好幾幕)。 */
+  private inputLockUntil = 0;
 
   constructor() {
     super('Story');
@@ -137,7 +140,7 @@ export class StoryScene extends Phaser.Scene {
   }
 
   private tap(): void {
-    if (this.finished) return;
+    if (this.finished || this.time.now < this.inputLockUntil) return;
     const r = tapTypewriter(this.typer);
     this.typer = r.state;
     if (!r.advance) {
@@ -159,14 +162,23 @@ export class StoryScene extends Phaser.Scene {
   private showBeat(i: number): void {
     this.index = i;
     const beat = this.beats[i];
+    this.inputLockUntil = this.time.now + INPUT_LOCK_MS;
     const old = this.layer;
-    if (old) this.tweens.add({ targets: old, alpha: 0, duration: FADE_MS, onComplete: () => old.destroy() });
+    if (old) this.tweens.add({ targets: old, alpha: 0, duration: FADE_MS, onComplete: () => this.dropLayer(old) });
     const layer = this.add.container(0, 0).setAlpha(0);
     this.layer = layer;
     BUILD[beat.id]?.(this, layer);
     this.tweens.add({ targets: layer, alpha: 1, duration: FADE_MS });
     this.typer = initialTypewriter(beat.lines);
     this.renderText();
+  }
+
+  /** 收掉上一幕:一直重複的動作(星星、呼吸)也一起停。 */
+  private dropLayer(layer: Phaser.GameObjects.Container): void {
+    const all = (c: Phaser.GameObjects.Container): Phaser.GameObjects.GameObject[] =>
+      c.list.flatMap((o) => (o instanceof Phaser.GameObjects.Container ? [o, ...all(o)] : [o]));
+    this.tweens.killTweensOf(all(layer));
+    layer.destroy();
   }
 
   private renderText(): void {
@@ -454,7 +466,11 @@ const BUILD: Record<string, (s: StoryScene, layer: Phaser.GameObjects.Container)
   sleepTalk(s, layer) {
     s.hall(layer, 0x8a8ad0);
     s.tapir(layer, true, W / 2, TEXT_TOP + 20, 320);
-    s.repeat(layer, 900, () => s.floatText(layer, W / 2 + 120, 150, 'z'));
+    // 夢話的對話框(字在下面的文字框)。
+    const talk = s.add.text(W / 2 + 170, 120, '……', { fontSize: '30px', color: '#3a2a5a', backgroundColor: '#f3e9d2', padding: { x: 18, y: 8 } }).setOrigin(0.5);
+    layer.add(talk);
+    s.tweens.add({ targets: talk, scale: { from: 0.96, to: 1.04 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    s.repeat(layer, 1100, () => s.floatText(layer, W / 2 + 60, 200, 'z'));
   },
   // 7 守衛在夢貘旁邊坐下,輕輕唱起搖籃曲。
   lullaby(s, layer) {
@@ -470,7 +486,7 @@ const BUILD: Record<string, (s: StoryScene, layer: Phaser.GameObjects.Container)
     const spots = FRIENDS.map((_, i) => {
       const side = i % 2 === 0 ? -1 : 1;
       const k = Math.floor(i / 2);
-      return { x: W / 2 + side * (150 + k * 70), y: TEXT_TOP - 6 - (k % 2) * 30 };
+      return { x: W / 2 + side * (150 + k * 56), y: TEXT_TOP - 6 - (k % 2) * 30 };
     });
     FRIENDS.forEach((f, i) => {
       const img = s.sized(layer, enemySprite(f, 'sleep'), spots[i].x < W / 2 ? -80 : W + 80, spots[i].y, 84);

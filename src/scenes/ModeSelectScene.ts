@@ -30,6 +30,7 @@ export class ModeSelectScene extends Phaser.Scene {
   private data_: TestRangeData = {};
   /** 「故事」的選擇(開場/結局)正在顯示。 */
   private storyChoice = false;
+  private closeStoryChoice: (() => void) | null = null;
 
   constructor() {
     super('ModeSelect');
@@ -60,11 +61,13 @@ export class ModeSelectScene extends Phaser.Scene {
     (menuButton(this, 860, 40, '故事', () => this.choose('story')) as Phaser.GameObjects.Image).setScale(0.55);
     this.add.text(930, 40, '6', { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     this.storyChoice = false;
+    this.closeStoryChoice = null;
     onMenuKey(this, (e) => {
       if (this.storyChoice) {
         const back = { scene: 'ModeSelect', data: this.data_ };
         if (e.code === 'KeyO') this.playStory(back, 'opening');
         else if (e.code === 'KeyE') this.playStory(back, 'ending');
+        else if (e.code === 'Escape' || e.code === 'Digit6') this.closeStoryChoice?.();
         return;
       }
       if (e.code === 'Digit6') this.choose('story');
@@ -116,12 +119,15 @@ export class ModeSelectScene extends Phaser.Scene {
         .setDepth(21)
         .setInteractive({ useHandCursor: true })
         .on('pointerup', () => this.playStory(back, story));
-    const objs = [shade, title, option(380, '開場(O)', 'opening'), option(580, '結局(E)', 'ending')];
-    // 點旁邊關掉。
-    shade.on('pointerup', () => {
+    const hint = this.add.text(480, 370, '點旁邊或按 Esc 關掉', { fontSize: '18px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
+    const objs = [shade, title, hint, option(380, '開場(O)', 'opening'), option(580, '結局(E)', 'ending')];
+    this.closeStoryChoice = () => {
       objs.forEach((o) => o.destroy());
       this.storyChoice = false;
-    });
+      this.closeStoryChoice = null;
+      window.__GK__ = { ...window.__GK__, ready: true, storyChoice: false };
+    };
+    shade.on('pointerup', () => this.closeStoryChoice?.());
     this.storyChoice = true;
     window.__GK__ = { ...window.__GK__, ready: true, storyChoice: true };
   }

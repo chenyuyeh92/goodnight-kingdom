@@ -419,8 +419,16 @@ test.describe('魔王區的武器寶箱', () => {
     expect((await gk(page)).players![0].weapon).not.toBe('yawnBubble');
     const opened = (await gk(page)).openedChests!.length;
     const restarts = (await gk(page)).restarts!;
+    const weapon = (await gk(page)).players![0].weapon;
+    const backpack = (await gk(page)).backpack;
     await hurtUntilDown(page);
     await page.waitForFunction((r) => window.__GK__!.restarts === r + 1, restarts, { timeout: 6000 });
     expect((await gk(page)).openedChests!.length).toBe(opened - 1);
+    // 再開一次:同一把武器,背包不會再升星(不能刷)。
+    await page.evaluate((x) => window.__GK__!.warp!(x), lock + 160);
+    await page.waitForFunction(() => window.__GK__!.lastChest === 'again', undefined, { timeout: 4000 });
+    const s = await gk(page);
+    expect(s.players![0].weapon).toBe(weapon);
+    expect(s.backpack).toEqual(backpack);
   });
 });

@@ -15,7 +15,7 @@ import { createSaveStore, type SaveStore } from '../game/save';
 import { ITEM_NAMES, applyItem, rollDrop, type ItemId } from '../game/items';
 import { weaponHud } from '../game/hud';
 import { mountTouchControls, type TouchControls } from '../ui/touchControls';
-import { GROUND_Y, WORLD_H, keepOpenedOnRestart, type BossType, type LevelDef, type LevelId } from '../levels/levelDef';
+import { GROUND_Y, WORLD_H, isBossChest, keepOpenedOnRestart, type BossType, type LevelDef, type LevelId } from '../levels/levelDef';
 import { LEVELS } from '../levels';
 import { MELEE_DAMAGE, MELEE_REACH, meleeTarget, type MeleeCandidate, type MeleeReach } from '../game/melee';
 import { MAX_HEARTS, REVIVE_INVULN_MS, applyHit, freshHealth, tickHealth } from '../game/health';
@@ -461,6 +461,8 @@ export interface TestRangeData {
   testHooks?: boolean;
   /** 播故事(開場、世界開頭句);測試模式預設關掉。 */
   stories?: boolean;
+  /** 魔王區的寶箱第一次開到的武器:重來後再開給同一把,不再抽、不再升星(不能刷)。 */
+  bossChestWeapon?: SpecialWeaponId;
 }
 
 const HEART_FULL = 'gk-heart';
@@ -521,7 +523,9 @@ export class TestRangeScene extends Phaser.Scene {
   private save: SaveStore = createSaveStore(null);
   private chests: Chest[] = [];
   private chestsOpened = 0;
-  private lastChest: ChestResult['kind'] | null = null;
+  private lastChest: ChestResult['kind'] | 'again' | null = null;
+  /** 這一輪魔王區寶箱開到的武器(重來時帶著走)。 */
+  private bossChestWeapon: SpecialWeaponId | undefined = undefined;
   private pickups: ItemPickup[] = [];
   private pickupGroup!: Phaser.Physics.Arcade.Group;
   private riggedChest: SpecialWeaponId | null = null;
@@ -1017,6 +1021,7 @@ export class TestRangeScene extends Phaser.Scene {
 
     this.intro = null;
     this.speech = null;
+    this.bossChestWeapon = undefined;
     this.maybeShowIntro();
     this.publishDebug();
   }
@@ -1815,8 +1820,9 @@ export class TestRangeScene extends Phaser.Scene {
         checkpointX: reachedCheckpoint(this.level.checkpoints, this.maxReachedX),
         restarts: this.restarts + 1,
         loadouts: this.players.map((p) => p.loadout),
-        // 魔王區的寶箱每次重來都會再出現(每次打魔王都拿得到武器)。
+        // 魔王區的寶箱每次重來都會再出現(每次打魔王都拿得到武器),開出來是同一把。
         openedChests: keepOpenedOnRestart(this.level, this.openedChestIndexes()),
+        bossChestWeapon: this.bossChestWeapon ?? this.initData.bossChestWeapon,
         collectedStars: this.collectedStarIndexes(),
         arenasCleared: this.encounters.nextArena,
         stats: { ...this.stats, defeated: this.stats.defeated + this.enemiesDefeated },
@@ -1918,11 +1924,18 @@ export class TestRangeScene extends Phaser.Scene {
     this.chestsOpened += 1;
 
     const owned = this.save.get().weapons;
-    const result = this.riggedChest ? resultFor(this.riggedChest, owned) : openChest(Math.random, owned);
+    // 魔王區的寶箱重來後再開:給第一次開到的那把(照現在的星等),不再抽、不寫存檔。
+    const again = isBossChest(this.level, chest.rect) ? this.initData.bossChestWeapon : undefined;
+    const result: ChestResult = again
+      ? { kind: 'maxed', weapon: again }
+      : this.riggedChest
+        ? resultFor(this.riggedChest, owned)
+        : openChest(Math.random, owned);
     this.riggedChest = null;
-    this.lastChest = result.kind;
+    this.lastChest = again ? 'again' : result.kind;
+    if (isBossChest(this.level, chest.rect)) this.bossChestWeapon = result.weapon;
     // 已滿三星也照樣拿到這把武器(彈藥裝滿)。
-    const stars = result.kind === 'maxed' ? MAX_STARS : result.stars;
+    const stars = again ? Math.max(1, owned[again] ?? 1) : result.kind === 'maxed' ? MAX_STARS : result.stars;
     if (result.kind !== 'maxed') this.save.setStars(result.weapon, result.stars);
     this.stats = { ...this.stats, weaponsGot: addWeapon(this.stats.weaponsGot, result.weapon) };
     p.loadout = equip(result.weapon, stars);

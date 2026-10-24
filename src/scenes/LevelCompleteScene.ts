@@ -15,6 +15,7 @@ export interface LevelCompleteData extends TestRangeData {
 }
 
 const BUTTON_Y = 450;
+const INPUT_LOCK_MS = 500;
 /** 結局的話(企劃 6.4)。 */
 export const ENDING_LINES = ['夢貘終於睡著了,睡意回到晚安王國,', '大家都可以好好睡覺了。晚安!'] as const;
 
@@ -51,6 +52,9 @@ export class LevelCompleteScene extends Phaser.Scene {
       });
     }
 
+    // 從結局的故事進來時,一小段時間不收按鍵與點擊(看故事的連點不會直接按到按鈕)。
+    const readyAt = ending ? this.time.now + INPUT_LOCK_MS : 0;
+    const guard = (go: () => void) => () => void (this.time.now >= readyAt && go());
     const next = this.data_.next;
     const buttons = [
       { label: '再玩一次(1)', code: 'Digit1', go: () => this.replay() },
@@ -59,8 +63,11 @@ export class LevelCompleteScene extends Phaser.Scene {
     ];
     const gap = 260;
     const left = 480 - ((buttons.length - 1) * gap) / 2;
-    buttons.forEach((b, i) => menuButton(this, left + i * gap, BUTTON_Y, b.label, b.go));
-    onMenuKey(this, (e) => buttons.find((b) => b.code === e.code)?.go());
+    buttons.forEach((b, i) => menuButton(this, left + i * gap, BUTTON_Y, b.label, guard(b.go)));
+    onMenuKey(this, (e) => {
+      const b = buttons.find((x) => x.code === e.code);
+      if (b) guard(b.go)();
+    });
 
     window.__GK__ = { ready: true, screen: 'complete', summary: [...summary], ending: ending ?? false };
   }
