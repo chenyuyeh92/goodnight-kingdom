@@ -80,7 +80,7 @@ test.describe('聲音', () => {
     await page.waitForTimeout(1000);
     expect((await gk(page)).musicTracks).toBe(1);
     await page.evaluate(() => {
-      for (let i = 0; i < 6; i++) window.__GK__!.hurt!(0);
+      for (let i = 0; i < 10; i++) window.__GK__!.hurt!(0);
     });
     // 等真的重來了(睡著後還要一下子才會重來),再看配樂。
     await page.waitForFunction(() => (window.__GK__!.restarts ?? 0) >= 1 && window.__GK__!.screen === 'range', undefined, { timeout: 15000 });

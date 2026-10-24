@@ -51,13 +51,13 @@ test.describe('上線準備', () => {
     expect(popup.url()).toContain('privacy.html');
   });
 
-  test('HUD 愛心是畫出來的圖:6 顆,受傷後少一顆', async ({ page }) => {
+  test('HUD 愛心是畫出來的圖:10 顆,受傷後少一顆', async ({ page }) => {
     await page.goto('./?mode=single&test=1&level=range');
     await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
-    expect(await heartsShown(page)).toEqual({ full: 6, empty: 0 });
+    expect(await heartsShown(page)).toEqual({ full: 10, empty: 0 });
     await page.evaluate(() => window.__GK__!.hurt!(0));
     await page.waitForTimeout(100);
-    expect(await heartsShown(page)).toEqual({ full: 5, empty: 1 });
+    expect(await heartsShown(page)).toEqual({ full: 9, empty: 1 });
   });
 });
 

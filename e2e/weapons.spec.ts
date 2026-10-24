@@ -353,14 +353,14 @@ test.describe('寶箱、道具與背包', () => {
     await open(page);
     await page.evaluate(() => window.__GK__!.rigDrop!('smallPillow'));
     await page.evaluate(() => window.__GK__!.hurt!(0));
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 5);
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 9);
     await spawn(page, 'alarmBug', 330);
     await page.keyboard.down('KeyC');
     await page.waitForFunction(() => window.__GK__!.enemiesDefeated === 1, undefined, { timeout: 4000 });
     await page.keyboard.up('KeyC');
     await page.waitForFunction(() => window.__GK__!.items === 1, undefined, { timeout: 1000 });
     await page.keyboard.down('KeyD');
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 6, undefined, { timeout: 4000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 10, undefined, { timeout: 4000 });
     await page.keyboard.up('KeyD');
     expect((await gk(page)).items).toBe(0);
   });

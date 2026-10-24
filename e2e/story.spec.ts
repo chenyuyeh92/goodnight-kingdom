@@ -171,6 +171,15 @@ test.describe('故事', () => {
     await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 5000 });
   });
 
+  test('選關畫面打開測試模式後,還沒看過結局也可以從「故事」看結局', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('gk.test.v1', '1'));
+    await openMenu(page, { version: 1, weapons: {}, story: { opening: true } });
+    await page.keyboard.press('Digit6');
+    await page.waitForFunction(() => window.__GK__?.storyChoice === true, undefined, { timeout: 3000 });
+    await page.keyboard.press('KeyE');
+    await page.waitForFunction(() => window.__GK__?.story?.id === 'ending', undefined, { timeout: 5000 });
+  });
+
   test('「故事」的選擇按 Esc 可以關掉', async ({ page }) => {
     await openMenu(page, { version: 1, weapons: {}, story: { opening: true, ending: true } });
     await page.keyboard.press('Digit6');

@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { applyHit, freshHealth, tickHealth, type Health } from '../src/game/health';
+import { MAX_HEARTS, applyHit, freshHealth, tickHealth, type Health } from '../src/game/health';
 
 function tickAway(h: Health, ms: number): Health {
   for (let t = 0; t < ms; t += 40) h = tickHealth(h, 40);
@@ -10,9 +10,14 @@ function hitAndWait(h: Health): Health {
   return tickAway(applyHit(h).health, 1000);
 }
 
+test('一開始有 10 顆愛心', () => {
+  expect(MAX_HEARTS).toBe(10);
+  expect(freshHealth().hearts).toBe(10);
+});
+
 test('被打中扣一顆並無敵 1000ms', () => {
   const r = applyHit(freshHealth());
-  expect(r.health.hearts).toBe(5);
+  expect(r.health.hearts).toBe(9);
   expect(r.health.invulnMs).toBe(1000);
   expect(r.hit).toBe(true);
 });
@@ -20,18 +25,18 @@ test('被打中扣一顆並無敵 1000ms', () => {
 test('無敵期間不扣', () => {
   const first = applyHit(freshHealth());
   const second = applyHit(first.health);
-  expect(second.health.hearts).toBe(5);
+  expect(second.health.hearts).toBe(9);
   expect(second.hit).toBe(false);
 });
 
 test('無敵結束後可以再扣', () => {
   const h = hitAndWait(freshHealth());
-  expect(applyHit(h).health.hearts).toBe(4);
+  expect(applyHit(h).health.hearts).toBe(8);
 });
 
-test('一共 6 顆,第六次被打會睡著', () => {
+test('一共 10 顆,第十次被打會睡著', () => {
   let h = freshHealth();
-  for (let i = 0; i < 5; i++) h = hitAndWait(h);
+  for (let i = 0; i < 9; i++) h = hitAndWait(h);
   expect(h.down).toBe(false);
   const r = applyHit(h);
   expect(r.health.down).toBe(true);
@@ -52,5 +57,5 @@ test('睡著時 downMs 會累加,dt 夾到 50', () => {
 });
 
 test('freshHealth(1500) 帶復活無敵', () => {
-  expect(freshHealth(1500)).toEqual({ hearts: 6, invulnMs: 1500, down: false, downMs: 0 });
+  expect(freshHealth(1500)).toEqual({ hearts: 10, invulnMs: 1500, down: false, downMs: 0 });
 });

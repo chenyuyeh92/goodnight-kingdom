@@ -58,9 +58,9 @@ test.describe('關主戰', () => {
     expect((await gk(page)).enemies!.map((e) => e.type)).toEqual(['nightOwl']);
   });
 
-  test('一開始有 6 顆愛心', async ({ page }) => {
+  test('一開始有 10 顆愛心', async ({ page }) => {
     await openForest(page);
-    expect((await gk(page)).players![0].hearts).toBe(6);
+    expect((await gk(page)).players![0].hearts).toBe(10);
   });
 
   test('雙人時貓頭鷹血量 270', async ({ page }) => {
@@ -73,7 +73,7 @@ test.describe('關主戰', () => {
     await openForest(page);
     await enterBoss(page);
     await page.waitForFunction(() => (window.__GK__!.enemyShots ?? 0) > 0, undefined, { timeout: 4000 });
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts < 6, undefined, { timeout: 15000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts < 10, undefined, { timeout: 15000 });
   });
 
   test('打到 66% 以下進入第二階段並暫時無敵', async ({ page }) => {
@@ -202,7 +202,7 @@ test.describe('通關結算', () => {
     await page.evaluate(() => {
       for (let i = 0; i < 3; i++) window.__GK__!.hurt!(0);
     });
-    expect((await gk(page)).players![0].hearts).toBe(6);
+    expect((await gk(page)).players![0].hearts).toBe(10);
     await page.waitForFunction(() => window.__GK__!.screen === 'complete', undefined, { timeout: 5000 });
   });
 });

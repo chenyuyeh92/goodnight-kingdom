@@ -103,7 +103,7 @@ test.describe('世界 3 亞特蘭提斯海底王國', () => {
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'eel', undefined, { timeout: 8000 });
     await page.waitForFunction(() => window.__GK__!.boss!.mode === 'zap', undefined, { timeout: 8000 });
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts < 6, undefined, { timeout: 2000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts < 10, undefined, { timeout: 2000 });
   });
 
   test('寄居蟹縮進殼裡時子彈彈開', async ({ page }) => {

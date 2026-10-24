@@ -4,6 +4,7 @@ import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
+import { testModeOn } from '../config/testTools';
 import type { StoryData } from './StoryScene';
 
 type Choice = PlayMode | 'backpack' | 'draw' | 'settings' | 'story';
@@ -102,10 +103,10 @@ export class ModeSelectScene extends Phaser.Scene {
     this.scene.start('Story', data);
   }
 
-  /** 「故事」:看過結局後可以選開場或結局;還沒看過就直接播開場。 */
+  /** 「故事」:看過結局後(或選關畫面打開了測試模式)可以選開場或結局;不然直接播開場。 */
   private storyMenu(): void {
     const back = { scene: 'ModeSelect', data: this.data_ };
-    if (!(this.data_.save?.get().story.ending ?? false)) {
+    if (!(this.data_.save?.get().story.ending ?? false) && !testModeOn()) {
       this.playStory(back);
       return;
     }

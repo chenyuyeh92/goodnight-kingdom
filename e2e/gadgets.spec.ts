@@ -85,7 +85,7 @@ test.describe('新機關', () => {
     const fellAt = Date.now();
     // 睡著重來(比平台自己長回來的 4 秒快):平台在原位。
     await page.evaluate(() => window.__GK__!.knockOut!(0));
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 6 && !window.__GK__!.players![0].down, undefined, { timeout: 3000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 10 && !window.__GK__!.players![0].down, undefined, { timeout: 3000 });
     expect(Date.now() - fellAt).toBeLessThan(4000);
     expect((await gk(page)).gadgets!.crumbles[0]).toBe('solid');
   });

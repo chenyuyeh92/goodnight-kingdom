@@ -85,7 +85,7 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     await page.waitForTimeout(300);
     const x = (await gk(page)).players![0].x;
     await page.evaluate((px) => window.__GK__!.dropBlock!(px), x);
-    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 5, undefined, { timeout: 4000 });
+    await page.waitForFunction(() => window.__GK__!.players![0].hearts === 9, undefined, { timeout: 4000 });
     await page.waitForTimeout(800);
     await page.keyboard.down('KeyD');
     await page.waitForTimeout(600);
@@ -118,8 +118,8 @@ test.describe('世界 2 沙漠金字塔王國', () => {
     await page.waitForFunction(() => window.__GK__!.desert!.sinks >= 1, undefined, { timeout: 4000 });
     expect((await gk(page)).desert!.sinks).toBe(1);
     const ps = (await gk(page)).players!;
-    expect(ps[0].hearts).toBeLessThan(6);
-    expect(ps[1].hearts).toBe(6);
+    expect(ps[0].hearts).toBeLessThan(10);
+    expect(ps[1].hearts).toBe(10);
   });
 
   for (const [level, boss, next] of [

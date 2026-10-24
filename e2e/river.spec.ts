@@ -19,7 +19,7 @@ test.describe('1-2 河邊', () => {
     await page.waitForFunction(() => (window.__GK__!.riverFalls ?? 0) === 1, undefined, { timeout: 4000 });
     await page.keyboard.up('KeyD');
     const p = (await gk(page)).players![0];
-    expect(p.hearts).toBe(5);
+    expect(p.hearts).toBe(9);
     expect(p.x).toBeLessThan(1200);
     await page.waitForTimeout(500);
     expect(Math.round((await gk(page)).players![0].y)).toBe(480);
@@ -47,8 +47,8 @@ test.describe('1-2 河邊', () => {
     await page.waitForFunction(() => (window.__GK__!.riverFalls ?? 0) >= 1, undefined, { timeout: 4000 });
     await page.keyboard.up('ArrowRight');
     const ps = (await gk(page)).players!;
-    expect(ps[0].hearts).toBe(6);
-    expect(ps[1].hearts).toBe(5);
+    expect(ps[0].hearts).toBe(10);
+    expect(ps[1].hearts).toBe(9);
   });
 
   test('淺水區走得比較慢', async ({ page }) => {
