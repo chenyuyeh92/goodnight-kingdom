@@ -1,0 +1,309 @@
+<title>火山島三時段配樂</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+/* 版面：三張卡由上到下＝白天→黃昏→晚上，左緣色條由海灘金、暮色紫紅到熔岩紅 */
+:root {
+  --bg: #f3ece6; --surface: #fbf7f3; --fg: #241a15; --muted: #6b5a50; --accent: #a8401c; --gold: #7d5c12; --line: #e2d4c8; --day: #d9a93a; --dusk: #9a3f6a; --night: #c8321a;
+  --display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16110e; --surface: #211915; --fg: #f0e6de; --muted: #b9a596; --accent: #f08a5d; --gold: #e2b85e; --line: #3a2d25; --day: #e8c25e; --dusk: #d77fa8; --night: #ff6a45; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #16110e; --surface: #211915; --fg: #f0e6de; --muted: #b9a596; --accent: #f08a5d; --gold: #e2b85e; --line: #3a2d25; --day: #e8c25e; --dusk: #d77fa8; --night: #ff6a45; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 1rem; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 2rem 3rem; }
+.wrap { max-width: 44rem; margin: 0 auto; display: grid; gap: 1.5rem; }
+header { display: grid; gap: .4rem; }
+.eyebrow { font-size: .8rem; letter-spacing: .14em; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.8rem, 6vw, 2.6rem); line-height: 1.25; margin: 0; text-wrap: balance; }
+.lead { color: var(--muted); margin: 0; max-width: 38rem; }
+.how { font-size: .9rem; color: var(--muted); border-left: 2px solid var(--gold); padding-left: .8rem; margin: 0; }
+.done { font-size: .85rem; color: var(--muted); margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.2rem 1.1rem; display: grid; gap: .8rem; min-width: 0; border-left: 6px solid var(--tone); }
+.card.playing { border-color: var(--accent); border-left-color: var(--tone); }
+.top { display: flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
+.time { font-size: .8rem; letter-spacing: .12em; color: var(--muted); font-weight: 500; }
+.letter { font-family: var(--display); font-size: 2rem; line-height: 1; color: var(--accent); width: 2.2rem; }
+.name { flex: 1 1 14rem; min-width: 0; }
+.name h2 { font-family: var(--display); font-size: 1.25rem; margin: 0; line-height: 1.35; }
+.meta { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+button.play { font: inherit; font-weight: 500; border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  border-radius: 999px; padding: .45rem 1.1rem; cursor: pointer; min-width: 6.5rem; }
+button.play[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+button.play:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tags { display: flex; gap: .35rem; flex-wrap: wrap; }
+.tags span { font-size: .85rem; border: 1px solid var(--line); border-radius: 6px; padding: .1rem .5rem; color: var(--muted); }
+.tags span.key { border-color: var(--gold); color: var(--gold); font-weight: 500; }
+.desc { margin: 0; }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.pos { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+footer { font-size: .85rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">晚安王國・世界 5 配樂試聽（第二輪）</div>
+    <h1>火山島：從海灘到熔岩戰舞</h1>
+    <p class="lead">三段都用你選的 B「島民木鼓陣」：同一套木鼓、大皮鼓、竹筒的節奏骨架，加上同一段馬林巴短音型。三段速度都是 ♩＝112，旋律、低音完全一樣，只換打擊樂的種類和編制：白天是太平洋木鼓，黃昏換成更重的非洲鼓群，晚上換成日本太鼓加上群眾吼叫和戰爭號角。</p>
+    <p class="how">按「播放」開始，會自動循環；同時只會播一個。iPhone 請先關掉側邊的靜音鍵。建議依序聽，聽完告訴我哪一段要調整。</p>
+  </header>
+
+  <section class="card" id="card-day" style="--tone: var(--day)">
+    <div class="top">
+      <div class="name"><div class="time">場景一・白天（已定案）</div><h2>島民木鼓陣</h2><div class="meta">4/4 拍・♩＝112・約 34 秒</div></div>
+      <button class="play" id="play-day" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span>木鼓</span><span>大皮鼓</span><span>竹筒</span><span>海螺號角</span><span>馬林巴</span></div>
+    <p class="desc">你選的 B，放在這裡方便比較：木鼓一路滾、大皮鼓打舞步，後八小節馬林巴進來，熱鬧的海灘。</p>
+    <div class="bar"><i id="bar-day"></i></div><div class="pos" id="pos-day">第 0 小節 / 16</div>
+  </section>
+
+  <section class="card" id="card-dusk" style="--tone: var(--dusk)">
+    <div class="top">
+      <div class="name"><div class="time">場景二・黃昏</div><h2>非洲鼓群・火把祭典</h2><div class="meta">4/4 拍・♩＝112・約 34 秒</div></div>
+      <button class="play" id="play-dusk" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span class="key">低音大鼓</span><span class="key">非洲鼓（低・中・拍面）</span><span>阿哥哥鈴</span><span>拍手</span><span>沙鈴</span></div>
+    <p class="desc">速度、旋律、低音都跟白天一樣，只把木鼓、大皮鼓、竹筒整組換掉，改成非洲鼓群：低音大鼓和非洲鼓低音輪流踩重拍，中音和拍面「啪」把空隙填滿，阿哥哥鈴、拍手、沙鈴一路推，每四小節還有一個小過門。鼓點比白天更密、更重，像族人圍著火把跳起來。</p>
+    <div class="bar"><i id="bar-dusk"></i></div><div class="pos" id="pos-dusk">第 0 小節 / 16</div>
+  </section>
+
+  <section class="card" id="card-night" style="--tone: var(--night)">
+    <div class="top">
+      <div class="name"><div class="time">場景三・晚上</div><h2>日本太鼓・熔岩戰舞</h2><div class="meta">4/4 拍・♩＝112・約 34 秒</div></div>
+      <button class="play" id="play-night" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span class="key">大太鼓</span><span class="key">締太鼓</span><span>敲鼓邊</span><span>竹筒</span><span class="key">群眾吼叫</span><span class="key">長號・小號</span><span class="key">低音提琴</span></div>
+    <p class="desc">速度、旋律、低音還是跟白天一樣，打擊樂換成日本太鼓：大太鼓打「咚—咚咚—咚」，繃得很緊的締太鼓一路滾十六分音符，再敲鼓邊「咔、咔」，每四小節太鼓連打一個過門。每四小節長號和小號吹出一聲長和弦，中間小號再往上吹一聲呼喚，像兩軍對陣；底下多墊一層低音提琴拉的長音，後八小節一群人在第二、四拍吼「哈！」。</p>
+    <div class="bar"><i id="bar-night"></i></div><div class="pos" id="pos-night">第 0 小節 / 16</div>
+  </section>
+
+  <footer>這些是用程式即時合成的試聽小樣（Demo），音色比較簡單；全部確定後，正式版可以換更好的音色、加長，做成可無縫循環的檔案給遊戲用。</footer>
+</div>
+
+<script>
+(() => {
+  const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const m = n => { const s = n.match(/^([A-G])(#|b)?(-?\d)$/); return 12 * (+s[3] + 1) + NOTE[s[1]] + (s[2] === "#" ? 1 : s[2] === "b" ? -1 : 0); };
+  const hz = midi => 440 * Math.pow(2, (midi - 69) / 12);
+  // 調式變化：以 D 混合利底亞為底；多利安把 F♯ 還原，弗里吉亞再把 E、B 降半音
+  const ALT = { mixo: {}, dorian: { "F#": "F" }, phrygian: { "F#": "F", E: "Eb", B: "Bb" } };
+  const alt = (n, mode) => { const s = n.match(/^([A-G](#|b)?)(-?\d)$/), a = ALT[mode][s[1]]; return a ? a + s[3] : n; };
+  const hit = (ev, b, list, inst, vel, midi = 0) => list.forEach(x => ev.push([b + x, .25, midi, inst, vel]));
+  const toere = "x.xxx.xxx.xxx.x.";  // 木鼓十六分音符的滾奏
+  const ostD = ["D5","F#5","A5","C6","A5","F#5","G5","A5"], ostC = ["C5","E5","G5","C6","G5","E5","D5","E5"];
+
+  // 白天：跟定案的 B 完全一樣
+  function buildDay() {
+    const ev = [];
+    for (let bar = 0; bar < 16; bar++) {
+      const b = bar * 4, onC = bar >= 8 && [10, 11, 14].includes(bar);
+      [...toere].forEach((c, i) => { if (c === "x") ev.push([b + i * .25, .25, m(i % 4 === 0 ? "A5" : "E5"), "log", i % 4 === 0 ? .32 : .22]); });
+      hit(ev, b, [.5, 1.5, 2.5, 3.5], "log", .2, m("A4"));
+      hit(ev, b, [0, 1.5, 2, 3], "pahu", .7);
+      hit(ev, b, [1, 3], "stamp", .35);
+      ev.push([b, 2, m(onC ? "C2" : "D2"), "pbass", .16], [b + 2.5, 1.5, m(onC ? "C2" : "D2"), "pbass", .13]);
+      if (bar >= 8) (onC ? ostC : ostD).forEach((n, i) => ev.push([b + i * .5, .5, m(n), "marimba", i ? .14 : .18]));
+      if (bar % 4 === 3) ev.push([b + 3, .5, 0, "shout", .3]);
+    }
+    ev.push([0, 4, m("D4"), "conch", .16], [32, 4, m("D4"), "conch", .16]);
+    return { ev, beat: 60 / 112, bars: 16, perBar: 4 };
+  }
+
+  // 共用：旋律（馬林巴）、低音、呼喊、海螺跟白天完全一樣，只換打擊樂
+  function common(ev) {
+    for (let bar = 0; bar < 16; bar++) {
+      const b = bar * 4, onC = bar >= 8 && [10, 11, 14].includes(bar);
+      ev.push([b, 2, m(onC ? "C2" : "D2"), "pbass", .16], [b + 2.5, 1.5, m(onC ? "C2" : "D2"), "pbass", .13]);
+      if (bar >= 8) (onC ? ostC : ostD).forEach((n, i) => ev.push([b + i * .5, .5, m(n), "marimba", i ? .14 : .18]));
+      if (bar % 4 === 3) ev.push([b + 3, .5, 0, "shout", .3]);
+    }
+    ev.push([0, 4, m("D4"), "conch", .16], [32, 4, m("D4"), "conch", .16]);
+  }
+
+  // 黃昏：換成非洲鼓群——低音大鼓、非洲鼓三種音色、阿哥哥鈴、拍手、沙鈴，節奏更重、更密
+  function buildDusk() {
+    const ev = [];
+    for (let bar = 0; bar < 16; bar++) {
+      const b = bar * 4;
+      hit(ev, b, [0, 1.5, 2.5], "dundun", .65); hit(ev, b, [3, 3.75], "djBass", .5);  // 低音鼓輪流打，同一拍只有一個
+      hit(ev, b, bar % 4 === 3 ? [.5, 1, 2] : [.5, 1, 2, 3.5], "djTone", .3); hit(ev, b, [.75, 1.75, 2.25, 3.25], "djSlap", .28);
+      hit(ev, b, [0, .5, 1.5, 2, 3], "agogo", .09, m("A5")); hit(ev, b, [1, 2.5], "agogo", .08, m("E5"));
+      hit(ev, b, [1, 3], "clap", .2);
+      for (let i = 0; i < 16; i++) ev.push([b + i * .25, .25, 0, "shaker", i % 4 === 2 ? .07 : .04]);
+      if (bar % 4 === 3) [3, 3.25, 3.5].forEach((x, i) => ev.push([b + x, .25, 0, "djTone", .3 + i * .05]));
+    }
+    common(ev);
+    return { ev, beat: 60 / 112, bars: 16, perBar: 4 };
+  }
+
+  // 晚上：熔岩戰舞——日本太鼓（大太鼓＋締太鼓＋鼓邊）、竹筒、群眾吼叫、戰爭號角
+  function buildNight() {
+    const ev = [];
+    for (let bar = 0; bar < 16; bar++) {
+      const b = bar * 4, big = bar >= 8;
+      hit(ev, b, bar % 4 === 3 ? [0, 1.5, 2] : [0, 1.5, 2, 3], "odaiko", .7);  // 大太鼓：咚—咚咚—咚（過門小節第 4 拍交給連打，不重疊）
+      for (let i = 0; i < 16; i++) ev.push([b + i * .25, .25, 0, "shime", i % 4 === 0 ? .22 : (i % 2 ? .1 : .15)]);  // 締太鼓：十六分音符一路打
+      hit(ev, b, [.5, 1, 2.5, 3.5], "kara", .22);  // 敲鼓邊「咔」
+      hit(ev, b, [1, 3], "stamp", .3);
+      if (bar % 4 === 3) [3, 3.25, 3.5, 3.75].forEach((x, i) => ev.push([b + x, .25, 0, "odaiko", .4 + i * .08]));  // 每四小節太鼓連打過門
+      if (big) hit(ev, b, [1, 3], "crowd", .26);
+      if (bar % 4 === 0) [["D3", "trombone"], ["A3", "trombone"], ["D4", "trumpet"]].forEach(([n, ins]) => ev.push([b, 2, m(n), ins, .09]));  // 戰爭號角：長號＋小號，每四小節一聲長和弦
+      if (bar % 4 === 2) [["D4", 0], ["A4", 1]].forEach(([n, x]) => ev.push([b + 2 + x, 1, m(n), "trumpet", .1]));  // 小號往上吹的呼喚
+      ev.push([b, 4, m(bar >= 8 && [10, 11, 14].includes(bar) ? "C2" : "D2"), "dbass", .22]);  // 低音提琴拉長音墊底，跟著低音的和弦走
+    }
+    common(ev);
+    return { ev, beat: 60 / 112, bars: 16, perBar: 4 };
+  }
+
+  const SONGS = { day: buildDay(), dusk: buildDusk(), night: buildNight() };
+  for (const s of Object.values(SONGS)) s.len = s.bars * s.perBar * s.beat;
+  // 出聲前先檢查：曲子用到的樂器都要有音色，漏寫的話一載入就報錯，不會播到一半卡住
+  const KNOWN = ["kick","pahu","dundun","djBass","djTone","djSlap","congaHi","congaLo","clap","shaker","stamp","cowbell","agogo","log","shout","pan","marimba","brass","conch","pbass","taiko","crowd","hum","odaiko","shime","kara","trombone","trumpet","dbass"];
+  for (const s of Object.values(SONGS)) for (const e of s.ev) if (!KNOWN.includes(e[3])) throw new Error("沒有這個樂器：" + e[3]);
+
+  // ---------- 合成器 ----------
+  let ctx = null, reverb = null, noiseBuf = null, comp = null, sink = null;
+  function setup() {
+    if (ctx) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}  // iPhone 靜音鍵開著也能出聲（Safari 17 以上）
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4; comp.connect(ctx.destination);
+    const len = ctx.sampleRate * 1.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    reverb = ctx.createConvolver(); reverb.buffer = ir; reverb.connect(comp);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 1, ctx.sampleRate);
+    const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  }
+  const env = (g, t, a, peak, hold, rel) => { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a);
+    g.gain.setValueAtTime(peak, t + Math.max(a, hold)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a, hold) + rel); return t + Math.max(a, hold) + rel; };
+  function osc(type, f, t, end, out, detune = 0) { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = detune; o.connect(out); o.start(t); o.stop(end + .05); if (sink) sink.push(o); return o; }
+  function noise(t, end, out) { const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.connect(out); s.start(t, Math.random() * .5); s.stop(end + .02); if (sink) sink.push(s); return s; }
+  function nburst(dest, t, vel, type, freq, q, dec) { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .001, vel, .003, dec);
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; f.connect(g); noise(t, end, f); return end; }
+  function drum(dest, t, vel, f0, f1, sweep, dec) { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .002, vel, .005, dec);
+    const o = osc("sine", f0, t, end, g); o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + sweep); return end; }
+  // 鼓皮的中頻敲擊聲：低頻在手機喇叭上幾乎聽不到，加這一層才聽得出力道
+  const thump = (dest, t, vel, f0) => { drum(dest, t, vel, f0, f0 * .6, .08, .1); nburst(dest, t, vel, "bandpass", 1200, 1, .03); };
+
+  function play(dest, t, dur, midi, inst, vel) {
+    const f = hz(midi);
+    switch (inst) {
+      case "kick": drum(dest, t, vel, 120, 45, .12, .4); thump(dest, t, vel * .5, 240); break;
+      case "pahu": drum(dest, t, vel, 90, 42, .2, .6); thump(dest, t, vel * .55, 200); break;
+      case "dundun": drum(dest, t, vel, 100, 55, .15, .45); thump(dest, t, vel * .5, 210); break;
+      case "djBass": drum(dest, t, vel, 95, 60, .1, .3); thump(dest, t, vel * .5, 230); break;
+      case "djTone": drum(dest, t, vel, 380, 340, .05, .16); break;
+      case "djSlap": drum(dest, t, vel * .5, 420, 380, .03, .06); nburst(dest, t, vel, "bandpass", 3200, 1.2, .06); break;
+      case "congaHi": drum(dest, t, vel, 340, 310, .04, .17); nburst(dest, t, vel * .3, "bandpass", 2600, 1.5, .025); break;
+      case "congaLo": drum(dest, t, vel, 230, 205, .05, .22); break;
+      case "clap": for (let i = 0; i < 3; i++) nburst(dest, t + i * .011, vel * (i === 2 ? 1 : .6), "bandpass", 1500, .9, i === 2 ? .12 : .02); break;
+      case "shaker": nburst(dest, t, vel, "highpass", 6500, .7, .05); break;
+      case "stamp": nburst(dest, t, vel, "bandpass", 900, 1.5, .07); drum(dest, t, vel * .6, 170, 130, .04, .1); break;
+      case "cowbell": case "agogo": { // 金屬鈴：兩個方波經過帶通濾波
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .001, vel, .01, .28); const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 900; bp.Q.value = 2.5; bp.connect(g);
+        const f1 = inst === "cowbell" ? 562 : f, f2 = inst === "cowbell" ? 845 : f * 1.5; osc("square", f1, t, end, bp); osc("square", f2, t, end, bp); break; }
+      case "log": { // 木鼓：短促、有音高的木頭聲
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .001, vel, .004, .09); osc("sine", f, t, end, g);
+        const g2 = ctx.createGain(); g2.gain.value = .3; g2.connect(g); osc("triangle", f * 2.3, t, end, g2); break; }
+      case "shout": { // 一聲「嘿！」：短促的人聲共振峰
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .01, vel, .06, .2);
+        const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(); f1.type = f2.type = "bandpass"; f1.frequency.value = 550; f2.frequency.value = 1700; f1.Q.value = f2.Q.value = 4; f1.connect(g); f2.connect(g);
+        for (const fr of [180, 186, 240]) { const o = osc("sawtooth", fr, t, end, f1); o.connect(f2); o.frequency.setValueAtTime(fr * 1.15, t); o.frequency.exponentialRampToValueAtTime(fr * .85, t + .25); }
+        nburst(dest, t, vel * .4, "bandpass", 2500, 1, .08); break; }
+      case "pan": { // 鋼鼓：明亮、帶一點不整齊的泛音
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .004, vel, .01, Math.min(dur * 1.5 + .4, 1.4)); osc("sine", f, t, end, g);
+        for (const [r, a] of [[2, .45], [3.01, .2], [4.2, .08]]) { const g2 = ctx.createGain(); g2.gain.value = a; g2.connect(g); osc("sine", f * r, t, end, g2); } break; }
+      case "marimba": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .002, vel, .005, .5); osc("sine", f, t, end, g);
+        const g2 = ctx.createGain(); g2.gain.value = .25; g2.connect(g); osc("sine", f * 4, t, Math.min(end, t + .15), g2); break; }
+      case "brass": { // 銅管重音：短促有力
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .02, vel, dur * .7, .15); const lp = ctx.createBiquadFilter(); lp.type = "lowpass";
+        lp.frequency.setValueAtTime(700, t); lp.frequency.linearRampToValueAtTime(2600, t + .05); lp.connect(g); osc("sawtooth", f, t, end, lp, -4); osc("sawtooth", f, t, end, lp, 4); break; }
+      case "conch": { // 海螺號角：從下方滑上來的長音
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .15, vel, dur * .9, .6); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1200; lp.connect(g);
+        const o = osc("sawtooth", f, t, end, lp); o.detune.setValueAtTime(-200, t); o.detune.linearRampToValueAtTime(0, t + .35); const g2 = ctx.createGain(); g2.gain.value = .6; g2.connect(g); osc("sine", f, t, end, g2); break; }
+      case "pbass": { // 撥弦低音：三角波＋八度泛音
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .006, vel, dur * .6, .15); osc("triangle", f, t, end, g);
+        const g2 = ctx.createGain(); g2.gain.value = .35; g2.connect(g); osc("sine", f * 2, t, end, g2); break; }
+      case "taiko": drum(dest, t, vel, 75, 38, .25, .8); thump(dest, t, vel * .6, 180); break;  // 戰鼓：比大皮鼓更低、更長
+      case "trombone": case "trumpet": { // 銅管：三支略微走音的鋸齒波＋跟著吹氣打開又收回的濾波器，起音從下方滑上來，長音加揉音
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .06, vel, dur * .9, .25); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = .5;
+        const peak = Math.min(f * (inst === "trumpet" ? 6 : 5), 3200), body = Math.min(f * (inst === "trumpet" ? 4 : 3), 2200);
+        lp.frequency.setValueAtTime(250, t); lp.frequency.linearRampToValueAtTime(peak, t + .08); lp.frequency.linearRampToValueAtTime(body, t + .3); lp.frequency.setValueAtTime(body, end - .2); lp.frequency.linearRampToValueAtTime(300, end);
+        lp.connect(g);
+        for (const d of [-6, 0, 6]) { const o = osc("sawtooth", f, t, end, lp, d); o.detune.setValueAtTime(d - 40, t); o.detune.linearRampToValueAtTime(d, t + .07);
+          if (dur > .8) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(8, t + .5); l.connect(lg); lg.connect(o.detune); l.start(t); l.stop(end + .05); if (sink) sink.push(l); } }
+        const gb = ctx.createGain(); gb.gain.value = .4; gb.connect(g); osc("triangle", f, t, end, gb);  // 管身的圓潤感
+        nburst(dest, t, vel * .15, "bandpass", 1500, 1, .05); break; }  // 吹氣的一點氣音
+      case "dbass": { // 低音提琴拉長音：一條鋸齒波＋一條三角波，濾波器壓低到 500Hz，聲音圓潤不刺；慢慢揉弦
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .03, vel, dur * .97, .3); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 500;  // 起音 0.03 秒，拍子一到就出聲 lp.Q.value = .4; lp.connect(g);
+        for (const type of ["sawtooth", "triangle"]) { const gg = ctx.createGain(); gg.gain.value = .6; gg.connect(lp); const o = osc(type, f, t, end, gg, type === "sawtooth" ? -4 : 4);
+          const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 4.8; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(7, t + .7);
+          l.connect(lg); lg.connect(o.detune); l.start(t); l.stop(end + .05); if (sink) sink.push(l); }
+        break; }
+      case "odaiko": drum(dest, t, vel, 85, 48, .18, .7); thump(dest, t, vel, 200); nburst(dest, t, vel * .35, "bandpass", 700, .8, .12); break;  // 大太鼓：低沉又有皮面的「咚」
+      case "shime": drum(dest, t, vel, 520, 480, .02, .07); nburst(dest, t, vel * .5, "bandpass", 2800, 1.5, .03); break;  // 締太鼓：繃很緊的高音小鼓
+      case "kara": nburst(dest, t, vel, "bandpass", 3500, 3, .03); drum(dest, t, vel * .5, 1300, 1200, .01, .03); break;  // 敲鼓邊：乾乾的「咔」
+      case "crowd": { // 一群人一起吼「哈！」：六個音高、時間都稍微錯開的人聲
+        for (let i = 0; i < 6; i++) { const tt = t + Math.random() * .03, fr = 140 + Math.random() * 120, g = ctx.createGain(); g.connect(dest);
+          const end = env(g, tt, .015, vel * .8, .08, .2); const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(); f1.type = f2.type = "bandpass";
+          f1.frequency.value = 900 + Math.random() * 150; f2.frequency.value = 1900 + Math.random() * 300;  // 共振峰拉高，才不會被鼓蓋掉 f1.Q.value = f2.Q.value = 3; f1.connect(g); f2.connect(g);
+          const o = osc("sawtooth", fr, tt, end, f1); o.connect(f2); o.frequency.setValueAtTime(fr * 1.1, tt); o.frequency.exponentialRampToValueAtTime(fr * .85, tt + .25); }
+        nburst(dest, t, vel * .35, "bandpass", 2200, .8, .1); break; }
+      case "hum": { // 低沉的男聲哼唱「嗚——」（祭典的吟唱）
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .6, vel, dur, 1); const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(); f1.type = f2.type = "bandpass";
+        f1.frequency.value = 320; f2.frequency.value = 850; f1.Q.value = f2.Q.value = 5; f1.connect(g); f2.connect(g);
+        for (const d of [-7, 0, 7]) { const o = osc("sawtooth", f, t, end, f1, d); o.connect(f2); }
+        const gs = ctx.createGain(); gs.gain.value = .3; gs.connect(g); osc("sine", f * 2, t, end, gs); break; }  // 加一層八度，手機才聽得到
+      default: throw new Error("沒有這個樂器：" + inst);  // 漏寫音色時直接報錯，不會默默沒聲音
+    }
+  }
+
+  // ---------- 播放控制 ----------
+  let cur = null;
+  function start(key) {
+    setup(); if (ctx.state !== "running") ctx.resume();  // iOS 來電或切 App 後會是 "interrupted"
+    stop();
+    const song = SONGS[key], master = ctx.createGain(), dry = ctx.createGain(), wet = ctx.createGain();
+    master.gain.value = .65; dry.gain.value = .9; wet.gain.value = .15;
+    master.connect(dry); master.connect(wet); dry.connect(comp); wet.connect(reverb);
+    const state = { key, master, dry, wet, timers: [], srcs: [], prev: [], t0: ctx.currentTime + .12 };
+    const schedule = t0 => {
+      if (t0 < ctx.currentTime + .05) t0 = state.t0 = ctx.currentTime + .1;  // 計時器被延遲時重新對齊，免得音符擠在一起
+      state.prev = state.srcs; state.srcs = []; sink = state.srcs;
+      for (const [b, d, n, inst, v] of song.ev) play(master, t0 + b * song.beat, d * song.beat, n, inst, v);
+      sink = null;
+      state.timers.push(setTimeout(() => { if (cur === state) schedule(t0 + song.len); }, Math.max(0, (t0 + song.len - ctx.currentTime - 1.2) * 1000)));
+    };
+    schedule(state.t0);
+    cur = state; mark(key, true); tick(state);
+  }
+  function stop() {
+    if (!cur) return;
+    const s = cur; cur = null; s.timers.forEach(clearTimeout);
+    s.master.gain.setTargetAtTime(0, ctx.currentTime, .05);
+    const at = ctx.currentTime + .4;
+    for (const o of s.prev.concat(s.srcs)) try { o.stop(at); } catch (e) {}
+    setTimeout(() => { s.master.disconnect(); s.dry.disconnect(); s.wet.disconnect(); }, 400);
+    mark(s.key, false);
+  }
+  function mark(key, on) {
+    const b = document.getElementById("play-" + key); b.setAttribute("aria-pressed", on); b.textContent = on ? "停止" : "播放";
+    document.getElementById("card-" + key).classList.toggle("playing", on);
+    if (!on) { document.getElementById("bar-" + key).style.width = "0"; document.getElementById("pos-" + key).textContent = "第 0 小節 / 16"; }
+  }
+  function tick(s) {
+    if (cur !== s) return;  // 只讓目前這一輪的迴圈繼續，切換版本時舊迴圈自己結束
+    const song = SONGS[s.key], el = Math.max(0, ctx.currentTime - s.t0) % song.len;
+    document.getElementById("bar-" + s.key).style.width = (el / song.len * 100) + "%";
+    document.getElementById("pos-" + s.key).textContent = "第 " + (Math.floor(el / (song.perBar * song.beat)) + 1) + " 小節 / 16";
+    requestAnimationFrame(() => tick(s));
+  }
+  for (const k in SONGS) document.getElementById("play-" + k).addEventListener("click", () => (cur && cur.key === k) ? stop() : start(k));
+})();
+</script>

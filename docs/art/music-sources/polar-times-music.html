@@ -1,0 +1,292 @@
+<title>冰雪極地三時段配樂</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+/* 版面：三張卡由上到下＝白天→黃昏→晚上，左緣色條由陽光金、暮色深綠到極光綠 */
+:root {
+  --bg: #eef3f7; --surface: #f9fbfd; --fg: #17222c; --muted: #536472; --accent: #2f5f8f; --gold: #7d5f17; --line: #d3dee7; --day: #d9a93a; --dusk: #3d5a4a; --night: #2fae8f;
+  --display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e161d; --surface: #152029; --fg: #e4edf3; --muted: #9fb2c0; --accent: #8fbbe8; --gold: #e0bd6a; --line: #26343f; --day: #e8c25e; --dusk: #8fb9a0; --night: #6fe0c0; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #0e161d; --surface: #152029; --fg: #e4edf3; --muted: #9fb2c0; --accent: #8fbbe8; --gold: #e0bd6a; --line: #26343f; --day: #e8c25e; --dusk: #8fb9a0; --night: #6fe0c0; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 1rem; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 2rem 3rem; }
+.wrap { max-width: 44rem; margin: 0 auto; display: grid; gap: 1.5rem; }
+header { display: grid; gap: .4rem; }
+.eyebrow { font-size: .8rem; letter-spacing: .14em; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.8rem, 6vw, 2.6rem); line-height: 1.25; margin: 0; text-wrap: balance; }
+.lead { color: var(--muted); margin: 0; max-width: 38rem; }
+.how { font-size: .9rem; color: var(--muted); border-left: 2px solid var(--gold); padding-left: .8rem; margin: 0; }
+.done { font-size: .85rem; color: var(--muted); margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.2rem 1.1rem; display: grid; gap: .8rem; min-width: 0; border-left: 6px solid var(--tone); }
+.card.playing { border-color: var(--accent); border-left-color: var(--tone); }
+.top { display: flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
+.time { font-size: .8rem; letter-spacing: .12em; color: var(--muted); font-weight: 500; }
+.letter { font-family: var(--display); font-size: 2rem; line-height: 1; color: var(--accent); width: 2.2rem; }
+.name { flex: 1 1 14rem; min-width: 0; }
+.name h2 { font-family: var(--display); font-size: 1.25rem; margin: 0; line-height: 1.35; }
+.meta { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+button.play { font: inherit; font-weight: 500; border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  border-radius: 999px; padding: .45rem 1.1rem; cursor: pointer; min-width: 6.5rem; }
+button.play[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+button.play:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tags { display: flex; gap: .35rem; flex-wrap: wrap; align-items: center; }
+.tags b { font-size: .8rem; font-weight: 500; color: var(--muted); margin-right: .1rem; }
+.tags span { font-size: .85rem; border: 1px solid var(--line); border-radius: 6px; padding: .1rem .5rem; color: var(--muted); }
+.tags span.key { border-color: var(--gold); color: var(--gold); font-weight: 500; }
+.desc { margin: 0; }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.pos { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+footer { font-size: .85rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">晚安王國・世界 4 配樂試聽（第二輪）</div>
+    <h1>冰雪極地：日出、暮色山林、極光</h1>
+    <p class="lead">三段都用你選的 C「極地日出」主旋律（旋律只用五個音），每個音後面都有一聲回聲。白天保持原樣；黃昏換成小調、低沉的弦樂和遠方的鐘聲，走進高山森林；晚上換成最明亮的利底亞調式，合唱、銅管和閃爍的鐘琴一層層疊上去，像極光在天空展開。</p>
+    <p class="how">按「播放」開始，會自動循環；同時只會播一個。iPhone 請先關掉側邊的靜音鍵。建議依序聽，聽完告訴我哪一段要調整。</p>
+  </header>
+
+  <section class="card" id="card-day" style="--tone: var(--day)">
+    <div class="top">
+      <div class="name"><div class="time">場景一・白天（已定案）</div><h2>C 大調五聲音階・極地日出</h2><div class="meta">6/8 拍・♩.＝66・約 29 秒</div></div>
+      <button class="play" id="play-day" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span>C</span><span>D</span><span>E</span><span>G</span><span>A</span></div>
+    <p class="desc">你選的 C，放在這裡方便比較：柔和的鋼琴唱旋律、鐘琴高八度回聲，法國號慢慢吹起和弦，像太陽升起。</p>
+    <div class="bar"><i id="bar-day"></i></div><div class="pos" id="pos-day">第 0 小節 / 16</div>
+  </section>
+
+  <section class="card" id="card-dusk" style="--tone: var(--dusk)">
+    <div class="top">
+      <div class="name"><div class="time">場景二・黃昏</div><h2>C 小調・暮色山林</h2><div class="meta">6/8 拍・♩.＝54・約 36 秒</div></div>
+      <button class="play" id="play-dusk" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span>C</span><span>D</span><span class="key">E♭</span><span>G</span><span class="key">A♭</span></div>
+    <p class="desc">把旋律裡的 E、A 降成 E♭、A♭，整體變成小調，同一段旋律一下子變得陰沉。旋律由白天那把柔和的鋼琴和低八度的大提琴一起唱：鋼琴保留雪的柔軟，大提琴帶出森林的低沉；鐘琴回聲還在，只是小聲一些，像暮色裡的冰柱。法國號在低音區每小節吹出一個莊嚴的和弦，每四小節山裡傳來一聲低沉的鐘響，中間偶爾一聲清脆的冰晶。速度放慢，雪地還在，只是天色暗了、山林圍了上來。</p>
+    <div class="bar"><i id="bar-dusk"></i></div><div class="pos" id="pos-dusk">第 0 小節 / 16</div>
+  </section>
+
+  <section class="card" id="card-night" style="--tone: var(--night)">
+    <div class="top">
+      <div class="name"><div class="time">場景三・晚上</div><h2>C 利底亞・極光</h2><div class="meta">6/8 拍・♩.＝46・約 42 秒</div></div>
+      <button class="play" id="play-night" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span>C</span><span>D</span><span>E</span><span class="key">F♯</span><span>G</span><span>A</span><span>B</span></div>
+    <p class="desc">旋律不變，但原本的 F 和弦換成利底亞特有的 D 大和弦（F♯），帶出極光那種不真實的光彩。為了保留夜晚的感覺，速度放慢、整體壓到低一個八度：法國號和小提琴在中低音區一起唱，拿掉白天那種清脆的鐘琴回聲，鋼片琴只稀稀落落地閃，回音最深。前八小節像在黑暗的冰原上靜靜等待；後八小節合唱和高音弦樂慢慢湧上來、小提琴升到原音高、定音鼓加進來，像極光突然在頭頂展開。</p>
+    <div class="bar"><i id="bar-night"></i></div><div class="pos" id="pos-night">第 0 小節 / 16</div>
+  </section>
+
+  <footer>這些是用程式即時合成的試聽小樣（Demo），音色比較簡單；全部確定後，正式版可以換更好的音色、加長，做成可無縫循環的檔案給遊戲用。</footer>
+</div>
+
+<script>
+(() => {
+  const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const m = n => { const s = n.match(/^([A-G])(#|b)?(-?\d)$/); return 12 * (+s[3] + 1) + NOTE[s[1]] + (s[2] === "#" ? 1 : s[2] === "b" ? -1 : 0); };
+  const hz = midi => 440 * Math.pow(2, (midi - 69) / 12);
+  // 調式變化：以 C 大調為底；小調（伊奧利亞）把 E A B 降半音，利底亞把 F 升半音
+  const ALT = { major: {}, minor: { E: "Eb", A: "Ab", B: "Bb" }, lydian: { F: "F#" } };
+  const alt = (n, mode) => { const s = n.match(/^([A-G])(#|b)?(-?\d)$/), a = ALT[mode][s[1]]; return a && !s[2] ? a + s[3] : n; };
+  const seq = (list, start, inst, vel, mode, shift = 0) => { const ev = []; let t = start;
+    for (const [n, d] of list) { if (n !== "r") ev.push([t, d, m(alt(n, mode)) + shift, inst, vel]); t += d; } return ev; };
+  const CH = { C: ["C3","E3","G3"], Am: ["A2","C3","E3"], F: ["F2","A2","C3"], G: ["G3","B3","D4"], Em: ["E3","G3","B3"] };
+  const CHORDS = ["C","Am","F","G","C","Em","F","G","Am","F","C","G","F","G","Am","C"];
+  // C「極地日出」的旋律（以八分音符為單位，每小節 6）
+  const MEL = [["E5",3],["G5",2],["A5",1], ["C6",3],["A5",3], ["A5",2],["G5",1],["C6",3], ["D6",3],["G5",3],
+    ["E5",2],["G5",1],["C6",3], ["G5",3],["E5",3], ["A5",3],["C6",2],["A5",1], ["G5",6],
+    ["A5",2],["C6",1],["E6",3], ["D6",2],["C6",1],["A5",3], ["G5",2],["E5",1],["G5",3], ["D5",3],["G5",3],
+    ["A5",2],["G5",1],["A5",2],["C6",1], ["D6",2],["E6",1],["D6",3], ["C6",2],["A5",1],["E5",3], ["C6",6]];
+  // 利底亞的 F 和弦：F 升成 F♯ 之後原本的 F A C 不成和弦，改用 II 級的 D 大和弦
+  const chordOf = (c, mode) => (mode === "lydian" && c === "F" ? ["D3","F#3","A3"] : CH[c]).map(n => m(alt(n, mode)));
+
+  // 白天：跟定案的 C 完全一樣
+  function buildDay() {
+    const ev = [...seq(MEL, 0, "softpiano", .2, "major"), ...seq(MEL, 1, "glock", .045, "major", 12).map(e => (e[1] = .5, e))];
+    CHORDS.forEach((c, bar) => { const n = chordOf(c, "major"), b = bar * 6;
+      const lo = n[0] - 12 < m("E2") ? n[0] : n[0] - 12;
+      ev.push([b, 3, lo, "bass", .1], [b + 3, 3, lo, "bass", .09]);
+      if (bar % 2 === 0) n.forEach(x => ev.push([b, 12, x + 12, "hornpad", .05]));
+      [n[0] + 12, n[1] + 12, n[2] + 12].forEach((x, i) => ev.push([b + 3 + i, 1, x, "softpiano", .06]));
+    });
+    return { ev, beat: 60 / 198, bars: 16, perBar: 6, wet: .32 };
+  }
+
+  // 黃昏：C 小調，大提琴低八度＋柔和鋼琴唱旋律、鐘琴回聲，法國號低音和弦，每四小節山裡的鐘聲、偶爾冰晶聲
+  function buildDusk() {
+    const ev = [...seq(MEL, 0, "cello", .13, "minor", -12), ...seq(MEL, 0, "softpiano", .12, "minor"),
+      ...seq(MEL, 1, "glock", .03, "minor", 12).map(e => (e[1] = .5, e))];  // 雪地感：白天的柔和鋼琴與鐘琴回聲（較小聲）回來
+    CHORDS.forEach((c, bar) => { const n = chordOf(c, "minor"), b = bar * 6;
+      const lo = n[0] - 12 < m("E2") ? n[0] : n[0] - 12;
+      ev.push([b, 6, lo, "bass", .11]);
+      n.forEach(x => ev.push([b, 6, x, "hornpad", .05]));  // 每小節一個和弦，才不會拖到下一個和弦造成低音區摩擦
+      n.forEach(x => ev.push([b, 6, x + 12, "strings", .02]));
+      if (bar % 4 === 0) ev.push([b, 12, m("C3"), "toll", .15]);
+      if (bar % 4 === 2) ev.push([b, 6, m("C7"), "crystal", .05]);  // 冰：偶爾一聲冰晶
+    });
+    return { ev, beat: 60 / 162, bars: 16, perBar: 6, wet: .38 };
+  }
+
+  // 晚上：C 利底亞，法國號＋小提琴唱旋律、鋼片琴閃爍、高音弦樂；後半合唱變大、定音鼓進來
+  // 晚上：C 利底亞但壓低音域、放慢；拿掉白天的鐘琴回聲，鋼片琴變稀；前半很安靜，後半合唱與弦樂湧上來、定音鼓進來
+  function buildNight() {
+    const ev = [...seq(MEL, 0, "horn", .17, "lydian", -12), ...seq(MEL, 0, "violin", .1, "lydian", -12),
+      ...seq(MEL, 0, "violin", .1, "lydian").filter(e => e[0] >= 48)];  // 後半小提琴再加一層原音高
+    CHORDS.forEach((c, bar) => { const n = chordOf(c, "lydian"), b = bar * 6, big = bar >= 8;
+      const lo = n[0] - 12 < m("E2") ? n[0] : n[0] - 12;
+      ev.push([b, 6, lo, "bass", .11]);
+      [n[0], n[2], n[1] + 12].forEach((x, i) => ev.push([b + i * 2, 2, x + 24, "celesta", big ? .035 : .022]));
+      n.forEach(x => ev.push([b, 6, x + 12, "choir", big ? .1 : .035]));
+      n.forEach(x => ev.push([b, 6, x + 24, "strings", big ? .03 : .012]));
+      if (big && bar % 2 === 0) ev.push([b, 3, lo, "timp", bar === 8 ? .42 : .3]);
+    });
+    return { ev, beat: 60 / 138, bars: 16, perBar: 6, wet: .55 };
+  }
+
+  const SONGS = { day: buildDay(), dusk: buildDusk(), night: buildNight() };
+  for (const s of Object.values(SONGS)) s.len = s.bars * s.perBar * s.beat;
+
+  // ---------- 合成器 ----------
+  let ctx = null, reverb = null, noiseBuf = null, comp = null, sink = null;
+  function setup() {
+    if (ctx) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}  // iPhone 靜音鍵開著也能出聲（Safari 17 以上）
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    comp = ctx.createDynamicsCompressor(); comp.threshold.value = -10; comp.ratio.value = 4; comp.connect(ctx.destination);
+    const len = ctx.sampleRate * 2.8, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5); }
+    reverb = ctx.createConvolver(); reverb.buffer = ir; reverb.connect(comp);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 9, ctx.sampleRate);
+    const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  }
+  const env = (g, t, a, peak, hold, rel) => { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a);
+    g.gain.setValueAtTime(peak, t + Math.max(a, hold)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a, hold) + rel); return t + Math.max(a, hold) + rel; };
+  function osc(type, f, t, end, out, detune = 0) { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = detune; o.connect(out); o.start(t); o.stop(end + .05); if (sink) sink.push(o); return o; }
+  function vibrato(o, t, rate, cents, delay = .3) { const l = ctx.createOscillator(), g = ctx.createGain(); l.frequency.value = rate; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(cents, t + delay);
+    l.connect(g); g.connect(o.detune); l.start(t); if (sink) sink.push(l); return l; }
+  function noise(t, end, out, loop = false) { const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = loop; s.connect(out); s.start(t, loop ? Math.random() * noiseBuf.duration : 0); s.stop(end + .02); if (sink) sink.push(s); return s; }
+  function lfo(t, end, rate, depth, param) { const l = ctx.createOscillator(), g = ctx.createGain(); l.frequency.value = rate; g.gain.value = depth; l.connect(g); g.connect(param); l.start(t); l.stop(end + .05); if (sink) sink.push(l); }
+
+  // 撥弦：琴弦算法（Karplus-Strong），每個音先算好、統一音量、扣掉直流，播放時補正音高
+  const ksCache = {};
+  function ksBuffer(midi) {
+    if (ksCache[midi]) return ksCache[midi];
+    const sr = ctx.sampleRate, N = Math.round(sr / hz(midi)), len = Math.round(sr * 1.6), buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    let lp = 0, mean = 0; for (let i = 0; i < N; i++) { lp = lp * .4 + (Math.random() * 2 - 1) * .6; d[i] = lp; mean += lp / N; }
+    for (let i = 0; i < N; i++) d[i] -= mean;
+    for (let i = N; i < len; i++) d[i] = .994 * .5 * (d[i - N] + d[i - N - 1 < 0 ? 0 : i - N - 1]);
+    const n0 = Math.round(sr * .1); let e = 0; for (let i = 0; i < n0; i++) e += d[i] * d[i];
+    const k = .25 / Math.sqrt(e / n0); for (let i = 0; i < len; i++) d[i] *= k;
+    return (ksCache[midi] = buf);
+  }
+
+  function play(dest, t, dur, midi, inst, vel) {
+    const f = hz(midi), g = ctx.createGain(); g.connect(dest); let end;
+    switch (inst) {
+      case "cello": case "violin": { // 弦樂旋律：兩條微微走音的鋸齒波＋延遲出現的揉弦
+        end = env(g, t, .14, vel, dur * .96, .35); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = inst === "cello" ? 1300 : 2600; lp.Q.value = .7; lp.connect(g);
+        const o1 = osc("sawtooth", f, t, end, lp, -5), o2 = osc("sawtooth", f, t, end, lp, 5);
+        if (dur > .6) { vibrato(o1, t, 5.2, 12, .35).stop(end + .05); vibrato(o2, t, 5.4, 12, .35).stop(end + .05); }
+        break; }
+      case "horn": { // 法國號旋律：慢慢吹開的銅管
+        end = env(g, t, .12, vel, dur * .95, .3); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = .8;
+        lp.frequency.setValueAtTime(500, t); lp.frequency.linearRampToValueAtTime(1600, t + .15); lp.connect(g);
+        const o = osc("sawtooth", f, t, end, lp); const g2 = ctx.createGain(); g2.gain.value = .5; g2.connect(g); osc("triangle", f, t, end, g2);
+        vibrato(o, t, 4.8, 6, .5).stop(end + .05); break; }
+      case "toll": { // 遠方山裡的低沉鐘聲：不成整數倍的泛音，餘音很長
+        end = env(g, t, .004, vel, .02, Math.min(dur, 5)); osc("sine", f, t, end, g);
+        for (const [r, a] of [[2.0, .5], [2.76, .35], [5.4, .15]]) { const g2 = ctx.createGain(); g2.gain.value = a; g2.connect(g); osc("sine", f * r, t, end, g2); } break; }
+      case "timp": { // 定音鼓：音高跟著和弦根音；加一層中頻，手機喇叭也聽得到
+        end = env(g, t, .004, vel, .05, 1.6); const o = osc("sine", f * 1.05, t, end, g); o.frequency.setValueAtTime(f * 1.05, t); o.frequency.exponentialRampToValueAtTime(f, t + .15);
+        const g2 = ctx.createGain(); g2.gain.setValueAtTime(.8, t); g2.gain.exponentialRampToValueAtTime(.001, t + .6); g2.connect(g); osc("sine", f * 2.01, t, t + .62, g2); break; }
+      case "celesta": { end = env(g, t, .004, vel, .01, 1.6); osc("sine", f, t, end, g); const g2 = ctx.createGain(); g2.gain.value = .3; g2.connect(g); osc("sine", f * 4, t, end, g2); break; }
+      case "flute": { end = env(g, t, .08, vel, dur * .94, .3); const o = osc("sine", f, t, end, g); vibrato(o, t, 5, 8, .4).stop(end + .05);
+        const g2 = ctx.createGain(); g2.gain.value = .12; g2.connect(g); osc("triangle", f * 2, t, end, g2); break; }
+      case "strings": { // 雪：慢慢浮現的弦樂
+        end = env(g, t, .7, vel, dur, 1.2); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1800; lp.connect(g);
+        const o1 = osc("sawtooth", f, t, end, lp, -6), o2 = osc("sawtooth", f, t, end, lp, 6); vibrato(o1, t, 5, 8, .8).stop(end + .05); vibrato(o2, t, 5.3, 8, .8).stop(end + .05); break; }
+      case "choir": { end = env(g, t, .5, vel, dur, 1); const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(); f1.type = f2.type = "bandpass";
+        f1.frequency.value = 750; f2.frequency.value = 1150; f1.Q.value = f2.Q.value = 5; f1.connect(g); f2.connect(g);
+        for (const d of [-8, 0, 8]) { const o = osc("sawtooth", f, t, end, f1, d); o.connect(f2); }
+        const gs = ctx.createGain(); gs.gain.value = .35; gs.connect(g); osc("sine", f, t, end, gs); break; }  // 加一層基音，低音才不會被共振峰濾掉
+      case "hornpad": { // 日出的法國號：起音很慢、濾波器慢慢打開
+        end = env(g, t, 1.6, vel, dur, 1.5); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = .7;
+        lp.frequency.setValueAtTime(400, t); lp.frequency.linearRampToValueAtTime(1400, t + 2); lp.connect(g);
+        osc("sawtooth", f, t, end, lp); const g2 = ctx.createGain(); g2.gain.value = .5; g2.connect(g); osc("triangle", f, t, end, g2); break; }
+      case "softpiano": { // 雪：圓潤、柔和的鋼琴
+        end = env(g, t, .012, vel, .02, Math.min(dur * 1.5 + .8, 2.6)); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400; lp.connect(g);
+        osc("sine", f, t, end, lp); const g2 = ctx.createGain(); g2.gain.value = .3; g2.connect(lp); osc("sine", f * 2, t, end, g2);
+        const g3 = ctx.createGain(); g3.gain.value = .15; g3.connect(lp); osc("triangle", f, t, end, g3); break; }
+      case "glock": { // 冰：鐘琴，敲下去就「叮」，泛音不成整數倍
+        end = env(g, t, .001, vel, .005, 1.1); osc("sine", f, t, end, g);
+        for (const [r, a] of [[2.76, .35], [5.4, .15]]) { const g2 = ctx.createGain(); g2.gain.value = a; g2.connect(g); osc("sine", f * r, t, Math.min(end, t + .4), g2); } break; }
+      case "crystal": { // 冰：水晶鐘（FM 合成），起音很硬、餘音晶瑩
+        end = env(g, t, .002, vel, .01, Math.min(dur + 1.2, 2.6)); const c = osc("sine", f, t, end, g);
+        const mo = ctx.createOscillator(), mg = ctx.createGain(); mo.frequency.value = f * 3.5; mg.gain.setValueAtTime(f * 2.2, t); mg.gain.exponentialRampToValueAtTime(f * .1, t + .8);
+        mo.connect(mg); mg.connect(c.frequency); mo.start(t); mo.stop(end + .05); if (sink) sink.push(mo); break; }
+      case "harp": { const s = ctx.createBufferSource(); s.buffer = ksBuffer(midi);
+        s.playbackRate.value = f * (Math.round(ctx.sampleRate / f) + .5) / ctx.sampleRate;  // 補正琴弦算法的音高偏低
+        const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3500; s.connect(lp); lp.connect(g);
+        end = t + Math.min(dur * 1.5 + .4, 1.5); g.gain.setValueAtTime(vel, t); g.gain.setValueAtTime(vel, end - .2); g.gain.linearRampToValueAtTime(0.0001, end);
+        s.start(t); s.stop(end + .02); if (sink) sink.push(s); break; }
+      case "bass": { end = env(g, t, .04, vel, dur * .9, .4); osc("triangle", f, t, end, g); const g2 = ctx.createGain(); g2.gain.value = .3; g2.connect(g); osc("sine", f * 2, t, end, g2); break; }
+      case "sleigh": { // 雪橇鈴：一小串很短的金屬叮鈴
+        end = t + .3; g.gain.value = 1;
+        for (let i = 0; i < 3; i++) { const tt = t + i * .025, bg = ctx.createGain(); bg.connect(g); const e2 = env(bg, tt, .001, vel, .003, .12);
+          const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 7000 + i * 900; bp.Q.value = 4; bp.connect(bg); noise(tt, e2, bp); } break; }
+      case "snow": { // 細雪：很輕的高頻沙沙聲，慢慢起伏
+        end = env(g, t, 2.5, vel, dur, 2); const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 5000;
+        const sw = ctx.createGain(); sw.gain.value = .05; hp.connect(sw); sw.connect(g); lfo(t, end, .1, .03, sw.gain); noise(t, end, hp, true); break; }
+    }
+  }
+
+  // ---------- 播放控制 ----------
+  let cur = null;
+  function start(key) {
+    setup(); if (ctx.state !== "running") ctx.resume();  // iOS 來電或切 App 後會是 "interrupted"
+    stop();
+    const song = SONGS[key], master = ctx.createGain(), dry = ctx.createGain(), wet = ctx.createGain();
+    master.gain.value = .9; dry.gain.value = .85; wet.gain.value = song.wet;
+    master.connect(dry); master.connect(wet); dry.connect(comp); wet.connect(reverb);
+    const state = { key, master, dry, wet, timers: [], srcs: [], prev: [], t0: ctx.currentTime + .12 };
+    const schedule = t0 => {
+      if (t0 < ctx.currentTime + .05) t0 = state.t0 = ctx.currentTime + .1;  // 計時器被延遲時重新對齊，免得音符擠在一起
+      state.prev = state.srcs; state.srcs = []; sink = state.srcs;
+      for (const [b, d, n, inst, v] of song.ev) play(master, t0 + b * song.beat, d * song.beat, n, inst, v);
+      sink = null;
+      state.timers.push(setTimeout(() => { if (cur === state) schedule(t0 + song.len); }, Math.max(0, (t0 + song.len - ctx.currentTime - 1.2) * 1000)));
+    };
+    schedule(state.t0);
+    cur = state; mark(key, true); tick(state);
+  }
+  function stop() {
+    if (!cur) return;
+    const s = cur; cur = null; s.timers.forEach(clearTimeout);
+    s.master.gain.setTargetAtTime(0, ctx.currentTime, .05);
+    const at = ctx.currentTime + .4;
+    for (const o of s.prev.concat(s.srcs)) try { o.stop(at); } catch (e) {}
+    setTimeout(() => { s.master.disconnect(); s.dry.disconnect(); s.wet.disconnect(); }, 400);
+    mark(s.key, false);
+  }
+  function mark(key, on) {
+    const b = document.getElementById("play-" + key); b.setAttribute("aria-pressed", on); b.textContent = on ? "停止" : "播放";
+    document.getElementById("card-" + key).classList.toggle("playing", on);
+    if (!on) { document.getElementById("bar-" + key).style.width = "0"; document.getElementById("pos-" + key).textContent = "第 0 小節 / 16"; }
+  }
+  function tick(s) {
+    if (cur !== s) return;  // 只讓目前這一輪的迴圈繼續，切換版本時舊迴圈自己結束
+    const song = SONGS[s.key], el = Math.max(0, ctx.currentTime - s.t0) % song.len;
+    document.getElementById("bar-" + s.key).style.width = (el / song.len * 100) + "%";
+    document.getElementById("pos-" + s.key).textContent = "第 " + (Math.floor(el / (song.perBar * song.beat)) + 1) + " 小節 / 16";
+    requestAnimationFrame(() => tick(s));
+  }
+  for (const k in SONGS) document.getElementById("play-" + k).addEventListener("click", () => (cur && cur.key === k) ? stop() : start(k));
+})();
+</script>
