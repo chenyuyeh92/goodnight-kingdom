@@ -463,5 +463,20 @@
   "maxStep": 0.0565,
   "bytes": 768768,
   "renderSec": 95.4
+ },
+ {
+  "name": "menu.mp3",
+  "t0": 0.12,
+  "loopSec": 43.6364,
+  "samples": 2094545,
+  "decodedSamples": 2094545,
+  "snrDb": 26,
+  "peakDb": -4.7,
+  "gainDb": 0,
+  "rmsDb": -18.9,
+  "seam": 0.0011,
+  "maxStep": 0.0842,
+  "bytes": 699264,
+  "renderSec": 16.4
  }
 ]

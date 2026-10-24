@@ -1,0 +1,307 @@
+<title>主選單配樂試聽</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+/* 版面：一欄四張卡；配色取睡前的夜空藍、月光的奶黃與枕頭的粉紫 */
+:root {
+  --bg: #eef0f6; --surface: #f9fafd; --fg: #1c1f2e; --muted: #5a5f75; --accent: #3d4a8f; --gold: #7a5c12; --line: #d6d9e6;
+  --display: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11131d; --surface: #191c29; --fg: #e8eaf3; --muted: #a3a8c0; --accent: #a9b6f5; --gold: #e8cc7a; --line: #2b2f42; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #11131d; --surface: #191c29; --fg: #e8eaf3; --muted: #a3a8c0; --accent: #a9b6f5; --gold: #e8cc7a; --line: #2b2f42; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 1rem; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 2rem 3rem; }
+.wrap { max-width: 44rem; margin: 0 auto; display: grid; gap: 1.4rem; }
+header { display: grid; gap: .4rem; }
+.eyebrow { font-size: .8rem; letter-spacing: .14em; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.8rem, 6vw, 2.6rem); line-height: 1.25; margin: 0; text-wrap: balance; }
+.lead { color: var(--muted); margin: 0; max-width: 38rem; }
+.how { font-size: .9rem; color: var(--muted); border-left: 2px solid var(--gold); padding-left: .8rem; margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.2rem 1.1rem; display: grid; gap: .8rem; min-width: 0; }
+.card.playing { border-color: var(--accent); }
+.top { display: flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
+.letter { font-family: var(--display); font-size: 2rem; line-height: 1; color: var(--accent); width: 2.2rem; }
+.name { flex: 1 1 14rem; min-width: 0; }
+.name h2 { font-family: var(--display); font-size: 1.25rem; margin: 0; line-height: 1.35; text-wrap: balance; }
+.meta { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+button.play { font: inherit; font-weight: 500; border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  border-radius: 999px; padding: .45rem 1.1rem; cursor: pointer; min-width: 6.5rem; }
+button.play[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+button.play:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tags { display: flex; gap: .35rem; flex-wrap: wrap; }
+.tags span { font-size: .85rem; border: 1px solid var(--line); border-radius: 6px; padding: .1rem .5rem; color: var(--muted); }
+.tags span.key { border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.desc { margin: 0; }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.pos { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+footer { font-size: .85rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">晚安王國・主選單配樂試聽</div>
+    <h1>主選單：睡前的第一首歌</h1>
+    <p class="lead">主選單的音樂會在主頁、選關、背包、守衛房間、設定一直播，所以四版都是原創、溫柔、不搶戲、可以一直循環也不會膩的曲子，各有不同的「晚安」味道。</p>
+    <p class="how">按「播放」開始，會自動循環；同時只會播一個。iPhone 請先關掉側邊的靜音鍵。選好後，我會照十個世界的方式錄成 MP3 交給遊戲組。</p>
+  </header>
+
+  <section class="card" id="card-A">
+    <div class="top">
+      <div class="letter">A</div>
+      <div class="name"><h2>音樂盒搖籃曲</h2><div class="meta">3/4 拍・♩＝84・F 大調・16 小節約 34 秒</div></div>
+      <button class="play" id="play-A" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span class="key">音樂盒（旋律）</span><span>豎琴圓舞曲伴奏</span><span>弦樂長音</span></div>
+    <p class="desc">最典型的「晚安」：一個轉動的音樂盒叮叮咚咚唱著搖籃曲，豎琴輕輕打三拍子，底下一層很淡的弦樂像被子。最安心、最像睡前的床邊。</p>
+    <div class="bar"><i id="bar-A"></i></div><div class="pos" id="pos-A">第 0 小節 / 16</div>
+  </section>
+
+  <section class="card" id="card-B">
+    <div class="top">
+      <div class="letter">B</div>
+      <div class="name"><h2>月光小夜曲</h2><div class="meta">6/8 拍・♩.＝54・E 利底亞・16 小節約 36 秒</div></div>
+      <button class="play" id="play-B" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span class="key">鋼片琴（旋律）</span><span>長笛（後半）</span><span>豎琴分解和弦</span><span>低音持續音</span></div>
+    <p class="desc">夢幻、閃亮的夜晚：鋼片琴唱旋律，後半長笛也一起加入；底下的低音一直停在 E，上面兩個和弦來回飄，利底亞調式的升四級讓它聽起來像月光、像要進入夢裡。四版裡最「魔法」。</p>
+    <div class="bar"><i id="bar-B"></i></div><div class="pos" id="pos-B">第 0 小節 / 16</div>
+  </section>
+
+  <section class="card" id="card-C">
+    <div class="top">
+      <div class="letter">C</div>
+      <div class="name"><h2>冒險前的晚安</h2><div class="meta">4/4 拍・♩＝88・C 大調・16 小節約 44 秒</div></div>
+      <button class="play" id="play-C" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span class="key">柔和鋼琴（旋律）</span><span>法國號長音</span><span>豎琴</span><span>弦樂</span></div>
+    <p class="desc">溫柔裡帶一點出發的期待：每四小節的開頭，鋼琴都用月亮城堡號角的那個節奏（附點四分＋兩個十六分＋兩個四分）起頭，只是輕輕地彈，像遠方城堡在呼喚；法國號在底下溫暖地陪著。最像「整個遊戲的主題曲」。</p>
+    <div class="bar"><i id="bar-C"></i></div><div class="pos" id="pos-C">第 0 小節 / 16</div>
+  </section>
+
+  <section class="card" id="card-D">
+    <div class="top">
+      <div class="letter">D</div>
+      <div class="name"><h2>睡衣小綿羊散步</h2><div class="meta">2/4 拍・♩＝104・G 大調・32 小節約 37 秒</div></div>
+      <button class="play" id="play-D" aria-pressed="false">播放</button>
+    </div>
+    <div class="tags"><span class="key">低音管（旋律，前半）</span><span class="key">單簧管＋鐘琴（後半）</span><span>撥弦「蹦恰」</span><span>木魚</span></div>
+    <p class="desc">可愛、俏皮：低音管胖胖地吹旋律，像穿著睡衣的小綿羊一搖一擺走路；撥弦打「蹦—恰」，木魚輕輕「叩」。第二遍換成單簧管加鐘琴，變得亮一點。四版裡最可愛、最有角色感。</p>
+    <div class="bar"><i id="bar-D"></i></div><div class="pos" id="pos-D">第 0 小節 / 32</div>
+  </section>
+
+  <footer>這些是用程式即時合成的試聽小樣（Demo），音色比較簡單；選定後會錄成可無縫循環的 MP3 給遊戲用。</footer>
+</div>
+
+<script>
+(() => {
+  const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const m = n => { const s = n.match(/^([A-G])(#|b)?(-?\d)$/); return 12 * (+s[3] + 1) + NOTE[s[1]] + (s[2] === "#" ? 1 : s[2] === "b" ? -1 : 0); };
+  const hz = midi => 440 * Math.pow(2, (midi - 69) / 12);
+  const seq = (list, start, inst, vel, shift = 0) => { const ev = []; let t = start;
+    for (const [n, d] of list) { if (n !== "r") ev.push([t, d, m(n) + shift, inst, vel]); t += d; } return ev; };
+  const lo = n => { const p = m(n); return p - 12 >= m("E2") ? p - 12 : p; };  // 低音降八度，但維持在 E2 以上（手機才聽得到）
+
+  // ---------- A：音樂盒搖籃曲，F 大調，3/4，♩=84 ----------
+  function buildA() {
+    const CH = { F: ["F3","A3","C4"], C: ["C3","E3","G3"], Dm: ["D3","F3","A3"], Bb: ["Bb2","D3","F3"], Gm: ["G2","Bb2","D3"] };
+    const prog = [["F","F3"],["C","E3"],["Dm","D3"],["Bb","Bb2"],["F","A2"],["Gm","G2"],["C","C3"],["F","F3"],["Bb","Bb2"],["F","A2"],["Gm","G2"],["C","C3"],["Dm","D3"],["Bb","Bb2"],["C","C3"],["F","F3"]];
+    const mel = [[["C5",1],["F5",1],["A5",1]], [["G5",2],["E5",1]], [["F5",1],["A5",1],["D6",1]], [["D6",1.5],["C6",.5],["Bb5",1]],
+      [["A5",2],["F5",1]], [["G5",1.5],["A5",.5],["Bb5",1]], [["C6",1],["Bb5",1],["G5",1]], [["A5",3]],
+      [["F5",1],["Bb5",1],["D6",1]], [["C6",2],["A5",1]], [["Bb5",1],["G5",1],["D5",1]], [["E5",2],["G5",1]],
+      [["F5",1],["A5",1],["D6",1]], [["D6",1.5],["C6",.5],["Bb5",1]], [["A5",1],["G5",1],["E5",1]], [["F5",3]]];
+    const ev = [];
+    prog.forEach(([c, bass], i) => { const b = i * 3, n = CH[c].map(m);
+      ev.push(...seq(mel[i], b, "musicbox", .2));
+      ev.push([b, 1, m(bass), "harp", .16]);  // 低音照寫好的音（B♭2～F3），不再摺八度，F–E–D 才會一路往下
+      [1, 2].forEach(k => n.forEach(x => ev.push([b + k, .9, x + 12, "harp", .06])));  // 二三拍的和弦升高八度，豎琴才不會在低音域糊成一團
+      n.forEach(x => ev.push([b, 3, x + 12, "pad", .02]));
+    });
+    return { ev, beat: 60 / 84, bars: 16, perBar: 3 };
+  }
+
+  // ---------- B：月光小夜曲，E 利底亞，6/8，♩.=54（以八分音符為單位，每小節 6） ----------
+  function buildB() {
+    const mel = [[["B4",3],["E5",2],["G#5",1]], [["A#5",3],["F#5",3]], [["G#5",2],["B5",1],["E6",3]], [["D#6",2],["C#6",1],["A#5",3]],
+      [["B5",3],["G#5",2],["E5",1]], [["F#5",3],["C#5",3]], [["E5",2],["G#5",1],["B5",2],["C#6",1]], [["A#5",6]],
+      [["G#5",3],["B5",2],["E6",1]], [["C#6",3],["A#5",3]], [["B5",2],["G#5",1],["E5",3]], [["F#5",2],["A#5",1],["C#6",3]],
+      [["B5",3],["G#5",3]], [["A#5",2],["F#5",1],["D#5",3]], [["E5",2],["F#5",1],["G#5",3]], [["A#5",6]]];
+    const ev = [];
+    mel.forEach((bar, i) => { const b = i * 6, c = (i % 2 ? ["F#3","A#3","C#4"] : ["E3","G#3","B3"]).map(m);
+      ev.push(...seq(bar, b, "celesta", .18));
+      if (i >= 8) ev.push(...seq(bar, b, "flute", .1));
+      [c[0], c[1], c[2], c[0] + 12, c[2], c[1]].forEach((x, k) => ev.push([b + k, 1, x + 12, "harp", k ? .07 : .1]));
+      ev.push([b, 6, m("E2"), "bass", .12]);
+      c.forEach(x => ev.push([b, 6, x + 12, "pad", .018]));
+    });
+    return { ev, beat: 60 / 162, bars: 16, perBar: 6 };
+  }
+
+  // ---------- C：冒險前的晚安，C 大調，4/4，♩=88 ----------
+  function buildC() {
+    const CH = { C: ["C3","E3","G3"], Am: ["A2","C3","E3"], F: ["F2","A2","C3"], G: ["G2","B2","D3"], Em: ["E3","G3","B3"], G7: ["G2","B2","F3"] };
+    const prog = ["C","Am","F","G","C","Em","F","G","Am","Em","F","C","F","G","G7","C"];
+    const mel = [[["C5",1.5],["C5",.25],["D5",.25],["E5",1],["G5",1]], [["A5",2],["G5",1],["E5",1]], [["F5",1],["A5",1],["C6",1],["A5",1]], [["G5",3],["B4",1]],
+      [["E5",1.5],["E5",.25],["F5",.25],["G5",1],["C6",1]], [["B5",2],["G5",1],["E5",1]], [["A5",1],["C6",1],["F5",1],["A5",1]], [["G5",4]],
+      [["A5",1.5],["A5",.25],["B5",.25],["C6",1],["A5",1]], [["G5",2],["E5",1],["B4",1]], [["C5",1],["F5",1],["A5",1],["C6",1]], [["G5",2],["E5",2]],
+      [["F5",1.5],["F5",.25],["G5",.25],["A5",1],["C6",1]], [["B5",2],["D6",1],["B5",1]], [["F5",1],["D5",1],["B4",1],["G4",1]], [["C5",4]]];
+    const ev = [];
+    prog.forEach((c, i) => { const b = i * 4, n = CH[c].map(m);
+      ev.push(...seq(mel[i], b, "piano", .2));
+      ev.push([b, 4, n[1] + 12, "horn", .05]);
+      [n[0], n[2], n[1] + 12, n[2]].forEach((x, k) => ev.push([b + k, 1, x + 12, "harp", k ? .06 : .08]));
+      ev.push([b, 2, lo(c === "Em" ? "E3" : CH[c][0]), "bass", .11], [b + 2, 2, lo(c === "Em" ? "E3" : CH[c][0]), "bass", .09]);
+      n.forEach(x => ev.push([b, 4, x + 12, "pad", .016]));
+    });
+    return { ev, beat: 60 / 88, bars: 16, perBar: 4 };
+  }
+
+  // ---------- D：睡衣小綿羊散步，G 大調，2/4，♩=104（16 小節的旋律走兩遍） ----------
+  function buildD() {
+    const prog = ["G","D","G","C","G","D","G","D","Em","C","G","D","C","D","D","G"];  // 第 15 小節是屬和弦（旋律 3-4-2-1 的終止）
+    const CH = { G: ["G2","B2","D3"], D: ["D3","F#3","A3"], C: ["C3","E3","G3"], Em: ["E3","G3","B3"] };
+    const mel = [[["G4",.5],["B4",.5],["D5",1]], [["A4",.5],["F#4",.5],["D4",1]], [["G4",.5],["A4",.5],["B4",.5],["G4",.5]], [["E5",1],["C5",1]],
+      [["D5",.5],["B4",.5],["G4",.5],["B4",.5]], [["A4",1.5],["r",.5]], [["B4",.5],["C5",.5],["D5",.5],["B4",.5]], [["A4",2]],
+      [["E5",.5],["G5",.5],["E5",.5],["B4",.5]], [["C5",.5],["E5",.5],["G5",1]], [["D5",.5],["B4",.5],["G4",1]], [["F#4",.5],["A4",.5],["D5",1]],
+      [["E5",.5],["D5",.5],["C5",.5],["E5",.5]], [["D5",.5],["C5",.5],["A4",1]], [["B4",.5],["C5",.5],["A4",1]], [["G4",2]]];
+    const ev = [];
+    for (let pass = 0; pass < 2; pass++) mel.forEach((bar, i) => { const b = (pass * 16 + i) * 2, n = CH[prog[i]].map(m);
+      if (pass === 0) ev.push(...seq(bar, b, "bassoon", .2, -12));
+      else ev.push(...seq(bar, b, "clarinet", .15), ...seq(bar, b, "glock", .05, 12));
+      ev.push([b, .5, lo(CH[prog[i]][0]), "pizz", .2]);
+      n.forEach(x => ev.push([b + 1, .5, x + 12, "pizz", .07]));
+      ev.push([b + .5, .25, 0, "wood", .08], [b + 1.5, .25, 0, "wood", .06]);
+    });
+    return { ev, beat: 60 / 104, bars: 32, perBar: 2 };
+  }
+
+  const SONGS = { A: buildA(), B: buildB(), C: buildC(), D: buildD() };
+  for (const s of Object.values(SONGS)) s.len = s.bars * s.perBar * s.beat;
+  // 出聲前先檢查：曲子用到的樂器都要有音色，漏寫的話一載入就報錯，不會播到一半卡住
+  const KNOWN = ["musicbox","harp","pad","celesta","flute","bass","piano","horn","bassoon","clarinet","glock","pizz","wood"];
+  for (const s of Object.values(SONGS)) for (const e of s.ev) if (!KNOWN.includes(e[3])) throw new Error("沒有這個樂器：" + e[3]);
+
+  // ---------- 合成器 ----------
+  let ctx = null, reverb = null, noiseBuf = null, comp = null, sink = null;
+  function setup() {
+    if (ctx) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}  // iPhone 靜音鍵開著也能出聲（Safari 17 以上）
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4; comp.connect(ctx.destination);
+    const len = ctx.sampleRate * 2.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5); }
+    reverb = ctx.createConvolver(); reverb.buffer = ir; reverb.connect(comp);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  }
+  const env = (g, t, a, peak, hold, rel) => { g.gain.value = 0; g.gain.setValueAtTime(0.0001, t);  // 先歸零：新的音量節點預設是 1，不歸零開頭會「喀」一聲
+    g.gain.linearRampToValueAtTime(peak, t + a); g.gain.setValueAtTime(peak, t + Math.max(a, hold)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a, hold) + rel); return t + Math.max(a, hold) + rel; };
+  function osc(type, f, t, end, out, detune = 0) { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = detune; o.connect(out); o.start(t); o.stop(end + .05); if (sink) sink.push(o); return o; }
+  function lfoTo(param, t, end, rate, depth, delay = 0) { const l = ctx.createOscillator(), g = ctx.createGain(); l.frequency.value = rate; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(depth, t + Math.max(delay, .01));
+    l.connect(g); g.connect(param); l.start(t); l.stop(end + .05); if (sink) sink.push(l); }
+  function noise(t, end, out) { const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.connect(out); s.start(t, Math.random() * .5); s.stop(end + .02); if (sink) sink.push(s); return s; }
+  // 泛音慢慢收掉（不硬切），避免高泛音停掉時「喀」一聲
+  function partial(dest, t, f, a, dec) { const g = ctx.createGain(); g.gain.setValueAtTime(a, t); g.gain.exponentialRampToValueAtTime(.0001, t + dec); g.connect(dest); osc("sine", f, t, t + dec + .02, g); }
+  // 豎琴：琴弦算法（Karplus-Strong），每個音先算好、統一音量、扣掉直流，播放時補正音高
+  const ksCache = {};
+  function ksBuffer(f) {
+    const key = f.toFixed(3); if (ksCache[key]) return ksCache[key];
+    const sr = ctx.sampleRate, N = Math.round(sr / f), len = Math.round(sr * 2), buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    let lp = 0, mean = 0; for (let i = 0; i < N; i++) { lp = lp * .4 + (Math.random() * 2 - 1) * .6; d[i] = lp; mean += lp / N; }
+    for (let i = 0; i < N; i++) d[i] -= mean;
+    for (let i = N; i < len; i++) d[i] = .996 * .5 * (d[i - N] + d[i - N - 1 < 0 ? 0 : i - N - 1]);
+    const n0 = Math.round(sr * .1); let e = 0; for (let i = 0; i < n0; i++) e += d[i] * d[i];
+    const k = .25 / Math.sqrt(e / n0); for (let i = 0; i < len; i++) d[i] *= k;
+    return (ksCache[key] = buf);
+  }
+
+  function play(dest, t, dur, midi, inst, vel) {
+    const f = hz(midi);
+    switch (inst) {
+      case "musicbox": { // 音樂盒：金屬梳齒，清脆、泛音不成整數倍、餘音中等
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .002, vel, .005, 1.3); osc("sine", f, t, end, g);
+        partial(g, t, f * 3.01, .25, .5); partial(g, t, f * 5.4, .1, .2); break; }
+      case "celesta": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .003, vel, .01, 1.8); osc("sine", f, t, end, g); partial(g, t, f * 4, .3, .5); break; }
+      case "glock": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .001, vel, .005, 1.2); osc("sine", f, t, end, g); partial(g, t, f * 2.76, .3, .4); break; }
+      case "harp": { const g = ctx.createGain(); g.connect(dest); const s = ctx.createBufferSource(); s.buffer = ksBuffer(f);
+        s.playbackRate.value = f * (Math.round(ctx.sampleRate / f) + .5) / ctx.sampleRate;  // 補正琴弦算法的音高偏低
+        const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3200; s.connect(lp); lp.connect(g);
+        const end = t + Math.min(dur * 2 + .6, 1.9); g.gain.value = 0; g.gain.setValueAtTime(vel, t); g.gain.setValueAtTime(vel, end - .3); g.gain.linearRampToValueAtTime(.0001, end);
+        s.start(t); s.stop(end + .02); if (sink) sink.push(s); break; }
+      case "pizz": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .003, vel, .01, .3); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1200; lp.connect(g);
+        osc("triangle", f, t, end, lp); const g2 = ctx.createGain(); g2.gain.value = .4; g2.connect(lp); osc("sawtooth", f, t, end, g2); break; }
+      case "piano": { // 柔和鋼琴：圓潤、會慢慢消失
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .01, vel, .02, Math.min(dur * 1.5 + .8, 2.6)); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400; lp.connect(g);
+        osc("sine", f, t, end, lp); const g2 = ctx.createGain(); g2.gain.value = .3; g2.connect(lp); osc("sine", f * 2, t, end, g2);
+        const g3 = ctx.createGain(); g3.gain.value = .15; g3.connect(lp); osc("triangle", f, t, end, g3); break; }
+      case "flute": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .07, vel, dur * .92, .25); const o = osc("sine", f, t, end, g); if (dur > .6) lfoTo(o.detune, t, end, 5, 8, .35);
+        const g2 = ctx.createGain(); g2.gain.value = .12; g2.connect(g); osc("triangle", f * 2, t, end, g2); break; }
+      case "clarinet": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .04, vel, dur * .9, .15); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = Math.min(f * 4, 2400); lp.connect(g);
+        const o = osc("square", f, t, end, lp); if (dur > .6) lfoTo(o.detune, t, end, 5, 6, .35); break; }
+      case "bassoon": { // 低音管：鋸齒波＋鼻音共振，胖胖的、有點逗趣
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .04, vel, dur * .85, .12); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = Math.max(f * 4, 900); lp.connect(g);
+        const pk = ctx.createBiquadFilter(); pk.type = "peaking"; pk.frequency.value = 500; pk.Q.value = 2; pk.gain.value = 8; pk.connect(lp); osc("sawtooth", f, t, end, pk); break; }
+      case "horn": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .15, vel, dur * .95, .4); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = .4;
+        lp.frequency.setValueAtTime(300, t); lp.frequency.linearRampToValueAtTime(Math.min(f * 3, 1400), t + .2); lp.connect(g);
+        const gs = ctx.createGain(); gs.gain.value = .6; gs.connect(lp); for (const d of [-5, 5]) osc("sawtooth", f, t, end, gs, d);
+        const gb = ctx.createGain(); gb.gain.value = .8; gb.connect(g); osc("triangle", f, t, end, gb); break; }
+      case "pad": { // 很淡的弦樂長音，像被子
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .6, vel, dur, 1); const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.connect(g);
+        for (const d of [-7, 7]) { const o = osc("sawtooth", f, t, end, lp, d); lfoTo(o.detune, t, end, 4.6, 6, .8); } break; }
+      case "bass": { const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .05, vel, dur * .9, .4); osc("triangle", f, t, end, g);
+        const g2 = ctx.createGain(); g2.gain.value = .3; g2.connect(g); osc("sine", f * 2, t, end, g2); break; }
+      case "wood": { // 木魚：短促的「叩」
+        const g = ctx.createGain(); g.connect(dest); const end = env(g, t, .001, vel, .004, .07); osc("sine", 880, t, end, g);
+        const g2 = ctx.createGain(); g2.gain.value = .4; g2.connect(g); osc("sine", 1320, t, end, g2); break; }
+      default: throw new Error("沒有這個樂器：" + inst);
+    }
+  }
+
+  // ---------- 播放控制 ----------
+  let cur = null;
+  function start(key) {
+    setup(); if (ctx.state !== "running") ctx.resume();  // iOS 來電或切 App 後會是 "interrupted"
+    stop();
+    const song = SONGS[key], master = ctx.createGain(), dry = ctx.createGain(), wet = ctx.createGain();
+    master.gain.value = .8; dry.gain.value = .85; wet.gain.value = .32;
+    master.connect(dry); master.connect(wet); dry.connect(comp); wet.connect(reverb);
+    const state = { key, master, dry, wet, timers: [], srcs: [], prev: [], t0: ctx.currentTime + .12 };
+    const schedule = t0 => {
+      if (t0 < ctx.currentTime + .05) t0 = state.t0 = ctx.currentTime + .1;  // 計時器被延遲時重新對齊，免得音符擠在一起
+      state.prev = state.srcs; state.srcs = []; sink = state.srcs;
+      for (const [b, d, n, inst, v] of song.ev) play(master, t0 + b * song.beat, d * song.beat, n, inst, v);
+      sink = null;
+      state.timers.push(setTimeout(() => { if (cur === state) schedule(t0 + song.len); }, Math.max(0, (t0 + song.len - ctx.currentTime - 1.2) * 1000)));
+    };
+    schedule(state.t0);
+    cur = state; mark(key, true); tick(state);
+  }
+  function stop() {
+    if (!cur) return;
+    const s = cur; cur = null; s.timers.forEach(clearTimeout);
+    s.master.gain.setTargetAtTime(0, ctx.currentTime, .05);
+    const at = ctx.currentTime + .4;
+    for (const o of s.prev.concat(s.srcs)) try { o.stop(at); } catch (e) {}
+    setTimeout(() => { s.master.disconnect(); s.dry.disconnect(); s.wet.disconnect(); }, 400);
+    mark(s.key, false);
+  }
+  function mark(key, on) {
+    const b = document.getElementById("play-" + key); b.setAttribute("aria-pressed", on); b.textContent = on ? "停止" : "播放";
+    document.getElementById("card-" + key).classList.toggle("playing", on);
+    if (!on) { document.getElementById("bar-" + key).style.width = "0"; document.getElementById("pos-" + key).textContent = "第 0 小節 / " + SONGS[key].bars; }
+  }
+  function tick(s) {
+    if (cur !== s) return;  // 只讓目前這一輪的迴圈繼續，切換版本時舊迴圈自己結束
+    const song = SONGS[s.key], el = Math.max(0, ctx.currentTime - s.t0) % song.len;
+    document.getElementById("bar-" + s.key).style.width = (el / song.len * 100) + "%";
+    document.getElementById("pos-" + s.key).textContent = "第 " + (Math.floor(el / (song.perBar * song.beat)) + 1) + " 小節 / " + song.bars;
+    requestAnimationFrame(() => tick(s));
+  }
+  for (const k in SONGS) document.getElementById("play-" + k).addEventListener("click", () => (cur && cur.key === k) ? stop() : start(k));
+})();
+</script>

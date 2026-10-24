@@ -13,7 +13,8 @@ const TRACKS = [
   ["polar-times-music.html", ["day","dusk","night"], "w04"], ["volcano-times-music.html", ["day","dusk","night"], "w05"],
   ["rainforest-times-music.html", ["day","dusk","night"], "w06"], ["savanna-times-music.html", ["day","dusk","night"], "w07"],
   ["mountain-times-music.html", ["day","dusk","night"], "w08"], ["cave-times-music.html", ["day","dusk","night"], "w09"],
-  ["castle-times-music.html", ["day","dusk","night"], "w10"]];
+  ["castle-times-music.html", ["day","dusk","night"], "w10"],
+  ["menu-music.html", ["C"], "menu", 4]];  // 主選單＋開頭／結尾動畫（負責人選 C 版）；第 4 個數字＝加大幾 dB（原本比各世界小聲約 4 dB）
 const SR = 48000, FRAME = 384;  // 128 kbps、48 kHz、單聲道：每個 frame 剛好 384 bytes、1152 個樣本
 const real = { setTimeout: window.setTimeout.bind(window), random: Math.random, start: AudioScheduledSourceNode.prototype.start, raf: window.requestAnimationFrame };
 const post = (p, body) => fetch(p, { method: "POST", body });
@@ -71,7 +72,7 @@ function encodeMp3(f32) {
 (async () => {
   const q = new URLSearchParams(location.search), only = q.get("only"), keysQ = q.get("keys");
   const report = [];
-  for (const [file, keys0, tag] of TRACKS) {
+  for (const [file, keys0, tag, boostDb = 0] of TRACKS) {
     if (only && !only.split(",").includes(tag)) continue;
     const html = await (await fetch("/" + file)).text();
     for (const key of keys0.filter(k => !keysQ || keysQ.split(",").includes(k))) {
@@ -82,12 +83,12 @@ function encodeMp3(f32) {
         const n = Math.round(len * SR), a = Math.round((t0 + len) * SR);
         const info = await runPage(html, key, { mode: "render", length: a + n + Math.round(.2 * SR), len, delay });
         const buf = await info.ctx.startRendering(), L = buf.getChannelData(0), R = buf.getChannelData(1), mono = new Float32Array(n);
-        let peak = 0, sum = 0; for (let i = 0; i < n; i++) { const v = (L[a + i] + R[a + i]) / 2; mono[i] = v; peak = Math.max(peak, Math.abs(v)); }
+        let peak = 0, sum = 0; const boost = Math.pow(10, boostDb / 20); for (let i = 0; i < n; i++) { const v = (L[a + i] + R[a + i]) / 2 * boost; mono[i] = v; peak = Math.max(peak, Math.abs(v)); }
         const gain = peak > .891 ? .891 / peak : 1; if (gain < 1) for (let i = 0; i < n; i++) mono[i] *= gain;  // 峰值超過 −1 dBFS 才壓低，避免破音
         for (let i = 0; i < n; i++) sum += mono[i] * mono[i];
         // 接縫檢查：最後一個樣本和第一個樣本的差（越小越接得上）
         const seam = Math.abs(mono[n - 1] - mono[0]), step = (() => { let s = 0; for (let i = 1; i < n; i++) s = Math.max(s, Math.abs(mono[i] - mono[i - 1])); return s; })();
-        const name = tag + "-" + (key === "late" ? "boss" : key) + ".mp3", mp3 = encodeMp3(mono);
+        const name = tag === "menu" ? "menu.mp3" : tag + "-" + (key === "late" ? "boss" : key) + ".mp3", mp3 = encodeMp3(mono);
         await post("/save?name=" + name, mp3.blob);
         // 驗證：解碼回來長度應該剛好等於 n，並跟原本的聲音逐樣本比
         const dec = await new OfflineAudioContext(1, SR, SR).decodeAudioData(await mp3.blob.arrayBuffer()), d = dec.getChannelData(0);
