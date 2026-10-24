@@ -3,9 +3,11 @@ import { audio } from '../audio/audio';
 import { artStatus, assetPath, enemySprite, type SpriteKey } from '../art/sprites';
 import { sceneKeys } from '../art/scenes';
 import { createSaveStore } from '../game/save';
+import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
 import { OPENING, type StoryBeat } from '../story/script';
 import { initialTypewriter, stepTypewriter, tapTypewriter, typedText, type Typewriter } from '../story/typewriter';
 import type { TestRangeData } from './TestRangeScene';
+import { onMenuKey } from './menuKeys';
 
 export type StoryId = 'opening';
 
@@ -57,14 +59,29 @@ export class StoryScene extends Phaser.Scene {
     this.beats = STORIES[data.story];
     this.index = 0;
     this.finished = false;
+    this.layer = null;
   }
 
-  /** 背景圖在關卡裡才載入,故事用到的這裡先載。 */
+  /** 背景圖在關卡裡才載入,故事用到的這裡先載(王國只用前兩層)。 */
   preload(): void {
     const base = import.meta.env.BASE_URL;
     if (!this.cache.json.exists(WINDOWS_JSON)) this.load.json(WINDOWS_JSON, `${base}assets/story/town-houses-windows.json`);
     if (artStatus.disabled) return;
-    const keys = sceneKeys([KINGDOM_SCENE, FOREST_SCENE]).filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
+    const wanted = [...sceneKeys([KINGDOM_SCENE]).slice(0, 2), ...sceneKeys([FOREST_SCENE])];
+    const keys = wanted.filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
+    if (keys.length === 0) return;
+    const label = this.add.text(W / 2, H / 2, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+    const progress = (v: number): void => void label.setText(`載入中 ${Math.round(v * 100)}%`);
+    const fail = (file: Phaser.Loader.File): void => {
+      if (!artStatus.missing.includes(file.key)) artStatus.missing.push(file.key);
+    };
+    this.load.on('progress', progress);
+    this.load.on('loaderror', fail);
+    this.load.once('complete', () => {
+      this.load.off('progress', progress);
+      this.load.off('loaderror', fail);
+      label.destroy();
+    });
     for (const k of keys) this.load.image(k, `${base}${assetPath(k)}`);
   }
 
@@ -88,8 +105,8 @@ export class StoryScene extends Phaser.Scene {
       this.finish();
     });
     this.input.on('pointerdown', () => this.tap());
-    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
-      if (e.repeat) return;
+    // 用選單的按鍵監聽:同一格收到好幾個按鍵事件時,一次按鍵只算一次(不會一下子跳過一幕)。
+    onMenuKey(this, (e) => {
       if (e.code === 'Escape') this.finish();
       else this.tap();
     });
@@ -187,6 +204,23 @@ export class StoryScene extends Phaser.Scene {
       const light = this.add.rectangle(r.x + r.w / 2, y0 + r.y + r.h / 2, r.w, r.h, LIGHT).setAlpha(lit ? 0.95 : 0);
       layer.add(light);
       return light;
+    });
+  }
+
+  /** 兩位守衛:玩家畫了守衛就用畫的(A、B),沒畫就用美術組畫的背影。 */
+  guards(layer: Phaser.GameObjects.Container, x: number, y: number): Phaser.GameObjects.GameObject[] {
+    const store = this.data_.guards;
+    const a = store ? guardKeyFor(this, store.get(), 'A') : DEFAULT_GUARD_KEY;
+    if (a === DEFAULT_GUARD_KEY) {
+      const back = this.image(layer, 'story-guards-back', x, y, 1.6);
+      return back ? [back.setOrigin(0.5, 1)] : [];
+    }
+    const b = store ? guardKeyFor(this, store.get(), 'B') : DEFAULT_GUARD_KEY;
+    return [a, b === DEFAULT_GUARD_KEY ? a : b].flatMap((k, i) => {
+      const img = this.image(layer, k, x + (i - 0.5) * 70, y);
+      if (!img) return [];
+      img.setOrigin(0.5, 1).setScale(90 / img.height);
+      return [img];
     });
   }
 
@@ -294,10 +328,10 @@ const BUILD: Record<string, (s: StoryScene, layer: Phaser.GameObjects.Container)
   // 6 兩位守衛(背影)拿著哈欠泡泡往森林走。
   setOff(s, layer) {
     s.bg(layer, sceneKeys([FOREST_SCENE]));
-    const guards = s.image(layer, 'story-guards-back', 300, TEXT_TOP - 10, 1.6);
-    if (!guards) return;
-    guards.setOrigin(0.5, 1);
-    s.tweens.add({ targets: guards, x: 560, y: TEXT_TOP - 70, scale: 0.9, duration: 7000, ease: 'Sine.easeInOut' });
-    s.tweens.add({ targets: guards, angle: { from: -2, to: 2 }, duration: 380, yoyo: true, repeat: -1 });
+    for (const g of s.guards(layer, 300, TEXT_TOP - 10)) {
+      const img = g as Phaser.GameObjects.Image;
+      s.tweens.add({ targets: img, x: img.x + 260, y: TEXT_TOP - 70, scale: img.scale * 0.6, duration: 7000, ease: 'Sine.easeInOut' });
+      s.tweens.add({ targets: img, angle: { from: -2, to: 2 }, duration: 380, yoyo: true, repeat: -1 });
+    }
   },
 };

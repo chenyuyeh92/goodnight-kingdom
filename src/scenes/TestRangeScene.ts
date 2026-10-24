@@ -599,8 +599,11 @@ export class TestRangeScene extends Phaser.Scene {
   private bossFodderSet = new Set<EnemyEntity>();
   private bossCalls = 0;
   private echoes = 0;
-  /** 世界第一關的開頭句:還剩多久、畫面上的東西。 */
-  private intro: { text: string; leftMs: number; views: Phaser.GameObjects.GameObject[] } | null = null;
+  /**
+   * 世界第一關的開頭句:還剩多久、畫面上的東西、什麼時候開始的、收掉監聽。
+   * ending:已經跳過(或時間到),等所有按鍵、手指放開才開始玩(跳過用的那一下不會變成跳躍或射擊)。
+   */
+  private intro: { text: string; leftMs: number; views: Phaser.GameObjects.GameObject[]; startedAt: number; ending: boolean; cleanup: () => void } | null = null;
   /** 魔王頭上的對話框。 */
   private speech: Phaser.GameObjects.Text | null = null;
   /** 路上的雜魚潮:計時、叫出來的(還在場上的)、叫了幾次;測試可以關掉。 */
@@ -1032,17 +1035,34 @@ export class TestRangeScene extends Phaser.Scene {
       .setDepth(201)
       .setAlpha(0);
     this.tweens.add({ targets: label, alpha: 1, duration: 500 });
-    this.intro = { text, leftMs: INTRO_MS, views: [bg, label] };
     const skip = (): void => this.endIntro();
-    bg.once('pointerdown', skip);
+    // 手機的觸控按鈕蓋在畫面上(點不到畫布),所以聽整個視窗的點擊。
+    window.addEventListener('pointerdown', skip, { capture: true });
     this.input.keyboard?.once('keydown', skip);
+    const cleanup = (): void => window.removeEventListener('pointerdown', skip, { capture: true });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+    this.intro = { text, leftMs: INTRO_MS, views: [bg, label], startedAt: Date.now(), ending: false, cleanup };
   }
 
   private endIntro(): void {
     const intro = this.intro;
-    if (!intro) return;
-    this.intro = null;
+    if (!intro || intro.ending) return;
+    intro.ending = true;
+    intro.cleanup();
     this.tweens.add({ targets: intro.views, alpha: 0, duration: 400, onComplete: () => intro.views.forEach((v) => v.destroy()) });
+  }
+
+  /** 開頭句顯示時遊戲停著;跳過後等按鍵、手指都放開才開始(通關時間不算這一段)。 */
+  private stepIntro(delta: number, intro: NonNullable<TestRangeScene['intro']>): void {
+    if (!intro.ending) {
+      intro.leftMs -= delta;
+      if (intro.leftMs <= 0) this.endIntro();
+      return;
+    }
+    const held = intentsForMode(this.keyboard.pressed(), this.mode, this.touchControls?.intent()).some((i) => Object.values(i).some(Boolean));
+    if (held) return;
+    this.intro = null;
+    this.stats = { ...this.stats, startedAt: this.stats.startedAt + (Date.now() - intro.startedAt) };
   }
 
   /** 魔王頭上的對話框(夢貘的話),跟著魔王走。 */
@@ -1056,7 +1076,10 @@ export class TestRangeScene extends Phaser.Scene {
     const follow = (): void => {
       if (!enemy.body.active) return;
       const top = enemy.body.y + enemy.def.h / 2 - enemy.def.h * enemy.artScaleMul;
-      speech.setPosition(enemy.x, top - 10);
+      // 魔王走到畫面邊邊時,對話框夾在畫面裡(字不會被切掉)。
+      const half = speech.width / 2 + 8;
+      const left = (this.bossLock ?? this.scrollX) + half;
+      speech.setPosition(Math.min(Math.max(enemy.x, left), left + VIEW_W - half * 2), top - 10);
     };
     follow();
     this.tweens.add({
@@ -1075,8 +1098,7 @@ export class TestRangeScene extends Phaser.Scene {
   update(time: number, delta: number): void {
     // 世界的開頭句顯示時遊戲先停著。
     if (this.intro) {
-      this.intro.leftMs -= delta;
-      if (this.intro.leftMs <= 0) this.endIntro();
+      this.stepIntro(delta, this.intro);
       this.publishDebug();
       return;
     }
@@ -3506,6 +3528,8 @@ export class TestRangeScene extends Phaser.Scene {
 
   /** 貓頭鷹睡著:加重的效果,場上魔物與羽毛一起消失,稍後進入結算。 */
   private defeatBoss(boss: Boss): void {
+    this.speech?.destroy();
+    this.speech = null;
     this.enemiesDefeated += 1;
     this.bossDefeated = true;
     this.boss = null;
@@ -3703,7 +3727,8 @@ export class TestRangeScene extends Phaser.Scene {
       sfx: { ...audio.counts },
       music: audio.currentTrack(),
       musicSource: audio.musicSource,
-      intro: this.intro?.text ?? null,
+      intro: this.intro && !this.intro.ending ? this.intro.text : null,
+      introPaused: this.intro !== null,
       bossSay: this.speech?.active ? this.speech.text : null,
       voices: audio.voicesStarted,
       musicSchedulers: audio.activeSchedulers,

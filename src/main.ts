@@ -73,6 +73,8 @@ export interface GkDebug {
   story?: { id: string; beat: number; beats: number; beatId: string; text: string[]; done: boolean };
   /** 世界第一關的開頭句(正在顯示時)。 */
   intro?: string | null;
+  /** 開頭句還沒結束(跳過後等按鍵放開時也算),遊戲停著。 */
+  introPaused?: boolean;
   /** 魔王頭上的對話框(正在顯示時)。 */
   bossSay?: string | null;
   /** 設定畫面的音量與目前選到的列。 */
