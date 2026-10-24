@@ -1,0 +1,105 @@
+<!doctype html><meta charset="utf-8"><title>render</title>
+<div id="box"></div>
+<script src="/lame.min.js"></script>
+<script>
+// 把試聽頁離線錄成「可無縫循環」的 MP3：
+// 1) 試跑一次量出 t0 與一輪長度；2) 正式錄：先按一次播放讓 setup 跑完、再按停止，接著用固定種子的亂數排第一輪、再用同一個種子排第二輪，
+//    兩輪抽到的亂數完全一樣，取第二輪那一段（已含第一輪的殘響尾巴），接縫就完全接得上；
+// 3) 從頭跑到尾的慢速 LFO 把頻率對齊成「一輪剛好整數圈」；4) 單聲道、峰值超過 −1 dBFS 才壓低；
+// 5) lamejs 編碼後，在最前面加一個 Info/LAME 標頭 frame，寫入編碼器延遲與尾端補零，讓瀏覽器解碼時自動裁掉，循環才不會有空白。
+const TRACKS = [
+  ["insomnia-forest-times.html", ["day","dusk","night","late"], "w01"],
+  ["desert-times-music.html", ["day","dusk","night"], "w02"], ["undersea-times-music.html", ["day","dusk","night"], "w03"],
+  ["polar-times-music.html", ["day","dusk","night"], "w04"], ["volcano-times-music.html", ["day","dusk","night"], "w05"],
+  ["rainforest-times-music.html", ["day","dusk","night"], "w06"], ["savanna-times-music.html", ["day","dusk","night"], "w07"],
+  ["mountain-times-music.html", ["day","dusk","night"], "w08"], ["cave-times-music.html", ["day","dusk","night"], "w09"],
+  ["castle-times-music.html", ["day","dusk","night"], "w10"]];
+const SR = 48000, FRAME = 384;  // 128 kbps、48 kHz、單聲道：每個 frame 剛好 384 bytes、1152 個樣本
+const real = { setTimeout: window.setTimeout.bind(window), random: Math.random, start: AudioScheduledSourceNode.prototype.start, raf: window.requestAnimationFrame };
+const post = (p, body) => fetch(p, { method: "POST", body });
+const say = s => post("/log", s);
+const seeded = seed => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+async function runPage(html, key, opt) {
+  const box = document.getElementById("box"); box.innerHTML = html.replace(/<script>[\s\S]*<\/script>/, "");
+  const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
+  const info = { starts: [], timers: [], ctx: null };
+  window.AudioContext = window.webkitAudioContext = function () { const c = new OfflineAudioContext(2, opt.length, SR); c.resume = () => Promise.resolve(); info.ctx = c; return c; };
+  AudioScheduledSourceNode.prototype.start = function (t = 0, ...r) {
+    if (t > .05) info.starts.push(t);
+    if (opt.len && this instanceof OscillatorNode && t === 0 && this.frequency.value > 0 && this.frequency.value < .5)  // 整段只建一個的慢速 LFO：一輪剛好轉整數圈
+      this.frequency.value = Math.max(1, Math.round(this.frequency.value * opt.len)) / opt.len;
+    return real.start.call(this, t, ...r);
+  };
+  window.setTimeout = (fn, ms) => { info.timers.push([fn, ms]); return 0; };
+  window.requestAnimationFrame = () => 0;
+  const btn = () => document.getElementById("play-" + key);
+  try {
+    (0, eval)(js);
+    if (opt.mode === "probe") btn().click();
+    else {
+      btn().click(); btn().click();  // 第一次：建立音訊環境；第二次：停止（只留下開頭 0.4 秒內的聲音，不會影響取樣的那一段）
+      info.timers.length = 0; Math.random = seeded(12345); btn().click();  // 排第一輪
+      const next = info.timers.find(([, ms]) => Math.abs(ms - opt.delay) < 1);
+      Math.random = seeded(12345); next[0]();  // 用同一個種子排第二輪
+    }
+  } finally { window.setTimeout = real.setTimeout; Math.random = real.random; AudioScheduledSourceNode.prototype.start = real.start; window.requestAnimationFrame = real.raf; }
+  return info;
+}
+
+function crc16(bytes, n) { let c = 0; for (let i = 0; i < n; i++) { c ^= bytes[i]; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xA001 : c >>> 1; } return c; }
+function encodeMp3(f32) {
+  const enc = new lamejs.Mp3Encoder(1, SR, 128), n = f32.length, i16 = new Int16Array(n), parts = [];
+  for (let i = 0; i < n; i++) { const v = Math.max(-1, Math.min(1, f32[i])); i16[i] = v < 0 ? v * 32768 : v * 32767; }
+  for (let i = 0; i < n; i += 1152) { const b = enc.encodeBuffer(i16.subarray(i, i + 1152)); if (b.length) parts.push(new Uint8Array(b)); }
+  const e = enc.flush(); if (e.length) parts.push(new Uint8Array(e));
+  const audio = new Uint8Array(parts.reduce((a, p) => a + p.length, 0)); let o = 0; for (const p of parts) { audio.set(p, o); o += p.length; }
+  if (audio.length % FRAME || audio[0] !== 0xFF) throw new Error("MP3 frame 大小不是 384：" + audio.length);
+  const frames = audio.length / FRAME, total = audio.length + FRAME, pad = frames * 1152 - 576 - n;
+  if (pad < 0 || pad > 4095) throw new Error("補零超出範圍：" + pad);
+  // Info/LAME 標頭 frame（跟 LAME 編碼器寫的格式一樣）
+  const F = new Uint8Array(FRAME); F.set(audio.subarray(0, 4)); F[2] &= ~0x02;
+  let p = 21; const u32 = v => { F[p++] = v >>> 24 & 255; F[p++] = v >>> 16 & 255; F[p++] = v >>> 8 & 255; F[p++] = v & 255; }, str = s => { for (const ch of s) F[p++] = ch.charCodeAt(0); };
+  str("Info"); u32(0x0F); u32(frames); u32(total); for (let i = 0; i < 100; i++) F[p++] = Math.floor(i * 256 / 100); u32(0);
+  str("LAME3.100"); F[p++] = 0x01; F[p++] = 0; u32(0); p += 4; F[p++] = 0; F[p++] = 128;
+  F[p++] = 576 >> 4; F[p++] = ((576 & 15) << 4) | (pad >> 8); F[p++] = pad & 255;
+  F[p++] = 0; F[p++] = 0; p += 2; u32(total); p += 2;
+  const c = crc16(F, p); F[p++] = c >> 8; F[p++] = c & 255;
+  return { blob: new Blob([F, audio], { type: "audio/mpeg" }), frames, pad };
+}
+
+(async () => {
+  const q = new URLSearchParams(location.search), only = q.get("only"), keysQ = q.get("keys");
+  const report = [];
+  for (const [file, keys0, tag] of TRACKS) {
+    if (only && !only.split(",").includes(tag)) continue;
+    const html = await (await fetch("/" + file)).text();
+    for (const key of keys0.filter(k => !keysQ || keysQ.split(",").includes(k))) {
+      const t1 = performance.now();
+      try {
+        const probe = await runPage(html, key, { mode: "probe", length: SR });
+        const t0 = Math.min(...probe.starts), delay = probe.timers[0][1], len = delay / 1000 + 1.2 - t0;
+        const n = Math.round(len * SR), a = Math.round((t0 + len) * SR);
+        const info = await runPage(html, key, { mode: "render", length: a + n + Math.round(.2 * SR), len, delay });
+        const buf = await info.ctx.startRendering(), L = buf.getChannelData(0), R = buf.getChannelData(1), mono = new Float32Array(n);
+        let peak = 0, sum = 0; for (let i = 0; i < n; i++) { const v = (L[a + i] + R[a + i]) / 2; mono[i] = v; peak = Math.max(peak, Math.abs(v)); }
+        const gain = peak > .891 ? .891 / peak : 1; if (gain < 1) for (let i = 0; i < n; i++) mono[i] *= gain;  // 峰值超過 −1 dBFS 才壓低，避免破音
+        for (let i = 0; i < n; i++) sum += mono[i] * mono[i];
+        // 接縫檢查：最後一個樣本和第一個樣本的差（越小越接得上）
+        const seam = Math.abs(mono[n - 1] - mono[0]), step = (() => { let s = 0; for (let i = 1; i < n; i++) s = Math.max(s, Math.abs(mono[i] - mono[i - 1])); return s; })();
+        const name = tag + "-" + (key === "late" ? "boss" : key) + ".mp3", mp3 = encodeMp3(mono);
+        await post("/save?name=" + name, mp3.blob);
+        // 驗證：解碼回來長度應該剛好等於 n，並跟原本的聲音逐樣本比
+        const dec = await new OfflineAudioContext(1, SR, SR).decodeAudioData(await mp3.blob.arrayBuffer()), d = dec.getChannelData(0);
+        let err = 0, ref = 0; const m = Math.min(dec.length, n); for (let i = 0; i < m; i++) { err += (d[i] - mono[i]) ** 2; ref += mono[i] ** 2; }
+        const r = { name, t0: +t0.toFixed(3), loopSec: +len.toFixed(4), samples: n, decodedSamples: dec.length, snrDb: +(10 * Math.log10(ref / err)).toFixed(1),
+          peakDb: +(20 * Math.log10(peak * gain)).toFixed(1), gainDb: +(20 * Math.log10(gain)).toFixed(1), rmsDb: +(10 * Math.log10(sum / n)).toFixed(1),
+          seam: +seam.toFixed(4), maxStep: +step.toFixed(4), bytes: mp3.blob.size, renderSec: +((performance.now() - t1) / 1000).toFixed(1) };
+        report.push(r); await say(JSON.stringify(r));
+      } catch (e) { await say("ERROR " + file + " " + key + " " + (e && e.stack || e)); }
+    }
+  }
+  await post("/save?name=_render-report.json", JSON.stringify(report, null, 1));
+  await post("/done", "");
+})();
+</script>
