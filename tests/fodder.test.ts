@@ -34,7 +34,7 @@ test('戰鬥區每一波多 4 隻雜魚(兩地兩飛,左右上面都有),排在�
   expect(arenas[0].waves[1]).toHaveLength(4);
 });
 
-test('魔王叫雜魚:依階段的間隔(3.5/3/2.5 秒)、3 隻一群、右→上→左→上輪流、最多 9 隻、暫停時不算', () => {
+test('魔王叫雜魚:依階段的間隔(4.5/4/3.5 秒)、3 隻一群、右→上→左→上輪流、最多 6 隻、暫停時不算', () => {
   const run = (s: BossFodder, ms: number, phase: 1 | 2 | 3, alive = 0, paused = false) => {
     let count = 0;
     const sides: string[] = [];
@@ -48,13 +48,13 @@ test('魔王叫雜魚:依階段的間隔(3.5/3/2.5 秒)、3 隻一群、右→�
     }
     return { s, count, sides };
   };
-  expect(run(initialBossFodder(), 3450, 1).count).toBe(0);
-  expect(run(initialBossFodder(), 3500, 1).count).toBe(3);
-  expect(run(initialBossFodder(), 2500, 3).count).toBe(3);
-  expect(run(initialBossFodder(), 3000 * 4, 2).sides).toEqual(['right', 'top', 'left', 'top']);
-  expect(BOSS_FODDER_MAX).toBe(9);
-  expect(run(initialBossFodder(), 3500, 1, 8).count).toBe(1);
-  const full = run(initialBossFodder(), 7000, 1, BOSS_FODDER_MAX);
+  expect(run(initialBossFodder(), 4450, 1).count).toBe(0);
+  expect(run(initialBossFodder(), 4500, 1).count).toBe(3);
+  expect(run(initialBossFodder(), 3500, 3).count).toBe(3);
+  expect(run(initialBossFodder(), 4000 * 4, 2).sides).toEqual(['right', 'top', 'left', 'top']);
+  expect(BOSS_FODDER_MAX).toBe(6);
+  expect(run(initialBossFodder(), 4500, 1, 5).count).toBe(1);
+  const full = run(initialBossFodder(), 9000, 1, BOSS_FODDER_MAX);
   expect(full.count).toBe(0);
   // 滿了就等:有空位的下一格馬上叫。
   expect(stepBossFodder(full.s, { phase: 1, alive: 3, paused: false, dtMs: 16 }).count).toBe(3);

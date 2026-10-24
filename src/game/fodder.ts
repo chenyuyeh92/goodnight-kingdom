@@ -80,8 +80,8 @@ const GROUP = 3;
 const VIEW_W = 960;
 
 /** 魔王戰叫雜魚:魔王越暴躁叫得越快;這個系統叫的最多同時 BOSS_FODDER_MAX 隻。 */
-export const BOSS_FODDER_MS = { 1: 3500, 2: 3000, 3: 2500 } as const;
-export const BOSS_FODDER_MAX = 9;
+export const BOSS_FODDER_MS = { 1: 4500, 2: 4000, 3: 3500 } as const;
+export const BOSS_FODDER_MAX = 6;
 
 export interface BossFodder {
   timerMs: number;

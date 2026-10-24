@@ -18,7 +18,7 @@ test.describe('雜魚變多', () => {
     await page.keyboard.up('KeyD');
   });
 
-  test('魔王戰:幾秒後從四面八方叫一群雜魚,最多 9 隻', async ({ page }) => {
+  test('魔王戰:幾秒後從四面八方叫一群雜魚,最多 6 隻', async ({ page }) => {
     await open(page, 'w1-1');
     await page.evaluate(() => window.__GK__!.warp!(window.__GK__!.bossLockX! + 500));
     await page.waitForFunction(() => !!window.__GK__!.boss, undefined, { timeout: 8000 });
@@ -31,7 +31,7 @@ test.describe('雜魚變多', () => {
       calls = Math.max(calls, f.bossCalls);
       await page.waitForTimeout(500);
     }
-    expect(most).toBeLessThanOrEqual(9);
+    expect(most).toBeLessThanOrEqual(6);
     expect(calls).toBeGreaterThanOrEqual(2);
   });
 
@@ -70,7 +70,7 @@ test.describe('雜魚變多', () => {
     await open(page, 'w10-3');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'tapir', undefined, { timeout: 8000 });
-    // 先等 1.5 秒:叫雜魚的計時(第二階段 3 秒)會在集氣的 3 秒裡到期,不暫停就會叫。
+    // 先等 1.5 秒:叫雜魚的計時(第二階段 4 秒)會在集氣的 3 秒裡到期,不暫停就會叫。
     await page.waitForTimeout(1500);
     await page.evaluate(() => window.__GK__!.hurtBoss!(180));
     await page.waitForFunction(() => window.__GK__!.w10!.nightmare !== null, undefined, { timeout: 4000 });
