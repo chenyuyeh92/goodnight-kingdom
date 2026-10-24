@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const WATERFALL: LevelDef = {
   id: 'w6-2',
-  name: '瀑布',
+  name: { zh: '瀑布', en: 'Waterfall' },
   world: 6,
   worldW: 10200,
   platformArt: 'log-platform',

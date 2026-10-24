@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const RIVER: LevelDef = {
   id: 'w1-2',
-  name: '河邊',
+  name: { zh: '河邊', en: 'Riverside' },
   world: 1,
   worldW: 10200,
   terrain: [

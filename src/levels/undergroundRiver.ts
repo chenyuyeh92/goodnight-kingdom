@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const UNDERGROUND_RIVER: LevelDef = {
   id: 'w9-3',
-  name: '地下河',
+  name: { zh: '地下河', en: 'Underground River' },
   world: 9,
   worldW: 10200,
   platformArt: 'mine-platform',

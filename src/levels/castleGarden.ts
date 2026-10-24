@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const CASTLE_GARDEN: LevelDef = {
   id: 'w10-1',
-  name: '城下花園',
+  name: { zh: '城下花園', en: 'Castle Garden' },
   world: 10,
   worldW: 10200,
   platformArt: 'moon-platform',

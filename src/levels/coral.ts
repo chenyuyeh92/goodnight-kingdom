@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const CORAL: LevelDef = {
   id: 'w3-1',
-  name: '珊瑚礁淺海',
+  name: { zh: '珊瑚礁淺海', en: 'Coral Shallows' },
   world: 3,
   underwater: true,
   worldW: 10200,

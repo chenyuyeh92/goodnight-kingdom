@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const SNOWFIELD: LevelDef = {
   id: 'w4-1',
-  name: '雪原',
+  name: { zh: '雪原', en: 'Snowfield' },
   world: 4,
   worldW: 10200,
   platformArt: 'snow-platform',

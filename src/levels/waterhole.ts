@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const WATERHOLE: LevelDef = {
   id: 'w7-2',
-  name: '水塘',
+  name: { zh: '水塘', en: 'Watering Hole' },
   world: 7,
   worldW: 10200,
   platformArt: 'savanna-platform',

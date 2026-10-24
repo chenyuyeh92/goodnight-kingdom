@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const MEADOW: LevelDef = {
   id: 'w8-1',
-  name: '高山草甸',
+  name: { zh: '高山草甸', en: 'Alpine Meadow' },
   world: 8,
   worldW: 10200,
   platformArt: 'cloud-platform',

@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const CLIFF_BRIDGE: LevelDef = {
   id: 'w8-3',
-  name: '吊橋山崖',
+  name: { zh: '吊橋山崖', en: 'Rope Bridge Cliffs' },
   world: 8,
   worldW: 10200,
   platformArt: 'cloud-platform',

@@ -3,6 +3,7 @@ import { SPRITE_KEYS, artStatus, assetPath, isLevelAsset } from '../art/sprites'
 import type { TestRangeData } from './TestRangeScene';
 import { loadGameFont } from '../ui/fonts';
 import { ensureGuardTexture } from '../draw/guardTextures';
+import { tr } from '../i18n/lang';
 
 export interface BootData {
   next: 'ModeSelect' | 'TestRange';
@@ -28,11 +29,11 @@ export class BootScene extends Phaser.Scene {
     artStatus.disabled = this.boot.noArt;
     this.fontReady = loadGameFont();
     if (this.boot.noArt) return;
-    const label = this.add.text(480, 250, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+    const label = this.add.text(480, 250, tr('載入中 0%', 'Loading 0%'), { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
     this.add.rectangle(480, 290, 300, 10).setStrokeStyle(2, 0xf3e9d2);
     const bar = this.add.rectangle(330, 290, 0, 10, 0xf8e08e).setOrigin(0, 0.5);
     this.load.on('progress', (v: number) => {
-      label.setText(`載入中 ${Math.round(v * 100)}%`);
+      label.setText(tr(`載入中 ${Math.round(v * 100)}%`, `Loading ${Math.round(v * 100)}%`));
       bar.width = 300 * v;
     });
     this.load.on('filecomplete', () => (artStatus.loaded += 1));

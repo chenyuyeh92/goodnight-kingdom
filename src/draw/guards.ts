@@ -1,4 +1,5 @@
 import type { StorageLike } from '../config/tuning';
+import { tr } from '../i18n/lang';
 
 export const GUARDS_KEY = 'gk.guards.v1';
 export const MAX_GUARDS = 8;
@@ -59,8 +60,8 @@ export function sanitizeGuards(raw: unknown): GuardData {
 
 /** 下載用的檔名:去掉檔名不能用的字元。 */
 export function guardFileName(name: string): string {
-  const safe = cutName(name.replace(/[\\/:*?"<>|\s]+/g, '')) || '守衛';
-  return `晚安王國-${safe}.png`;
+  const safe = cutName(name.replace(/[\\/:*?"<>|\s]+/g, '')) || tr('守衛', 'guard');
+  return tr(`晚安王國-${safe}.png`, `goodnight-kingdom-${safe}.png`);
 }
 
 export interface GuardStore {
@@ -96,7 +97,7 @@ export function createGuardStore(storage: StorageLike | null, now: () => number 
     get: () => current,
     add(name, png) {
       if (current.guards.length >= MAX_GUARDS) return { ok: false, reason: 'full' };
-      const guard: Guard = { id: `g${now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`, name: cutName(name.trim()) || '守衛', png, createdAt: now() };
+      const guard: Guard = { id: `g${now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`, name: cutName(name.trim()) || tr('守衛', 'Guard'), png, createdAt: now() };
       return write({ ...current, guards: [...current.guards, guard] }) ? { ok: true, guard } : { ok: false, reason: 'storage' };
     },
     remove(id) {

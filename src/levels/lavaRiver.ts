@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const LAVA_RIVER: LevelDef = {
   id: 'w5-3',
-  name: '熔岩河',
+  name: { zh: '熔岩河', en: 'Lava River' },
   world: 5,
   worldW: 10200,
   platformArt: 'rock-platform',

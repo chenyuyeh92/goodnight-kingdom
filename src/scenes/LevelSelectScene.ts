@@ -9,13 +9,18 @@ import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { TEST_TOOLS, setTestMode, testModeOn } from '../config/testTools';
 import { menuButton, smallButton } from './menuButton';
+import { pick, tr, type Text } from '../i18n/lang';
 
 const CARD_W = 250;
 const CARD_H = 230;
 const CARD_Y = 290;
 const CARD_GAP = 280;
 /** 每個世界三小關的時段(一個世界玩完剛好過了一天)。 */
-const TIME_OF_DAY = ['白天', '黃昏', '晚上 → 深夜'] as const;
+const TIME_OF_DAY: readonly Text[] = [
+  { zh: '白天', en: 'Day' },
+  { zh: '黃昏', en: 'Dusk' },
+  { zh: '晚上 → 深夜', en: 'Night → Midnight' },
+];
 const PREV_WORLD = new Set(['KeyQ', 'ArrowLeft']);
 const NEXT_WORLD = new Set(['KeyE', 'ArrowRight']);
 
@@ -43,12 +48,12 @@ export class LevelSelectScene extends Phaser.Scene {
     if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.45);
     const opened = WORLDS.filter((w) => isUnlocked(w[0], cleared)).length;
     const world = Math.min(Math.max(this.data_.world ?? opened, 1), WORLDS.length);
-    this.add.text(480, 70, `世界 ${world}  ${WORLD_NAMES[world - 1]}`, { fontSize: '36px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
+    this.add.text(480, 70, tr(`世界 ${world}  ${pick(WORLD_NAMES[world - 1])}`, `World ${world}  ${pick(WORLD_NAMES[world - 1])}`), { fontSize: '36px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
     const go = (w: number): void => {
       if (w >= 1 && w <= WORLDS.length && w !== world) this.scene.restart({ ...this.data_, world: w });
     };
-    if (world > 1) smallButton(this, 100, 70, touch ? `← 世界 ${world - 1}` : `← 世界 ${world - 1}(Q)`, () => go(world - 1), 160);
-    if (world < WORLDS.length) smallButton(this, 860, 70, touch ? `世界 ${world + 1} →` : `世界 ${world + 1} →(E)`, () => go(world + 1), 160);
+    if (world > 1) smallButton(this, 100, 70, tr(`← 世界 ${world - 1}`, `← World ${world - 1}`) + (touch ? '' : '(Q)'), () => go(world - 1), 160);
+    if (world < WORLDS.length) smallButton(this, 860, 70, tr(`世界 ${world + 1} →`, `World ${world + 1} →`) + (touch ? '' : '(E)'), () => go(world + 1), 160);
 
     const testMode = testModeOn();
     const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: testMode || isUnlocked(id, cleared), best: cleared[id] ?? null }));
@@ -61,27 +66,27 @@ export class LevelSelectScene extends Phaser.Scene {
       card.on('pointerdown', () => (l.unlocked ? this.play(l.id, true) : this.shake(card)));
       const ink = l.unlocked ? '#3a2a5a' : '#6f6a8a';
       this.add.text(x, CARD_Y - 75, levelNumber(l.id), { fontSize: '40px', color: ink }).setOrigin(0.5);
-      this.add.text(x, CARD_Y - 20, LEVELS[l.id].name, { fontSize: '22px', color: ink }).setOrigin(0.5);
-      this.add.text(x, CARD_Y + 18, TIME_OF_DAY[i], { fontSize: '18px', color: ink }).setOrigin(0.5);
+      this.add.text(x, CARD_Y - 20, pick(LEVELS[l.id].name), { fontSize: '22px', color: ink }).setOrigin(0.5);
+      this.add.text(x, CARD_Y + 18, pick(TIME_OF_DAY[i]), { fontSize: '18px', color: ink }).setOrigin(0.5);
       const prev = previousLevel(l.id);
       const status = testMode
-        ? '測試模式開放'
+        ? tr('測試模式開放', 'Open in test mode')
         : !l.unlocked && prev
-        ? `鎖住:先通過 ${levelNumber(prev)}`
+        ? tr(`鎖住:先通過 ${levelNumber(prev)}`, `Locked: clear ${levelNumber(prev)} first`)
         : l.best !== null
-          ? `最佳 ${formatDuration(l.best)}`
-          : '還沒通關';
+          ? tr(`最佳 ${formatDuration(l.best)}`, `Best ${formatDuration(l.best)}`)
+          : tr('還沒通關', 'Not cleared yet');
       this.add.text(x, CARD_Y + 62, status, { fontSize: '18px', color: l.unlocked ? '#b0477a' : ink }).setOrigin(0.5);
-      if (!touch) this.add.text(x, CARD_Y + CARD_H / 2 + 24, testMode ? `按 ${i + 1}(Shift+${i + 1} 打關主)` : `按 ${i + 1}`, { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5);
-      if (testMode && LEVELS[l.id].boss) smallButton(this, x, CARD_Y + 96, '直接打關主', () => this.play(l.id, true, true), 150);
+      if (!touch) this.add.text(x, CARD_Y + CARD_H / 2 + 24, testMode ? tr(`按 ${i + 1}(Shift+${i + 1} 打關主)`, `Press ${i + 1} (Shift+${i + 1}: boss)`) : tr(`按 ${i + 1}`, `Press ${i + 1}`), { fontSize: '16px', color: '#f3e9d2' }).setOrigin(0.5);
+      if (testMode && LEVELS[l.id].boss) smallButton(this, x, CARD_Y + 96, tr('直接打關主', 'Go to boss'), () => this.play(l.id, true, true), 150);
     });
     // 測試工具:公開上市前關掉(src/config/testTools.ts)。
     if (TEST_TOOLS) {
-      const label = (on: boolean): string => `測試模式:${on ? '開' : '關'}${touch ? '' : '(T)'}`;
+      const label = (on: boolean): string => tr(`測試模式:${on ? '開' : '關'}`, `Test mode: ${on ? 'on' : 'off'}`) + (touch ? '' : '(T)');
       smallButton(this, 110, 488, label(testMode), () => this.toggleTest(), 190);
     }
     // 手機沒有 Esc,一定要有按鈕回主頁。
-    menuButton(this, 480, 488, touch ? '回到主頁' : '回到主頁(Esc)', () => this.back());
+    menuButton(this, 480, 488, tr('回到主頁', 'Main menu') + (touch ? '' : '(Esc)'), () => this.back());
 
     onMenuKey(this, (e) => {
       if (e.code === 'Escape') this.back();

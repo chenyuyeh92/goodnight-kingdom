@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const PYRAMID: LevelDef = {
   id: 'w2-3',
-  name: '金字塔外',
+  name: { zh: '金字塔外', en: 'Outside the Pyramid' },
   world: 2,
   worldW: 10200,
   terrain: [

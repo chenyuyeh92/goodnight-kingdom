@@ -7,16 +7,23 @@ test('開場 6 幕、結局 13 幕,每幕一到兩句', () => {
   expect(OPENING).toHaveLength(6);
   expect(ENDING).toHaveLength(13);
   for (const s of [...OPENING, ...ENDING]) {
-    expect(s.lines.length).toBeGreaterThanOrEqual(1);
-    expect(s.lines.length).toBeLessThanOrEqual(2);
+    expect(s.zh.length).toBeGreaterThanOrEqual(1);
+    expect(s.zh.length).toBeLessThanOrEqual(2);
+    // 英文一句對一句。
+    expect(s.en.length, s.id).toBe(s.zh.length);
   }
-  expect(OPENING[0].lines[0]).toBe('在很遠很遠的地方,有一個晚安王國。');
-  expect(ENDING[11].lines).toEqual(['晚安。']);
+  expect(OPENING[0].zh[0]).toBe('在很遠很遠的地方,有一個晚安王國。');
+  expect(ENDING[11].zh).toEqual(['晚安。']);
+  expect(ENDING[11].en).toEqual(['Good night.']);
 });
 
 test('十個世界各有一句開頭;只在每個世界第一關出現', () => {
-  for (let w = 1; w <= 10; w++) expect(WORLD_INTRO[w], `world ${w}`).toBeTruthy();
-  expect(WORLD_INTRO[1]).toContain('考數學');
+  for (let w = 1; w <= 10; w++) {
+    expect(WORLD_INTRO[w].zh, `world ${w}`).toBeTruthy();
+    expect(WORLD_INTRO[w].en, `world ${w}`).toBeTruthy();
+  }
+  expect(WORLD_INTRO[1].zh).toContain('考數學');
+  expect(WORLD_INTRO[1].en).toContain('math test');
   expect(introWorldOf('w1-1')).toBe(1);
   expect(introWorldOf('w2-1')).toBe(2);
   expect(introWorldOf('w10-1')).toBe(10);
@@ -26,9 +33,10 @@ test('十個世界各有一句開頭;只在每個世界第一關出現', () => {
 });
 
 test('夢貘的台詞:出場、第二階段、第三階段', () => {
-  expect(TAPIR_LINES.enter).toBe('不要過來……你們不懂……');
-  expect(TAPIR_LINES[2]).toBe('我……快裝不下了……!');
-  expect(TAPIR_LINES[3]).toBe('如果我睡著了……這些惡夢,要去哪裡?');
+  expect(TAPIR_LINES.enter.zh).toBe('不要過來……你們不懂……');
+  expect(TAPIR_LINES[2].zh).toBe('我……快裝不下了……!');
+  expect(TAPIR_LINES[3].zh).toBe('如果我睡著了……這些惡夢,要去哪裡?');
+  expect(TAPIR_LINES[3].en).toBe('If I fall asleep… where will all these nightmares go?');
 });
 
 test('打字:每字 50 ms;點一下先把整幕顯示完,再點才到下一幕', () => {

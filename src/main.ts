@@ -22,6 +22,8 @@ import { mountKeyTest } from './ui/keyTest';
 import { isTouchDevice } from './ui/touchControls';
 import { mountTuningPanel } from './ui/tuningPanel';
 import { installTextDefaults } from './ui/textDefaults';
+import { safeLocalStorage } from './config/storage';
+import { initLang, lang } from './i18n/lang';
 import { preventZoom } from './ui/noZoom';
 
 export interface PlayerDebug {
@@ -82,6 +84,8 @@ export interface GkDebug {
   /** 設定畫面的音量與目前選到的列。 */
   settings?: { music: number; sfx: number; muted: boolean };
   settingsRow?: string;
+  /** 目前的語言。 */
+  lang?: 'zh' | 'en';
   /** 每種音效觸發的次數、目前的配樂。 */
   sfx?: Partial<Record<string, number>>;
   music?: string | null;
@@ -194,14 +198,6 @@ declare global {
   }
 }
 
-function safeLocalStorage(): StorageLike | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 const params = new URLSearchParams(location.search);
 
 preventZoom();
@@ -213,6 +209,8 @@ if (params.get('keytest') === '1') {
 }
 
 function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean): void {
+  initLang(safeLocalStorage(), navigator.languages ?? [navigator.language], params.get('lang'));
+  document.documentElement.lang = lang() === 'zh' ? 'zh-Hant' : 'en';
   const store = createTuningStore(tuneMode ? safeLocalStorage() : null);
   if (tuneMode) mountTuningPanel(store, document.body);
 

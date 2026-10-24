@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const GLACIER: LevelDef = {
   id: 'w4-3',
-  name: '極光冰川',
+  name: { zh: '極光冰川', en: 'Aurora Glacier' },
   world: 4,
   worldW: 10200,
   platformArt: 'snow-platform',

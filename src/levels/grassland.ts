@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const GRASSLAND: LevelDef = {
   id: 'w1-1',
-  name: '森林入口的草原',
+  name: { zh: '森林入口的草原', en: 'Meadow by the Forest' },
   world: 1,
   worldW: 10200,
   terrain: [

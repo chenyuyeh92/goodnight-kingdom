@@ -1,4 +1,5 @@
 import type { LevelId } from '../levels/levelDef';
+import { tr, type Text } from '../i18n/lang';
 
 /** 世界 1 的三個小關。1-3 沿用原本的 forest(網址 ?level=forest)。 */
 export const WORLD1: readonly LevelId[] = ['w1-1', 'w1-2', 'forest'];
@@ -14,7 +15,18 @@ export const WORLD10: readonly LevelId[] = ['w10-1', 'w10-2', 'w10-3'];
 
 /** 各世界的小關,全部依序解鎖(世界 2 第一關要先通過 1-3)。 */
 export const WORLDS: readonly (readonly LevelId[])[] = [WORLD1, WORLD2, WORLD3, WORLD4, WORLD5, WORLD6, WORLD7, WORLD8, WORLD9, WORLD10];
-export const WORLD_NAMES: readonly string[] = ['失眠森林', '沙漠金字塔王國', '亞特蘭提斯海底王國', '冰雪極地', '火山島', '熱帶雨林', '非洲大草原', '雲端高山', '地底洞窟', '月亮城堡'];
+export const WORLD_NAMES: readonly Text[] = [
+  { zh: '失眠森林', en: 'Sleepless Forest' },
+  { zh: '沙漠金字塔王國', en: 'Desert Pyramid Kingdom' },
+  { zh: '亞特蘭提斯海底王國', en: 'Undersea Atlantis' },
+  { zh: '冰雪極地', en: 'Frozen Polar Land' },
+  { zh: '火山島', en: 'Volcano Island' },
+  { zh: '熱帶雨林', en: 'Tropical Rainforest' },
+  { zh: '非洲大草原', en: 'African Savanna' },
+  { zh: '雲端高山', en: 'Cloud-Top Mountains' },
+  { zh: '地底洞窟', en: 'Deep Underground Caves' },
+  { zh: '月亮城堡', en: 'Moon Castle' },
+];
 
 const ORDER: readonly LevelId[] = WORLDS.flat();
 
@@ -28,7 +40,7 @@ export function worldOf(id: LevelId): number | null {
 
 export function levelNumber(id: LevelId): string {
   const w = worldOf(id);
-  return w === null ? '練習' : `${w}-${WORLDS[w - 1].indexOf(id) + 1}`;
+  return w === null ? tr('練習', 'Practice') : `${w}-${WORLDS[w - 1].indexOf(id) + 1}`;
 }
 
 /** 前一關(跨世界);第一關或練習關回傳 null。 */

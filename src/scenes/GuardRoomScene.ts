@@ -6,6 +6,7 @@ import { mountDrawStudio, type DrawMode, type DrawStudio } from '../ui/drawStudi
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { smallButton } from './menuButton';
+import { tr } from '../i18n/lang';
 
 const COLS = 5;
 const CARD = 140;
@@ -51,17 +52,17 @@ export class GuardRoomScene extends Phaser.Scene {
   create(): void {
     audio.music('menu');
     if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.4);
-    this.add.text(480, 40, '畫你的守衛', { fontSize: '32px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
+    this.add.text(480, 40, tr('畫你的守衛', 'Draw Your Guard'), { fontSize: '32px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
     this.targetButtons = {
-      A: smallButton(this, 400, 95, '幫 A 選', () => this.setTarget('A'), 140),
-      B: smallButton(this, 560, 95, '幫 B 選', () => this.setTarget('B'), 140),
+      A: smallButton(this, 400, 95, tr('幫 A 選', 'Pick for A'), () => this.setTarget('A'), 140),
+      B: smallButton(this, 560, 95, tr('幫 B 選', 'Pick for B'), () => this.setTarget('B'), 140),
     };
     this.message = this.add.text(480, 128, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
-    smallButton(this, 110, 495, '畫新的(輪廓)', () => this.openStudio('outline'), 170);
-    smallButton(this, 295, 495, '畫新的(空白)', () => this.openStudio('free'), 170);
-    this.downloadButton = smallButton(this, 470, 495, '下載圖片', () => this.download(), 150);
-    this.deleteButton = smallButton(this, 640, 495, '刪除', () => this.remove(), 150);
-    smallButton(this, 840, 495, '返回(Esc)', () => this.back(), 150);
+    smallButton(this, 110, 495, tr('畫新的(輪廓)', 'New (outline)'), () => this.openStudio('outline'), 170);
+    smallButton(this, 295, 495, tr('畫新的(空白)', 'New (blank)'), () => this.openStudio('free'), 170);
+    this.downloadButton = smallButton(this, 470, 495, tr('下載圖片', 'Download'), () => this.download(), 150);
+    this.deleteButton = smallButton(this, 640, 495, tr('刪除', 'Delete'), () => this.remove(), 150);
+    smallButton(this, 840, 495, tr('返回(Esc)', 'Back (Esc)'), () => this.back(), 150);
 
     onMenuKey(this, (e) => {
       if (this.studio) return;
@@ -85,7 +86,7 @@ export class GuardRoomScene extends Phaser.Scene {
     this.cards = [];
     const data = this.store.get();
     const items: Card[] = [
-      { id: null, name: '小綿羊', key: DEFAULT_GUARD_KEY },
+      { id: null, name: tr('小綿羊', 'Little Sheep'), key: DEFAULT_GUARD_KEY },
       ...data.guards.map((g) => ({ id: g.id, name: g.name, key: guardTextureKey(g.id) })),
     ];
     items.forEach((c, i) => {
@@ -114,9 +115,9 @@ export class GuardRoomScene extends Phaser.Scene {
     const chosen = data.selected[this.target];
     this.downloadButton.setEnabled(chosen !== null);
     this.deleteButton.setEnabled(chosen !== null);
-    this.deleteButton.setLabel('刪除');
+    this.deleteButton.setLabel(tr('刪除', 'Delete'));
     this.confirmDeleteUntil = 0;
-    (['A', 'B'] as const).forEach((p) => this.targetButtons[p].setLabel(p === this.target ? `▶ 幫 ${p} 選` : `幫 ${p} 選`));
+    (['A', 'B'] as const).forEach((p) => this.targetButtons[p].setLabel((p === this.target ? '▶ ' : '') + tr(`幫 ${p} 選`, `Pick for ${p}`)));
     window.__GK__ = {
       ready: true,
       screen: 'guard-room',
@@ -137,7 +138,7 @@ export class GuardRoomScene extends Phaser.Scene {
     if (this.studio) return;
     // 存滿了先告訴玩家,不要讓人畫完才發現存不了。
     if (this.store.get().guards.length >= MAX_GUARDS) {
-      this.message.setText(`最多存 ${MAX_GUARDS} 個守衛,請先刪掉一個再畫`);
+      this.message.setText(tr(`最多存 ${MAX_GUARDS} 個守衛,請先刪掉一個再畫`, `You can keep up to ${MAX_GUARDS} guards. Delete one before drawing a new one.`));
       return;
     }
     this.message.setText('');
@@ -148,7 +149,7 @@ export class GuardRoomScene extends Phaser.Scene {
       outlineUrl: `${import.meta.env.BASE_URL}assets/characters/pajama-outline.png`,
       onSave: (name, png) => {
         const r = this.store.add(name, png);
-        if (!r.ok) return r.reason === 'full' ? '最多存 8 個守衛,請先刪掉一個' : '這個瀏覽器存不了檔(例如無痕模式)';
+        if (!r.ok) return r.reason === 'full' ? tr(`最多存 ${MAX_GUARDS} 個守衛,請先刪掉一個`, `You can keep up to ${MAX_GUARDS} guards. Delete one first.`) : tr('這個瀏覽器存不了檔(例如無痕模式)', 'This browser cannot save (e.g. private mode).');
         this.store.select(this.target, r.guard.id);
         this.closeStudio();
         void ensureGuardTexture(this, r.guard).then(() => {
@@ -178,7 +179,7 @@ export class GuardRoomScene extends Phaser.Scene {
         // 手機上用系統的分享選單(可以存到相簿或傳到社群);不支援時下載檔案。
         const file = new File([blob], name, { type: 'image/png' });
         if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: '晚安王國' }).catch(() => undefined);
+          await navigator.share({ files: [file], title: tr('晚安王國', 'Goodnight Kingdom') }).catch(() => undefined);
           return;
         }
         // 用 Blob 網址下載,瀏覽器才會用我們給的檔名(data: 網址會被當成「download」)。
@@ -191,7 +192,7 @@ export class GuardRoomScene extends Phaser.Scene {
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
       })
-      .catch(() => this.message.setText('下載失敗,請再試一次'));
+      .catch(() => this.message.setText(tr('下載失敗,請再試一次', 'Download failed. Please try again.')));
   }
 
   /** 按一次變成「再按一次刪除」,3 秒內再按才真的刪。 */
@@ -200,9 +201,9 @@ export class GuardRoomScene extends Phaser.Scene {
     if (!id) return;
     if (this.time.now > this.confirmDeleteUntil) {
       this.confirmDeleteUntil = this.time.now + CONFIRM_MS;
-      this.deleteButton.setLabel('再按一次刪除');
+      this.deleteButton.setLabel(tr('再按一次刪除', 'Press again to delete'));
       this.time.delayedCall(CONFIRM_MS, () => {
-        if (this.time.now >= this.confirmDeleteUntil) this.deleteButton.setLabel('刪除');
+        if (this.time.now >= this.confirmDeleteUntil) this.deleteButton.setLabel(tr('刪除', 'Delete'));
       });
       return;
     }

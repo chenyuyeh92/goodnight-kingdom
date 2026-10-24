@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const ACACIA: LevelDef = {
   id: 'w7-1',
-  name: '金合歡草原',
+  name: { zh: '金合歡草原', en: 'Acacia Savanna' },
   world: 7,
   worldW: 10200,
   platformArt: 'savanna-platform',

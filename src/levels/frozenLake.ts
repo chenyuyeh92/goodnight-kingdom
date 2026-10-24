@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const FROZEN_LAKE: LevelDef = {
   id: 'w4-2',
-  name: '結冰的湖',
+  name: { zh: '結冰的湖', en: 'Frozen Lake' },
   world: 4,
   worldW: 10200,
   platformArt: 'snow-platform',

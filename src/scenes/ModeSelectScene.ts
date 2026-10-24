@@ -6,15 +6,17 @@ import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
 import { testModeOn } from '../config/testTools';
 import type { StoryData } from './StoryScene';
+import { lang, pick, tr, type Text } from '../i18n/lang';
 
 type Choice = PlayMode | 'backpack' | 'draw' | 'settings' | 'story';
 
-const BUTTONS: ReadonlyArray<{ choice: Choice; label: string; art: string; code: string }> = [
-  { choice: 'single', label: '開始遊戲', art: 'btn-start', code: 'Digit1' },
-  { choice: 'duo', label: '雙人遊戲', art: 'btn-duo', code: 'Digit2' },
-  { choice: 'draw', label: '畫你的守衛', art: 'btn-draw', code: 'Digit3' },
-  { choice: 'backpack', label: '背包', art: 'btn-backpack', code: 'Digit4' },
-  { choice: 'settings', label: '設定', art: 'btn-settings', code: 'Digit5' },
+/** 按鈕圖上的字是中文;英文版用一般按鈕加上英文字。 */
+const BUTTONS: ReadonlyArray<{ choice: Choice; label: Text; art: string; code: string }> = [
+  { choice: 'single', label: { zh: '開始遊戲', en: 'Start' }, art: 'btn-start', code: 'Digit1' },
+  { choice: 'duo', label: { zh: '雙人遊戲', en: 'Two Players' }, art: 'btn-duo', code: 'Digit2' },
+  { choice: 'draw', label: { zh: '畫你的守衛', en: 'Draw Your Guard' }, art: 'btn-draw', code: 'Digit3' },
+  { choice: 'backpack', label: { zh: '背包', en: 'Backpack' }, art: 'btn-backpack', code: 'Digit4' },
+  { choice: 'settings', label: { zh: '設定', en: 'Settings' }, art: 'btn-settings', code: 'Digit5' },
 ];
 const FIRST_BUTTON_Y = 226;
 const BUTTON_GAP = 62;
@@ -46,7 +48,7 @@ export class ModeSelectScene extends Phaser.Scene {
     const tex = this.textures;
     if (tex.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540);
     if (tex.exists('ui-logo')) this.add.image(480, 110, 'ui-logo').setScale(0.3);
-    else this.add.text(480, 110, '晚安王國', { fontSize: '56px', color: '#f3e9d2' }).setOrigin(0.5);
+    else this.add.text(480, 110, tr('晚安王國', 'Goodnight Kingdom'), { fontSize: '56px', color: '#f3e9d2' }).setOrigin(0.5);
     if (tex.exists('ui-guard')) this.add.image(150, 545, 'ui-guard').setOrigin(0.5, 1).setScale(0.5);
     for (const z of SLEEPERS) {
       if (!tex.exists(z.key)) continue;
@@ -55,11 +57,11 @@ export class ModeSelectScene extends Phaser.Scene {
     }
     BUTTONS.forEach((b, i) => {
       const y = FIRST_BUTTON_Y + i * BUTTON_GAP;
-      (menuButton(this, 480, y, b.label, () => this.choose(b.choice), b.art) as Phaser.GameObjects.Image).setScale(BUTTON_SCALE);
+      (menuButton(this, 480, y, pick(b.label), () => this.choose(b.choice), lang() === 'zh' ? b.art : null) as Phaser.GameObjects.Image).setScale(BUTTON_SCALE);
       this.add.text(620, y, `${i + 1}`, { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     });
     // 右上角小小的「故事」:重看開場。
-    (menuButton(this, 860, 40, '故事', () => this.choose('story')) as Phaser.GameObjects.Image).setScale(0.55);
+    (menuButton(this, 860, 40, tr('故事', 'Story'), () => this.choose('story')) as Phaser.GameObjects.Image).setScale(0.55);
     this.add.text(930, 40, '6', { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     this.storyChoice = false;
     this.closeStoryChoice = null;
@@ -78,10 +80,10 @@ export class ModeSelectScene extends Phaser.Scene {
     const saveOk = this.data_.save?.ok() ?? false;
     if (!saveOk) {
       this.add
-        .text(480, 520, '注意:這個瀏覽器無法存檔(例如無痕模式),背包重新整理後會不見。', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 })
+        .text(480, 520, tr('注意:這個瀏覽器無法存檔(例如無痕模式),背包重新整理後會不見。', 'Note: this browser cannot save (e.g. private mode). Progress is lost when you reload.'), { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 })
         .setOrigin(0.5);
     }
-    window.__GK__ = { ready: true, screen: 'mode-select', saveOk };
+    window.__GK__ = { ready: true, screen: 'mode-select', saveOk, lang: lang() };
   }
 
   private choose(choice: Choice): void {
@@ -112,7 +114,7 @@ export class ModeSelectScene extends Phaser.Scene {
     }
     if (this.storyChoice) return;
     const shade = this.add.rectangle(480, 270, 960, 540, 0x0d0b24, 0.75).setDepth(20).setInteractive();
-    const title = this.add.text(480, 200, '要看哪一段故事?', { fontSize: '28px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
+    const title = this.add.text(480, 200, tr('要看哪一段故事?', 'Which story would you like to watch?'), { fontSize: '28px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
     const option = (x: number, label: string, story: StoryData['story']): Phaser.GameObjects.Text =>
       this.add
         .text(x, 290, label, { fontSize: '26px', color: '#3a2a5a', backgroundColor: '#f3e9d2', padding: { x: 18, y: 10 } })
@@ -120,8 +122,8 @@ export class ModeSelectScene extends Phaser.Scene {
         .setDepth(21)
         .setInteractive({ useHandCursor: true })
         .on('pointerup', () => this.playStory(back, story));
-    const hint = this.add.text(480, 370, '點旁邊或按 Esc 關掉', { fontSize: '18px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
-    const objs = [shade, title, hint, option(380, '開場(O)', 'opening'), option(580, '結局(E)', 'ending')];
+    const hint = this.add.text(480, 370, tr('點旁邊或按 Esc 關掉', 'Tap outside or press Esc to close'), { fontSize: '18px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
+    const objs = [shade, title, hint, option(380, tr('開場(O)', 'Opening (O)'), 'opening'), option(580, tr('結局(E)', 'Ending (E)'), 'ending')];
     this.closeStoryChoice = () => {
       objs.forEach((o) => o.destroy());
       this.storyChoice = false;

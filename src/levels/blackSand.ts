@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const BLACK_SAND: LevelDef = {
   id: 'w5-1',
-  name: '黑沙灘',
+  name: { zh: '黑沙灘', en: 'Black Sand Beach' },
   world: 5,
   worldW: 10200,
   platformArt: 'rock-platform',

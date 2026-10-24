@@ -1,16 +1,17 @@
 import { MAX_DT_MS } from '../config/tuning';
 import { MAX_HEARTS, type Health } from './health';
 import { refillAmmo, type Loadout } from './weapons';
+import type { Text } from '../i18n/lang';
 
 export type ItemId = 'hotCocoa' | 'shootingStar' | 'smallPillow' | 'milkBottle';
 
 export const ITEM_IDS: readonly ItemId[] = ['hotCocoa', 'shootingStar', 'smallPillow', 'milkBottle'];
 
-export const ITEM_NAMES: Readonly<Record<ItemId, string>> = {
-  hotCocoa: '熱可可',
-  shootingStar: '流星',
-  smallPillow: '小枕頭',
-  milkBottle: '牛奶瓶',
+export const ITEM_NAMES: Readonly<Record<ItemId, Text>> = {
+  hotCocoa: { zh: '熱可可', en: 'Hot Cocoa' },
+  shootingStar: { zh: '流星', en: 'Shooting Star' },
+  smallPillow: { zh: '小枕頭', en: 'Little Pillow' },
+  milkBottle: { zh: '牛奶瓶', en: 'Milk Bottle' },
 };
 
 export const ITEM_DROP_CHANCE = 0.15;

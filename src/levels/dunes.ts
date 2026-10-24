@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const DUNES: LevelDef = {
   id: 'w2-2',
-  name: '沙丘商隊路',
+  name: { zh: '沙丘商隊路', en: 'Caravan Dunes' },
   world: 2,
   worldW: 10200,
   terrain: [

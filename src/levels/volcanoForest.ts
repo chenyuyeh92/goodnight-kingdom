@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const VOLCANO_FOREST: LevelDef = {
   id: 'w5-2',
-  name: '火山森林',
+  name: { zh: '火山森林', en: 'Volcano Forest' },
   world: 5,
   worldW: 10200,
   platformArt: 'rock-platform',

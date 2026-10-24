@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const CANOPY: LevelDef = {
   id: 'w6-3',
-  name: '樹冠',
+  name: { zh: '樹冠', en: 'Treetops' },
   world: 6,
   worldW: 10200,
   platformArt: 'log-platform',

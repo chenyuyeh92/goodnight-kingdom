@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const CLOUD_SEA: LevelDef = {
   id: 'w8-2',
-  name: '雲海',
+  name: { zh: '雲海', en: 'Sea of Clouds' },
   world: 8,
   worldW: 10200,
   platformArt: 'cloud-platform',

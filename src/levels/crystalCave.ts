@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const CRYSTAL_CAVE: LevelDef = {
   id: 'w9-2',
-  name: '水晶洞',
+  name: { zh: '水晶洞', en: 'Crystal Cave' },
   world: 9,
   worldW: 10200,
   platformArt: 'mine-platform',

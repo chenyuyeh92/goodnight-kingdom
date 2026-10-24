@@ -3,7 +3,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
 /** 測試靶場:調手感、測魔物與武器用。 */
 export const RANGE: LevelDef = {
   id: 'range',
-  name: '測試靶場',
+  name: { zh: '測試靶場', en: 'Practice Range' },
   world: 1,
   worldW: 3200,
   terrain: [

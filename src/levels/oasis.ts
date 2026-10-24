@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const OASIS: LevelDef = {
   id: 'w2-1',
-  name: '綠洲',
+  name: { zh: '綠洲', en: 'Oasis' },
   world: 2,
   worldW: 10200,
   terrain: [

@@ -15,11 +15,12 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: false,
   },
-  use: { baseURL: BASE_URL },
+  // 測試預設用繁體中文(英文版的測試用 ?lang=en 或自己設 locale)。
+  use: { baseURL: BASE_URL, locale: 'zh-TW' },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], launchOptions: { executablePath } },
+      use: { ...devices['Desktop Chrome'], locale: 'zh-TW', launchOptions: { executablePath } },
     },
   ],
 });

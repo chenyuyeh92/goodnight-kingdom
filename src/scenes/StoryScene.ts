@@ -4,10 +4,11 @@ import { artStatus, assetPath, enemySprite, type SpriteKey } from '../art/sprite
 import { sceneKeys } from '../art/scenes';
 import { createSaveStore } from '../game/save';
 import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
-import { ENDING, OPENING, type StoryBeat } from '../story/script';
+import { ENDING, OPENING, beatLines, type StoryBeat } from '../story/script';
 import { initialTypewriter, stepTypewriter, tapTypewriter, typedText, type Typewriter } from '../story/typewriter';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
+import { tr } from '../i18n/lang';
 
 export type StoryId = 'opening' | 'ending';
 
@@ -87,8 +88,8 @@ export class StoryScene extends Phaser.Scene {
           ];
     const keys = wanted.filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
     if (keys.length === 0) return;
-    const label = this.add.text(W / 2, H / 2, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
-    const progress = (v: number): void => void label.setText(`載入中 ${Math.round(v * 100)}%`);
+    const label = this.add.text(W / 2, H / 2, tr('載入中 0%', 'Loading 0%'), { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+    const progress = (v: number): void => void label.setText(tr(`載入中 ${Math.round(v * 100)}%`, `Loading ${Math.round(v * 100)}%`));
     const fail = (file: Phaser.Loader.File): void => {
       if (!artStatus.missing.includes(file.key)) artStatus.missing.push(file.key);
     };
@@ -114,7 +115,7 @@ export class StoryScene extends Phaser.Scene {
     );
     if (this.skippable) {
       const skip = this.add
-        .text(W - 16, 16, '跳過 ▶▶', { fontSize: '20px', color: '#f3e9d2', backgroundColor: '#2b2a6b', padding: { x: 10, y: 6 } })
+        .text(W - 16, 16, tr('跳過 ▶▶', 'Skip ▶▶'), { fontSize: '20px', color: '#f3e9d2', backgroundColor: '#2b2a6b', padding: { x: 10, y: 6 } })
         .setOrigin(1, 0)
         .setDepth(12)
         .setInteractive({ useHandCursor: true });
@@ -169,7 +170,7 @@ export class StoryScene extends Phaser.Scene {
     this.layer = layer;
     BUILD[beat.id]?.(this, layer);
     this.tweens.add({ targets: layer, alpha: 1, duration: FADE_MS });
-    this.typer = initialTypewriter(beat.lines);
+    this.typer = initialTypewriter(beatLines(beat));
     this.renderText();
   }
 
@@ -393,7 +394,7 @@ const BUILD: Record<string, (s: StoryScene, layer: Phaser.GameObjects.Container)
     s.monsters(layer, true);
     s.repeat(layer, 450, () => {
       const mark = s.add
-        .text(Phaser.Math.Between(180, 800), Phaser.Math.Between(260, 360), Phaser.Math.RND.pick(['!', '♪', '!?', '鈴鈴']), {
+        .text(Phaser.Math.Between(180, 800), Phaser.Math.Between(260, 360), Phaser.Math.RND.pick(['!', '♪', '!?', tr('鈴鈴', 'Ring!')]), {
           fontSize: '28px',
           color: '#ffe08a',
           stroke: '#2b2a6b',

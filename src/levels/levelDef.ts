@@ -1,3 +1,4 @@
+import type { Text } from '../i18n/lang';
 import type { ArenaDef, TrickleDef } from '../game/encounters';
 import type { ScenePlan } from '../art/scenes';
 import type { EnemyType } from '../game/enemies';
@@ -60,7 +61,7 @@ export interface Rect {
 
 export interface LevelDef {
   id: LevelId;
-  name: string;
+  name: Text;
   /** 第幾個世界(決定進關時要載入哪個世界的魔物圖)。 */
   world: number;
   worldW: number;

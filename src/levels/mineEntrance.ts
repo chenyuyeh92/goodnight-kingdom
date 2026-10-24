@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const MINE_ENTRANCE: LevelDef = {
   id: 'w9-1',
-  name: '礦坑入口',
+  name: { zh: '礦坑入口', en: 'Mine Entrance' },
   world: 9,
   worldW: 10200,
   platformArt: 'mine-platform',

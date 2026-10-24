@@ -72,6 +72,7 @@ import { audio } from '../audio/audio';
 import { HARP_PITCH, SHOOT_SFX } from '../audio/recipes';
 import { levelTrack, worldTrack, type TrackId } from '../audio/tunes';
 import { TAPIR_LINES, WORLD_INTRO, introWorldOf } from '../story/script';
+import { pick, tr, type Text } from '../i18n/lang';
 import type { StoryData } from './StoryScene';
 import { hintText } from '../ui/hints';
 import type { GuardPlayer, GuardStore } from '../draw/guards';
@@ -135,7 +136,18 @@ const BOSS_OUTRO_MS = 1500;
 const BOSS_HIT_STOP_SCALE = 3;
 const BOSS_SHAKE_SCALE = 2;
 /** 換階段時顯示的關主簡稱。 */
-const BOSS_SHORT_NAME: Partial<Record<BossType, string>> = { nightOwl: '貓頭鷹', sphinx: '人面獅身', nessie: '尼斯湖水怪', yeti: '雪怪', dragon: '火龍', gorilla: '大猩猩', lion: '獅子王', thunderbird: '雷鳥', mole: '巨鼴鼠', tapir: '夢貘' };
+const BOSS_SHORT_NAME: Partial<Record<BossType, Text>> = {
+  nightOwl: { zh: '貓頭鷹', en: 'The Owl' },
+  sphinx: { zh: '人面獅身', en: 'The Sphinx' },
+  nessie: { zh: '尼斯湖水怪', en: 'Nessie' },
+  yeti: { zh: '雪怪', en: 'The Yeti' },
+  dragon: { zh: '火龍', en: 'The Fire Dragon' },
+  gorilla: { zh: '大猩猩', en: 'The Gorilla' },
+  lion: { zh: '獅子王', en: 'The Lion King' },
+  thunderbird: { zh: '雷鳥', en: 'The Thunderbird' },
+  mole: { zh: '巨鼴鼠', en: 'The Giant Mole' },
+  tapir: { zh: '夢貘', en: 'The Dream Tapir' },
+};
 /** 冰柱:玩家走到左右這麼近就掉下來。 */
 const ICICLE_TRIGGER_X = 100;
 /** 熔岩圖流動一格(96 px)要多久。 */
@@ -673,12 +685,12 @@ export class TestRangeScene extends Phaser.Scene {
     const wanted = [...sceneKeys(this.level.scenes.map((s) => s.scene)), ...worldSpriteKeys(this.level.world), ...(this.level.borrowArt ?? [])];
     const keys = wanted.filter((k) => !this.textures.exists(k) && !artStatus.missing.includes(k));
     if (keys.length === 0) return;
-    const label = this.add.text(480, 270, '載入中 0%', { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
+    const label = this.add.text(480, 270, tr('載入中 0%', 'Loading 0%'), { fontSize: '24px', color: '#f3e9d2' }).setOrigin(0.5);
     const done = (): void => void (artStatus.loaded += 1);
     const fail = (file: Phaser.Loader.File): void => {
       if (!artStatus.missing.includes(file.key)) artStatus.missing.push(file.key);
     };
-    const progress = (v: number): void => void label.setText(`載入中 ${Math.round(v * 100)}%`);
+    const progress = (v: number): void => void label.setText(tr(`載入中 ${Math.round(v * 100)}%`, `Loading ${Math.round(v * 100)}%`));
     this.load.on('progress', progress);
     this.load.on('filecomplete', done);
     this.load.on('loaderror', fail);
@@ -986,7 +998,7 @@ export class TestRangeScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(10);
     this.reverseText = this.add
-      .text(VIEW_W / 2, 140, '左右顛倒!', { fontSize: '28px', color: '#7ae0d0', ...HUD_STROKE })
+      .text(VIEW_W / 2, 140, tr('左右顛倒!', 'Left and right are swapped!'), { fontSize: '28px', color: '#7ae0d0', ...HUD_STROKE })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10)
@@ -1032,7 +1044,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (world === null || this.initData.stories === false || this.restarts > 0) return;
     if (this.save.get().story.intros.includes(world)) return;
     this.save.markIntro(world);
-    const text = WORLD_INTRO[world];
+    const text = pick(WORLD_INTRO[world]);
     const bg = this.add.rectangle(VIEW_W / 2, 270, VIEW_W, 540, 0x0d0b24).setScrollFactor(0).setDepth(200).setInteractive();
     const label = this.add
       .text(VIEW_W / 2, 270, text, { fontSize: '28px', color: '#f3e9d2', align: 'center', wordWrap: { width: 760, useAdvancedWrap: true }, lineSpacing: 12 })
@@ -1488,7 +1500,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.mochiHits += 1;
     audio.sfx('blocked');
     const label = this.add
-      .text(p.x, p.feetY - 70, '黏住了!', { fontSize: '18px', color: '#fff8f0', stroke: '#3a2a5a', strokeThickness: 4 })
+      .text(p.x, p.feetY - 70, tr('黏住了!', 'Stuck!'), { fontSize: '18px', color: '#fff8f0', stroke: '#3a2a5a', strokeThickness: 4 })
       .setOrigin(0.5, 1)
       .setDepth(DARK_DEPTH + 1);
     this.tweens.add({ targets: label, y: label.y - 24, alpha: 0, duration: 700, onComplete: () => label.destroy() });
@@ -1841,7 +1853,7 @@ export class TestRangeScene extends Phaser.Scene {
         if (h.texture.key !== key) h.setTexture(key);
         h.setVisible(!down);
       });
-      row.text.setText(down ? '睡著了…' : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
+      row.text.setText(down ? tr('睡著了…', 'Asleep…') : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
       if (!row.icon) return;
       const key = weaponIcon(activeWeapon(p.loadout).id);
       if (this.textures.exists(key) && row.icon.texture.key !== key) row.icon.setTexture(key);
@@ -1887,9 +1899,9 @@ export class TestRangeScene extends Phaser.Scene {
     const active = this.encounters.active;
     if (active) {
       const total = this.level.arenas[this.encounters.nextArena].waves.length;
-      this.arenaHud.setText(`清除魔物!(第 ${active.wave + 1} / ${total} 波)`);
+      this.arenaHud.setText(tr(`清除魔物!(第 ${active.wave + 1} / ${total} 波)`, `Clear the monsters! (Wave ${active.wave + 1} / ${total})`));
     } else {
-      this.arenaHud.setText(time < this.goHintUntil ? '前進 →' : '');
+      this.arenaHud.setText(time < this.goHintUntil ? tr('前進 →', 'Go →') : '');
     }
   }
 
@@ -1940,9 +1952,9 @@ export class TestRangeScene extends Phaser.Scene {
     this.stats = { ...this.stats, weaponsGot: addWeapon(this.stats.weaponsGot, result.weapon) };
     p.loadout = equip(result.weapon, stars);
     const w = WEAPONS[result.weapon];
-    this.showBanner(`${w.rarity} ${w.name}!`, BANNER_COLOR[w.rarity], 36, w.rarity === 'SSR');
+    this.showBanner(`${w.rarity} ${pick(w.name)}!`, BANNER_COLOR[w.rarity], 36, w.rarity === 'SSR');
 
-    const line = `${w.rarity} ${w.name} ${'★'.repeat(stars)}${result.kind === 'maxed' ? '(已滿三星)' : ''}`;
+    const line = `${w.rarity} ${pick(w.name)} ${'★'.repeat(stars)}${result.kind === 'maxed' ? tr('(已滿三星)', ' (max stars)') : ''}`;
     const rates = chestRatesText();
     const title = this.add
       .text(chest.rect.x, chest.rect.y - 96, line, { fontSize: '20px', color: RARITY_COLOR[w.rarity] })
@@ -1995,7 +2007,7 @@ export class TestRangeScene extends Phaser.Scene {
     this.applyItemTo(p, pickup.id);
     audio.sfx('item');
     const label = this.add
-      .text(pickup.rect.x, pickup.rect.y - 20, ITEM_NAMES[pickup.id], { fontSize: '16px', color: '#ffe08a' })
+      .text(pickup.rect.x, pickup.rect.y - 20, pick(ITEM_NAMES[pickup.id]), { fontSize: '16px', color: '#ffe08a' })
       .setOrigin(0.5)
       .setDepth(8);
     this.tweens.add({ targets: label, y: label.y - 20, alpha: 0, duration: ITEM_POPUP_MS, onComplete: () => label.destroy() });
@@ -2024,7 +2036,7 @@ export class TestRangeScene extends Phaser.Scene {
   private applyItemTo(p: PlayerEntity, item: ItemId): void {
     const stars = p.loadout.special ? (this.save.get().weapons[p.loadout.special] ?? 1) : 1;
     const r = applyItem(item, { health: p.health, loadout: p.loadout, buffs: p.buffs, stars });
-    this.showBanner(ITEM_NAMES[item], '#f3e9d2', 28, false);
+    this.showBanner(pick(ITEM_NAMES[item]), '#f3e9d2', 28, false);
     p.health = r.health;
     p.loadout = r.loadout;
     p.buffs = r.buffs;
@@ -2430,7 +2442,7 @@ export class TestRangeScene extends Phaser.Scene {
     for (const type of step.summon) boss.minions.add(this.spawnFrom({ type, from: 'right', delayMs: 0 }, false));
     if (step.enteredPhase) {
       this.announcePhase(boss);
-      if (step.enteredPhase === 2 || step.enteredPhase === 3) this.bossSay(enemy, TAPIR_LINES[step.enteredPhase]);
+      if (step.enteredPhase === 2 || step.enteredPhase === 3) this.bossSay(enemy, pick(TAPIR_LINES[step.enteredPhase]));
     }
     if (step.nightmareStart) this.startNightmare(enemy, step.nightmareStart.halfW, step.nightmareStart.chargeMs);
     if (step.nightmareBlast) this.blastNightmare();
@@ -2469,7 +2481,7 @@ export class TestRangeScene extends Phaser.Scene {
     const fog = this.add.rectangle(0, 0, VIEW_W, WORLD_H, 0x2a0a4a).setOrigin(0, 0).setScrollFactor(0).setDepth(NIGHTMARE_DEPTH).setAlpha(0.15);
     const moon = this.add.rectangle(safeX, 0, halfW * 2, GROUND_Y, 0xfff3a8).setOrigin(0.5, 0).setDepth(NIGHTMARE_DEPTH + 0.5).setAlpha(0.35);
     const text = this.add
-      .text(VIEW_W / 2, 110, '大惡夢來了!躲進月光裡!', { fontSize: '26px', color: '#fff3a8', ...HUD_STROKE })
+      .text(VIEW_W / 2, 110, tr('大惡夢來了!躲進月光裡!', 'The Big Nightmare is coming! Hide in the moonlight!'), { fontSize: '26px', color: '#fff3a8', ...HUD_STROKE })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(10);
@@ -3172,8 +3184,8 @@ export class TestRangeScene extends Phaser.Scene {
 
   private announcePhase(boss: Boss): void {
     audio.sfx('bossPhase');
-    const name = BOSS_SHORT_NAME[boss.enemy.def.type as BossType] ?? boss.enemy.def.name;
-    this.bossPhaseText.setText(`${name}越來越暴躁了!`).setAlpha(1);
+    const name = pick(BOSS_SHORT_NAME[boss.enemy.def.type as BossType] ?? boss.enemy.def.name);
+    this.bossPhaseText.setText(tr(`${name}越來越暴躁了!`, `${name} is getting angrier!`)).setAlpha(1);
     this.tweens.add({ targets: this.bossPhaseText, alpha: 0, delay: BOSS_PHASE_TEXT_MS - 300, duration: 300 });
     this.cameras.main.shake(300, 0.008);
   }
@@ -3213,8 +3225,8 @@ export class TestRangeScene extends Phaser.Scene {
     const maxHp = this.mode === 'duo' ? Math.round(enemy.def.hp * BOSS_DUO_HP_RATIO) : enemy.def.hp;
     enemy.hp = maxHp;
     this.boss = { enemy, ai: initialAi(type), maxHp, invulnerable: false, minions: new Set(), wasAngry: false };
-    this.bossName.setText(enemy.def.name);
-    if (type === 'tapir') this.time.delayedCall(600, () => this.boss?.enemy === enemy && this.bossSay(enemy, TAPIR_LINES.enter));
+    this.bossName.setText(pick(enemy.def.name));
+    if (type === 'tapir') this.time.delayedCall(600, () => this.boss?.enemy === enemy && this.bossSay(enemy, pick(TAPIR_LINES.enter)));
     this.bossBarBg.setVisible(true);
     this.bossBar.setVisible(true);
     this.renderBossBar();
@@ -3314,7 +3326,7 @@ export class TestRangeScene extends Phaser.Scene {
       this.shieldsBroken += 1;
       audio.sfx('melee');
       const label = this.add
-        .text(sx, enemy.body.y - enemy.def.h / 2 - 8, '破盾!', { fontSize: '22px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 5 })
+        .text(sx, enemy.body.y - enemy.def.h / 2 - 8, tr('破盾!', 'Shield broken!'), { fontSize: '22px', color: '#ffe08a', stroke: '#3a2a5a', strokeThickness: 5 })
         .setOrigin(0.5, 1)
         .setDepth(6);
       this.tweens.add({ targets: label, y: label.y - 24, alpha: 0, delay: 500, duration: 300, onComplete: () => label.destroy() });
@@ -3402,7 +3414,7 @@ export class TestRangeScene extends Phaser.Scene {
     if (n < 2) return;
     const style = comboStyle(n);
     this.tweens.killTweensOf(this.comboText);
-    this.comboText.setText(`連續哄睡 ×${n}!`).setColor(style.color).setFontSize(style.fontSize).setAlpha(1).setVisible(true).setScale(1.3);
+    this.comboText.setText(tr(`連續哄睡 ×${n}!`, `Lullaby combo ×${n}!`)).setColor(style.color).setFontSize(style.fontSize).setAlpha(1).setVisible(true).setScale(1.3);
     this.tweens.add({ targets: this.comboText, scale: 1, duration: 120 });
   }
 
@@ -3594,7 +3606,7 @@ export class TestRangeScene extends Phaser.Scene {
       ...sessionData(this.initData),
       mode: this.mode,
       level: this.level.id,
-      levelName: `${levelNumber(this.level.id)} ${this.level.name}`,
+      levelName: `${levelNumber(this.level.id)} ${pick(this.level.name)}`,
       next: nextLevel(this.level.id),
       summary: summaryLines(stats, endedAt),
       // 打倒最終魔王夢貘就是破關,結算畫面變成結局。

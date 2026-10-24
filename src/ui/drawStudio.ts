@@ -1,6 +1,7 @@
 import { floodFill, type Rgba } from '../draw/fill';
 import { contentBounds, fitHeight } from '../draw/trim';
 import { GAME_FONT } from './fonts';
+import { tr } from '../i18n/lang';
 
 export type DrawMode = 'outline' | 'free';
 
@@ -64,18 +65,18 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
   root.id = 'draw-studio';
   root.innerHTML = `
     <div id="draw-top">
-      <span class="title">畫你的守衛</span>
-      <span>請畫<b>面向右邊</b>的角色</span>
-      <input id="draw-name" maxlength="8" placeholder="取個名字" />
-      <button id="draw-save">儲存</button>
-      <button id="draw-cancel">取消</button>
+      <span class="title">${tr('畫你的守衛', 'Draw Your Guard')}</span>
+      <span>${tr('請畫<b>面向右邊</b>的角色', 'Draw your character <b>facing right</b>')}</span>
+      <input id="draw-name" maxlength="8" placeholder="${tr('取個名字', 'Name')}" />
+      <button id="draw-save">${tr('儲存', 'Save')}</button>
+      <button id="draw-cancel">${tr('取消', 'Cancel')}</button>
       <span id="draw-status"></span>
     </div>
     <div id="draw-main">
       <div id="draw-tools">
-        <button data-size="thin">細</button><button data-size="mid">中</button><button data-size="thick">粗</button>
-        <button data-tool="eraser">橡皮擦</button><button data-tool="bucket">油漆桶</button>
-        <button id="draw-undo">復原</button><button id="draw-clear">清除</button>
+        <button data-size="thin">${tr('細', 'Thin')}</button><button data-size="mid">${tr('中', 'Mid')}</button><button data-size="thick">${tr('粗', 'Thick')}</button>
+        <button data-tool="eraser">${tr('橡皮擦', 'Eraser')}</button><button data-tool="bucket">${tr('油漆桶', 'Fill')}</button>
+        <button id="draw-undo">${tr('復原', 'Undo')}</button><button id="draw-clear">${tr('清除', 'Clear')}</button>
       </div>
       <div id="draw-board"><canvas id="draw-canvas" width="${CANVAS_W}" height="${CANVAS_H}"></canvas></div>
       <div id="draw-colors">${PALETTE.map((c) => `<button class="swatch" data-color="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>
@@ -247,7 +248,7 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
     const full = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
     const box = contentBounds(full);
     if (!box || (opts.mode === 'outline' && !dirty)) {
-      status.textContent = '還沒畫任何東西,不能儲存';
+      status.textContent = tr('還沒畫任何東西,不能儲存', 'Draw something before saving');
       return;
     }
     const dims = fitHeight(box.w, box.h, GUARD_PNG_H);

@@ -1,3 +1,4 @@
+import type { Text } from '../i18n/lang';
 import { MAX_DT_MS } from '../config/tuning';
 
 export type WeaponId =
@@ -27,7 +28,7 @@ export interface OverheatDef {
 
 export interface WeaponDef {
   id: WeaponId;
-  name: string;
+  name: Text;
   rarity: Rarity;
   kind: ProjectileKind;
   /** null 表示用 tuning.fireIntervalMs。 */
@@ -60,26 +61,26 @@ export interface WeaponDef {
  * 第二批:彈彈毛線球 7.1(彈跳多打幾下)< 棉花糖炸彈 14.5(範圍)、催眠懷錶全集氣約 14.7(穿透穿牆)< 許願流星杖 22(範圍)。
  */
 export const WEAPONS: Readonly<Record<WeaponId, WeaponDef>> = {
-  yawnBubble: { id: 'yawnBubble', name: '哈欠泡泡', rarity: 'base', kind: 'straight', fireIntervalMs: null, damage: 1, speed: null, size: 14, color: 0xd6f0ff, lifeMs: 1000, baseAmmo: null },
-  sheepGun: { id: 'sheepGun', name: '數羊機槍', rarity: 'R', kind: 'straight', fireIntervalMs: 70, damage: 1, speed: 700, size: 10, color: 0xffffff, lifeMs: 900, baseAmmo: 120 },
-  pillowCannon: { id: 'pillowCannon', name: '枕頭砲', rarity: 'R', kind: 'pierce', fireIntervalMs: 450, damage: 4, speed: 380, size: 22, color: 0xf6d6e8, lifeMs: 1600, baseAmmo: 30 },
-  milkSpray: { id: 'milkSpray', name: '晚安牛奶噴霧', rarity: 'R', kind: 'spread', fireIntervalMs: 300, damage: 1, speed: 600, size: 10, color: 0xfffaf0, lifeMs: 480, baseAmmo: 60, pellets: 4, spreadDeg: 30 },
-  lullabyHarp: { id: 'lullabyHarp', name: '搖籃曲豎琴', rarity: 'SR', kind: 'homing', fireIntervalMs: 120, damage: 2, speed: 420, size: 10, color: 0xffe08a, lifeMs: 1600, baseAmmo: 80 },
-  blanketBoomerang: { id: 'blanketBoomerang', name: '棉被迴力鏢', rarity: 'SR', kind: 'boomerang', fireIntervalMs: 400, damage: 6, speed: 520, size: 20, color: 0x9fc5ff, lifeMs: 2000, baseAmmo: 35 },
+  yawnBubble: { id: 'yawnBubble', name: { zh: '哈欠泡泡', en: 'Yawn Bubble' }, rarity: 'base', kind: 'straight', fireIntervalMs: null, damage: 1, speed: null, size: 14, color: 0xd6f0ff, lifeMs: 1000, baseAmmo: null },
+  sheepGun: { id: 'sheepGun', name: { zh: '數羊機槍', en: 'Sheep-Counting Gun' }, rarity: 'R', kind: 'straight', fireIntervalMs: 70, damage: 1, speed: 700, size: 10, color: 0xffffff, lifeMs: 900, baseAmmo: 120 },
+  pillowCannon: { id: 'pillowCannon', name: { zh: '枕頭砲', en: 'Pillow Cannon' }, rarity: 'R', kind: 'pierce', fireIntervalMs: 450, damage: 4, speed: 380, size: 22, color: 0xf6d6e8, lifeMs: 1600, baseAmmo: 30 },
+  milkSpray: { id: 'milkSpray', name: { zh: '晚安牛奶噴霧', en: 'Goodnight Milk Spray' }, rarity: 'R', kind: 'spread', fireIntervalMs: 300, damage: 1, speed: 600, size: 10, color: 0xfffaf0, lifeMs: 480, baseAmmo: 60, pellets: 4, spreadDeg: 30 },
+  lullabyHarp: { id: 'lullabyHarp', name: { zh: '搖籃曲豎琴', en: 'Lullaby Harp' }, rarity: 'SR', kind: 'homing', fireIntervalMs: 120, damage: 2, speed: 420, size: 10, color: 0xffe08a, lifeMs: 1600, baseAmmo: 80 },
+  blanketBoomerang: { id: 'blanketBoomerang', name: { zh: '棉被迴力鏢', en: 'Blanket Boomerang' }, rarity: 'SR', kind: 'boomerang', fireIntervalMs: 400, damage: 6, speed: 520, size: 20, color: 0x9fc5ff, lifeMs: 2000, baseAmmo: 35 },
   moonLamp: {
-    id: 'moonLamp', name: '月亮催眠燈', rarity: 'SSR', kind: 'beam', fireIntervalMs: 60, damage: 2, speed: 900, size: 12, color: 0xfff3a8, lifeMs: 300, baseAmmo: null,
+    id: 'moonLamp', name: { zh: '月亮催眠燈', en: 'Moon Sleep Lamp' }, rarity: 'SSR', kind: 'beam', fireIntervalMs: 60, damage: 2, speed: 900, size: 12, color: 0xfff3a8, lifeMs: 300, baseAmmo: null,
     overheat: { heatPerShot: 5, maxHeat: 100, coolPerSec: 40, resumeAt: 30 },
   },
-  yarnBall: { id: 'yarnBall', name: '彈彈毛線球', rarity: 'R', kind: 'bounce', fireIntervalMs: 280, damage: 2, speed: 460, size: 14, color: 0xf6b8d0, lifeMs: 2400, baseAmmo: 50, gravity: 1100, bounces: 3 },
+  yarnBall: { id: 'yarnBall', name: { zh: '彈彈毛線球', en: 'Bouncy Yarn Ball' }, rarity: 'R', kind: 'bounce', fireIntervalMs: 280, damage: 2, speed: 460, size: 14, color: 0xf6b8d0, lifeMs: 2400, baseAmmo: 50, gravity: 1100, bounces: 3 },
   marshmallowBomb: {
-    id: 'marshmallowBomb', name: '晚安棉花糖炸彈', rarity: 'SR', kind: 'lob', fireIntervalMs: 550, damage: 8, speed: 480, size: 18, color: 0xfff4f8, lifeMs: 2400, baseAmmo: 30,
+    id: 'marshmallowBomb', name: { zh: '晚安棉花糖炸彈', en: 'Goodnight Marshmallow Bomb' }, rarity: 'SR', kind: 'lob', fireIntervalMs: 550, damage: 8, speed: 480, size: 18, color: 0xfff4f8, lifeMs: 2400, baseAmmo: 30,
     gravity: 1100, blastRadius: 80,
   },
   hypnoWatch: {
-    id: 'hypnoWatch', name: '催眠懷錶', rarity: 'SR', kind: 'charge', fireIntervalMs: 300, damage: 3, speed: 520, size: 24, color: 0xc8a8ff, lifeMs: 1400, baseAmmo: 25,
+    id: 'hypnoWatch', name: { zh: '催眠懷錶', en: 'Hypno Pocket Watch' }, rarity: 'SR', kind: 'charge', fireIntervalMs: 300, damage: 3, speed: 520, size: 24, color: 0xc8a8ff, lifeMs: 1400, baseAmmo: 25,
     charge: { maxDamage: 22, maxMs: 1200 },
   },
-  wishingStar: { id: 'wishingStar', name: '許願流星杖', rarity: 'SSR', kind: 'meteor', fireIntervalMs: 180, damage: 4, speed: 900, size: 18, color: 0xffe070, lifeMs: 1200, baseAmmo: 60, blastRadius: 60 },
+  wishingStar: { id: 'wishingStar', name: { zh: '許願流星杖', en: 'Wishing Star Wand' }, rarity: 'SSR', kind: 'meteor', fireIntervalMs: 180, damage: 4, speed: 900, size: 18, color: 0xffe070, lifeMs: 1200, baseAmmo: 60, blastRadius: 60 },
 };
 
 export const SPECIAL_WEAPONS: readonly SpecialWeaponId[] = [

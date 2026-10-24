@@ -3,7 +3,7 @@ import type { LevelDef } from './levelDef';
 /** 機關測試場(只給自動測試用,不在選關裡):移動平台(左右、上下)、彈跳墊、會掉的平台。 */
 export const LAB: LevelDef = {
   id: 'lab',
-  name: '機關測試場',
+  name: { zh: '機關測試場', en: 'Gadget Lab' },
   world: 1,
   worldW: 3000,
   terrain: [],

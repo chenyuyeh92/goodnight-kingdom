@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const SHIPWRECK: LevelDef = {
   id: 'w3-2',
-  name: '沉船拱門',
+  name: { zh: '沉船拱門', en: 'Shipwreck Arch' },
   world: 3,
   underwater: true,
   worldW: 10200,

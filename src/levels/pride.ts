@@ -7,7 +7,7 @@ import { GROUND_Y, type LevelDef } from './levelDef';
  */
 export const PRIDE_ROCK: LevelDef = {
   id: 'w7-3',
-  name: '星空草原',
+  name: { zh: '星空草原', en: 'Starry Meadow' },
   world: 7,
   worldW: 10200,
   platformArt: 'savanna-platform',
