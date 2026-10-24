@@ -4,8 +4,9 @@ import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
+import type { StoryData } from './StoryScene';
 
-type Choice = PlayMode | 'backpack' | 'draw' | 'settings';
+type Choice = PlayMode | 'backpack' | 'draw' | 'settings' | 'story';
 
 const BUTTONS: ReadonlyArray<{ choice: Choice; label: string; art: string; code: string }> = [
   { choice: 'single', label: '開始遊戲', art: 'btn-start', code: 'Digit1' },
@@ -53,7 +54,11 @@ export class ModeSelectScene extends Phaser.Scene {
       (menuButton(this, 480, y, b.label, () => this.choose(b.choice), b.art) as Phaser.GameObjects.Image).setScale(BUTTON_SCALE);
       this.add.text(620, y, `${i + 1}`, { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     });
+    // 右上角小小的「故事」:重看開場。
+    (menuButton(this, 860, 40, '故事', () => this.choose('story')) as Phaser.GameObjects.Image).setScale(0.55);
+    this.add.text(930, 40, '6', { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     onMenuKey(this, (e) => {
+      if (e.code === 'Digit6') this.choose('story');
       const b = BUTTONS.find((x) => x.code === e.code);
       if (b) this.choose(b.choice);
     });
@@ -70,6 +75,18 @@ export class ModeSelectScene extends Phaser.Scene {
     if (choice === 'backpack') this.scene.start('Backpack', this.data_);
     else if (choice === 'draw') this.scene.start('GuardRoom', this.data_);
     else if (choice === 'settings') this.scene.start('Settings', this.data_);
-    else this.scene.start('LevelSelect', { ...this.data_, mode: choice });
+    else if (choice === 'story') this.playStory({ scene: 'ModeSelect', data: this.data_ });
+    else {
+      const next = { scene: 'LevelSelect', data: { ...this.data_, mode: choice } };
+      // 第一次開始遊戲先播開場。
+      const seen = this.data_.save?.get().story.opening ?? false;
+      if (this.data_.stories !== false && !seen) this.playStory(next);
+      else this.scene.start(next.scene, next.data);
+    }
+  }
+
+  private playStory(then: StoryData['then']): void {
+    const data: StoryData = { ...this.data_, story: 'opening', then };
+    this.scene.start('Story', data);
   }
 }

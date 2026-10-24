@@ -14,6 +14,7 @@ import { LevelCompleteScene } from './scenes/LevelCompleteScene';
 import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { GuardRoomScene } from './scenes/GuardRoomScene';
 import { SettingsScene } from './scenes/SettingsScene';
+import { StoryScene } from './scenes/StoryScene';
 import { audio } from './audio/audio';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
 import { TestRangeScene, type TestRangeData } from './scenes/TestRangeScene';
@@ -67,7 +68,13 @@ export interface EnemyDebug {
 
 export interface GkDebug {
   ready: boolean;
-  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings';
+  screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings' | 'story';
+  /** 故事畫面:哪個故事、第幾幕、這一幕打出來的字、打完了沒。 */
+  story?: { id: string; beat: number; beats: number; beatId: string; text: string[]; done: boolean };
+  /** 世界第一關的開頭句(正在顯示時)。 */
+  intro?: string | null;
+  /** 魔王頭上的對話框(正在顯示時)。 */
+  bossSay?: string | null;
   /** 設定畫面的音量與目前選到的列。 */
   settings?: { music: number; sfx: number; muted: boolean };
   settingsRow?: string;
@@ -228,7 +235,9 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   const level = parseLevelId(params.get('level'));
   const guards = createGuardStore(safeLocalStorage());
   audio.init(safeLocalStorage(), `${import.meta.env.BASE_URL}assets/music/tracks.json`);
-  const data: TestRangeData = { getTuning: () => store.get(), testHooks, save, touch, level, guards };
+  // 測試模式預設不播故事(開場、世界開頭句),故事的測試加 ?story=1。
+  const stories = !testHooks || params.get('story') === '1';
+  const data: TestRangeData = { getTuning: () => store.get(), testHooks, save, touch, level, guards, stories };
   game.scene.add('TestRange', TestRangeScene, false);
   game.scene.add('ModeSelect', ModeSelectScene, false);
   game.scene.add('Backpack', BackpackScene, false);
@@ -236,6 +245,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('LevelSelect', LevelSelectScene, false);
   game.scene.add('GuardRoom', GuardRoomScene, false);
   game.scene.add('Settings', SettingsScene, false);
+  game.scene.add('Story', StoryScene, false);
   game.scene.add('Boot', BootScene, false);
   const noArt = params.get('noart') === '1';
   if (mode) game.scene.start('Boot', { next: 'TestRange', data: { ...data, mode }, noArt });

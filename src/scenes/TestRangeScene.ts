@@ -71,6 +71,7 @@ import { ParallaxBackground } from '../game/background';
 import { audio } from '../audio/audio';
 import { HARP_PITCH, SHOOT_SFX } from '../audio/recipes';
 import { levelTrack, worldTrack, type TrackId } from '../audio/tunes';
+import { TAPIR_LINES, WORLD_INTRO, introWorldOf } from '../story/script';
 import { hintText } from '../ui/hints';
 import type { GuardPlayer, GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, guardKeyFor } from '../draw/guardTextures';
@@ -123,6 +124,10 @@ const BOSS_BAR_H = 12;
 /** 關主血條放在畫面底部的地面上,不擋到在上方盤旋的貓頭鷹。 */
 const BOSS_BAR_Y = 514;
 const BOSS_PHASE_TEXT_MS = 1500;
+/** 世界第一關的開頭句顯示多久(點一下跳過)。 */
+const INTRO_MS = 3500;
+/** 魔王頭上的對話框顯示多久。 */
+const BOSS_SAY_MS = 2500;
 /** 打倒關主後到結算畫面的時間。 */
 const BOSS_OUTRO_MS = 1500;
 /** 打倒關主:停頓 ×3、晃動 ×2。 */
@@ -453,6 +458,8 @@ export interface TestRangeData {
   checkpointX?: number;
   restarts?: number;
   testHooks?: boolean;
+  /** 播故事(開場、世界開頭句);測試模式預設關掉。 */
+  stories?: boolean;
 }
 
 const HEART_FULL = 'gk-heart';
@@ -488,7 +495,7 @@ function musicFor(level: LevelDef): TrackId {
 
 /** 只保留跨關卡的設定(存檔、觸控、模式等),去掉這一輪的進度。 */
 export function sessionData(d: TestRangeData): TestRangeData {
-  return { getTuning: d.getTuning, testHooks: d.testHooks, save: d.save, guards: d.guards, touch: d.touch, level: d.level, mode: d.mode };
+  return { getTuning: d.getTuning, testHooks: d.testHooks, save: d.save, guards: d.guards, touch: d.touch, level: d.level, mode: d.mode, stories: d.stories };
 }
 
 export class TestRangeScene extends Phaser.Scene {
@@ -592,6 +599,10 @@ export class TestRangeScene extends Phaser.Scene {
   private bossFodderSet = new Set<EnemyEntity>();
   private bossCalls = 0;
   private echoes = 0;
+  /** 世界第一關的開頭句:還剩多久、畫面上的東西。 */
+  private intro: { text: string; leftMs: number; views: Phaser.GameObjects.GameObject[] } | null = null;
+  /** 魔王頭上的對話框。 */
+  private speech: Phaser.GameObjects.Text | null = null;
   /** 路上的雜魚潮:計時、叫出來的(還在場上的)、叫了幾次;測試可以關掉。 */
   private ambient: AmbientFodder = initialAmbientFodder();
   private ambientSet = new Set<EnemyEntity>();
@@ -1000,10 +1011,75 @@ export class TestRangeScene extends Phaser.Scene {
       this.touchControls = null;
     });
 
+    this.intro = null;
+    this.speech = null;
+    this.maybeShowIntro();
     this.publishDebug();
   }
 
+  /** 每個世界第一關第一次進去(不是重來):黑底白字一句話,約 3 秒,點一下或按任意鍵跳過。 */
+  private maybeShowIntro(): void {
+    const world = introWorldOf(this.level.id);
+    if (world === null || this.initData.stories === false || this.restarts > 0) return;
+    if (this.save.get().story.intros.includes(world)) return;
+    this.save.markIntro(world);
+    const text = WORLD_INTRO[world];
+    const bg = this.add.rectangle(VIEW_W / 2, 270, VIEW_W, 540, 0x0d0b24).setScrollFactor(0).setDepth(200).setInteractive();
+    const label = this.add
+      .text(VIEW_W / 2, 270, text, { fontSize: '28px', color: '#f3e9d2', align: 'center', wordWrap: { width: 760, useAdvancedWrap: true }, lineSpacing: 12 })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(201)
+      .setAlpha(0);
+    this.tweens.add({ targets: label, alpha: 1, duration: 500 });
+    this.intro = { text, leftMs: INTRO_MS, views: [bg, label] };
+    const skip = (): void => this.endIntro();
+    bg.once('pointerdown', skip);
+    this.input.keyboard?.once('keydown', skip);
+  }
+
+  private endIntro(): void {
+    const intro = this.intro;
+    if (!intro) return;
+    this.intro = null;
+    this.tweens.add({ targets: intro.views, alpha: 0, duration: 400, onComplete: () => intro.views.forEach((v) => v.destroy()) });
+  }
+
+  /** 魔王頭上的對話框(夢貘的話),跟著魔王走。 */
+  private bossSay(enemy: EnemyEntity, text: string): void {
+    this.speech?.destroy();
+    const speech = this.add
+      .text(enemy.x, 0, text, { fontSize: '20px', color: '#3a2a5a', backgroundColor: '#f3e9d2', padding: { x: 10, y: 6 } })
+      .setOrigin(0.5, 1)
+      .setDepth(DARK_DEPTH + 1);
+    this.speech = speech;
+    const follow = (): void => {
+      if (!enemy.body.active) return;
+      const top = enemy.body.y + enemy.def.h / 2 - enemy.def.h * enemy.artScaleMul;
+      speech.setPosition(enemy.x, top - 10);
+    };
+    follow();
+    this.tweens.add({
+      targets: speech,
+      alpha: { from: 1, to: 0 },
+      delay: BOSS_SAY_MS - 300,
+      duration: 300,
+      onComplete: () => {
+        speech.destroy();
+        if (this.speech === speech) this.speech = null;
+      },
+    });
+    this.time.addEvent({ delay: 16, repeat: Math.ceil(BOSS_SAY_MS / 16), callback: () => speech.active && follow() });
+  }
+
   update(time: number, delta: number): void {
+    // 世界的開頭句顯示時遊戲先停著。
+    if (this.intro) {
+      this.intro.leftMs -= delta;
+      if (this.intro.leftMs <= 0) this.endIntro();
+      this.publishDebug();
+      return;
+    }
     const t = this.getTuning();
     const dtMs = Math.min(delta, MAX_DT_MS);
     // 卡頓時物理也只前進 MAX_DT_MS,不會一次衝過頭(例如蝙蝠俯衝低到打到蹲著的人)。
@@ -2315,7 +2391,10 @@ export class TestRangeScene extends Phaser.Scene {
     this.inhaling = step.inhaling;
     // 手下從夢貘背後(右邊)出來,不擋在玩家逃開吸氣的方向。
     for (const type of step.summon) boss.minions.add(this.spawnFrom({ type, from: 'right', delayMs: 0 }, false));
-    if (step.enteredPhase) this.announcePhase(boss);
+    if (step.enteredPhase) {
+      this.announcePhase(boss);
+      if (step.enteredPhase === 2 || step.enteredPhase === 3) this.bossSay(enemy, TAPIR_LINES[step.enteredPhase]);
+    }
     if (step.nightmareStart) this.startNightmare(enemy, step.nightmareStart.halfW, step.nightmareStart.chargeMs);
     if (step.nightmareBlast) this.blastNightmare();
   }
@@ -3098,6 +3177,7 @@ export class TestRangeScene extends Phaser.Scene {
     enemy.hp = maxHp;
     this.boss = { enemy, ai: initialAi(type), maxHp, invulnerable: false, minions: new Set(), wasAngry: false };
     this.bossName.setText(enemy.def.name);
+    if (type === 'tapir') this.time.delayedCall(600, () => this.boss?.enemy === enemy && this.bossSay(enemy, TAPIR_LINES.enter));
     this.bossBarBg.setVisible(true);
     this.bossBar.setVisible(true);
     this.renderBossBar();
@@ -3623,6 +3703,8 @@ export class TestRangeScene extends Phaser.Scene {
       sfx: { ...audio.counts },
       music: audio.currentTrack(),
       musicSource: audio.musicSource,
+      intro: this.intro?.text ?? null,
+      bossSay: this.speech?.active ? this.speech.text : null,
       voices: audio.voicesStarted,
       musicSchedulers: audio.activeSchedulers,
       musicTracks: audio.activeTracks,
