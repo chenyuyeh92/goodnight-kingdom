@@ -21,7 +21,7 @@ test.describe('世界 7 非洲大草原', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w7-1' ? 'day' : level === 'w7-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w7-1' ? 'w07-day' : level === 'w7-2' ? 'w07-dusk' : 'w07-night');
     });
   }
 

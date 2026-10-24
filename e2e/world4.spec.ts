@@ -21,7 +21,7 @@ test.describe('世界 4 冰雪極地', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w4-1' ? 'day' : level === 'w4-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w4-1' ? 'w04-day' : level === 'w4-2' ? 'w04-dusk' : 'w04-night');
     });
   }
 

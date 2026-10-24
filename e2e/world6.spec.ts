@@ -21,7 +21,7 @@ test.describe('世界 6 熱帶雨林', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w6-1' ? 'day' : level === 'w6-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w6-1' ? 'w06-day' : level === 'w6-2' ? 'w06-dusk' : 'w06-night');
     });
   }
 

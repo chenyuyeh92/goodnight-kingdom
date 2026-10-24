@@ -21,7 +21,7 @@ test.describe('世界 9 地底洞窟', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w9-1' ? 'day' : level === 'w9-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w9-1' ? 'w09-day' : level === 'w9-2' ? 'w09-dusk' : 'w09-night');
     });
   }
 

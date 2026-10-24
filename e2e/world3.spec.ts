@@ -23,7 +23,7 @@ test.describe('世界 3 亞特蘭提斯海底王國', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w3-1' ? 'day' : level === 'w3-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w3-1' ? 'w03-day' : level === 'w3-2' ? 'w03-dusk' : 'w03-night');
     });
   }
 

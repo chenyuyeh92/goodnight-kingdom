@@ -22,7 +22,7 @@ test.describe('世界 2 沙漠金字塔王國', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w2-1' ? 'day' : level === 'w2-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w2-1' ? 'w02-day' : level === 'w2-2' ? 'w02-dusk' : 'w02-night');
     });
   }
 

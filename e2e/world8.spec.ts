@@ -21,7 +21,7 @@ test.describe('世界 8 雲端高山', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w8-1' ? 'day' : level === 'w8-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w8-1' ? 'w08-day' : level === 'w8-2' ? 'w08-dusk' : 'w08-night');
     });
   }
 

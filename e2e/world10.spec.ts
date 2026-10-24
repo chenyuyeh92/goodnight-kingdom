@@ -27,7 +27,7 @@ test.describe('世界 10 月亮城堡', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w10-1' ? 'day' : level === 'w10-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w10-1' ? 'w10-day' : level === 'w10-2' ? 'w10-dusk' : 'w10-night');
       expect(s.w10!.starsTotal).toBe(10);
       expect(s.w10!.stars).toBe(0);
     });

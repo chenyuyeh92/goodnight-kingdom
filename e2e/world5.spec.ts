@@ -21,7 +21,7 @@ test.describe('世界 5 火山島', () => {
       const s = await gk(page);
       expect(s.level).toBe(level);
       expect(s.art!.missing).toEqual([]);
-      expect(s.music).toBe(level === 'w5-1' ? 'day' : level === 'w5-2' ? 'dusk' : 'night');
+      expect(s.music).toBe(level === 'w5-1' ? 'w05-day' : level === 'w5-2' ? 'w05-dusk' : 'w05-night');
     });
   }
 
