@@ -7,6 +7,7 @@ import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { iconOrNothing } from './menuIcons';
 import { pick, tr, type Text } from '../i18n/lang';
+import { fitWidth } from '../ui/fitText';
 
 const FIRST_ROW_Y = 92;
 const ROW_PITCH = 34;
@@ -58,7 +59,7 @@ export class BackpackScene extends Phaser.Scene {
       lines.push(line);
       this.add.rectangle(480, y, 760, ROW_PITCH - 4, 0x3b3366, stars > 0 ? 1 : 0.5);
       if (stars > 0) iconOrNothing(this, 130, y, id, ROW_PITCH - 6);
-      this.add.text(160, y, line, { fontSize: '18px', color: stars > 0 ? RARITY_COLOR[def.rarity] : LOCKED_COLOR }).setOrigin(0, 0.5);
+      fitWidth(this.add.text(160, y, line, { fontSize: '18px', color: stars > 0 ? RARITY_COLOR[def.rarity] : LOCKED_COLOR }).setOrigin(0, 0.5), 690);
     });
 
     const rates = tr(`寶箱${chestRatesText()}`, `Chest ${chestRatesText()}`);

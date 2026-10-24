@@ -10,6 +10,7 @@ import { onMenuKey } from './menuKeys';
 import { TEST_TOOLS, setTestMode, testModeOn } from '../config/testTools';
 import { menuButton, smallButton } from './menuButton';
 import { pick, tr, type Text } from '../i18n/lang';
+import { fitWidth } from '../ui/fitText';
 
 const CARD_W = 250;
 const CARD_H = 230;
@@ -48,7 +49,8 @@ export class LevelSelectScene extends Phaser.Scene {
     if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.45);
     const opened = WORLDS.filter((w) => isUnlocked(w[0], cleared)).length;
     const world = Math.min(Math.max(this.data_.world ?? opened, 1), WORLDS.length);
-    this.add.text(480, 70, tr(`世界 ${world}  ${pick(WORLD_NAMES[world - 1])}`, `World ${world}  ${pick(WORLD_NAMES[world - 1])}`), { fontSize: '36px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
+    // 左右換世界的按鈕在 180 與 780,標題不能碰到。
+    fitWidth(this.add.text(480, 70, tr(`世界 ${world}  ${pick(WORLD_NAMES[world - 1])}`, `World ${world}  ${pick(WORLD_NAMES[world - 1])}`), { fontSize: '36px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5), 570);
     const go = (w: number): void => {
       if (w >= 1 && w <= WORLDS.length && w !== world) this.scene.restart({ ...this.data_, world: w });
     };

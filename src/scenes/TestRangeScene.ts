@@ -1854,6 +1854,9 @@ export class TestRangeScene extends Phaser.Scene {
         h.setVisible(!down);
       });
       row.text.setText(down ? tr('睡著了…', 'Asleep…') : weaponHud(p.loadout, p.buffs)).setX(down ? row.hearts[0].x - HEART_SIZE / 2 : row.hearts[MAX_HEARTS - 1].x + HEART_SIZE);
+      // 英文武器名比較長:超出這一列就橫向縮小,不蓋到玩家 B 那一列。
+      const rowEnd = Math.min(960 - 8, 16 + (i + 1) * HUD_ROW_W - 8);
+      row.text.setScale(Math.min(1, (rowEnd - row.text.x) / Math.max(1, row.text.width)), 1);
       if (!row.icon) return;
       const key = weaponIcon(activeWeapon(p.loadout).id);
       if (this.textures.exists(key) && row.icon.texture.key !== key) row.icon.setTexture(key);
@@ -3184,8 +3187,11 @@ export class TestRangeScene extends Phaser.Scene {
 
   private announcePhase(boss: Boss): void {
     audio.sfx('bossPhase');
-    const name = pick(BOSS_SHORT_NAME[boss.enemy.def.type as BossType] ?? boss.enemy.def.name);
-    this.bossPhaseText.setText(tr(`${name}越來越暴躁了!`, `${name} is getting angrier!`)).setAlpha(1);
+    const short = BOSS_SHORT_NAME[boss.enemy.def.type as BossType];
+    const name = pick(short ?? boss.enemy.def.name);
+    // 小頭目用全名,英文前面加 The(「The Sleepless Big Squirrel」)。
+    const enName = short ? name : `The ${name}`;
+    this.bossPhaseText.setText(tr(`${name}越來越暴躁了!`, `${enName} is getting grumpier!`)).setAlpha(1);
     this.tweens.add({ targets: this.bossPhaseText, alpha: 0, delay: BOSS_PHASE_TEXT_MS - 300, duration: 300 });
     this.cameras.main.shake(300, 0.008);
   }

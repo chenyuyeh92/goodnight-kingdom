@@ -58,6 +58,11 @@ export function sanitizeGuards(raw: unknown): GuardData {
   return out;
 }
 
+/** 沒取名的守衛:存空字串,顯示時依目前語言叫「守衛」或 Guard。 */
+export function guardDisplayName(name: string): string {
+  return name || tr('守衛', 'Guard');
+}
+
 /** 下載用的檔名:去掉檔名不能用的字元。 */
 export function guardFileName(name: string): string {
   const safe = cutName(name.replace(/[\\/:*?"<>|\s]+/g, '')) || tr('守衛', 'guard');
@@ -97,7 +102,7 @@ export function createGuardStore(storage: StorageLike | null, now: () => number 
     get: () => current,
     add(name, png) {
       if (current.guards.length >= MAX_GUARDS) return { ok: false, reason: 'full' };
-      const guard: Guard = { id: `g${now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`, name: cutName(name.trim()) || tr('守衛', 'Guard'), png, createdAt: now() };
+      const guard: Guard = { id: `g${now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`, name: cutName(name.trim()), png, createdAt: now() };
       return write({ ...current, guards: [...current.guards, guard] }) ? { ok: true, guard } : { ok: false, reason: 'storage' };
     },
     remove(id) {

@@ -19,7 +19,7 @@ const BUTTON_Y = 450;
 const INPUT_LOCK_MS = 500;
 /** 結局的話(企劃 6.4)。 */
 export const ENDING_LINES: readonly Text[] = [
-  { zh: '夢貘終於睡著了,睡意回到晚安王國,', en: 'The Dream Tapir is finally asleep, and sleep is back.' },
+  { zh: '夢貘終於睡著了,睡意回到晚安王國,', en: 'The Dream Tapir is finally asleep, and sleep has come back to the Goodnight Kingdom.' },
   { zh: '大家都可以好好睡覺了。晚安!', en: 'Everyone can sleep soundly now. Good night!' },
 ];
 

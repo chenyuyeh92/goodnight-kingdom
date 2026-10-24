@@ -1,5 +1,6 @@
 import type { Intent } from '../input/intent';
 import { JOYSTICK_MAX_RADIUS, TouchState, type TouchRole } from '../input/touchState';
+import { tr } from '../i18n/lang';
 
 const CSS = `
 #touch-controls { position: fixed; inset: 0; z-index: 20; pointer-events: none;
@@ -41,9 +42,9 @@ export function mountTouchControls(parent: HTMLElement): TouchControls {
   root.innerHTML = `
     <div id="touch-stick-zone"></div>
     <div id="touch-stick"><div class="knob"></div></div>
-    <div id="touch-shoot" class="touch-btn">射擊</div>
-    <div id="touch-jump" class="touch-btn">跳</div>
-    <div id="touch-rotate">請把手機轉成橫向</div>`;
+    <div id="touch-shoot" class="touch-btn">${tr('射擊', 'Shoot')}</div>
+    <div id="touch-jump" class="touch-btn">${tr('跳', 'Jump')}</div>
+    <div id="touch-rotate">${tr('請把手機轉成橫向', 'Please turn your phone sideways')}</div>`;
   parent.append(root);
 
   const zone = root.querySelector('#touch-stick-zone') as HTMLElement;

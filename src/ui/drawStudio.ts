@@ -81,7 +81,7 @@ export function mountDrawStudio(parent: HTMLElement, opts: DrawStudioOptions): D
       <div id="draw-board"><canvas id="draw-canvas" width="${CANVAS_W}" height="${CANVAS_H}"></canvas></div>
       <div id="draw-colors">${PALETTE.map((c) => `<button class="swatch" data-color="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>
     </div>
-    <div id="draw-rotate">請把手機轉成橫向再畫</div>`;
+    <div id="draw-rotate">${tr('請把手機轉成橫向再畫', 'Turn your phone sideways to draw')}</div>`;
   parent.append(root);
 
   const canvas = root.querySelector('#draw-canvas') as HTMLCanvasElement;

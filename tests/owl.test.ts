@@ -17,7 +17,7 @@ function runUntil(brain: OwlBrain, p: Partial<OwlSense>, done: (b: OwlBrain) => 
 }
 
 test('貓頭鷹資料:關主、180 血(原本 60 的三倍)、會飛', () => {
-  expect(ENEMY_DEFS.nightOwl).toMatchObject({ tier: 'boss', hp: 180, flying: true, name: { zh: '熬夜貓頭鷹', en: 'Up-Late Owl' } });
+  expect(ENEMY_DEFS.nightOwl).toMatchObject({ tier: 'boss', hp: 180, flying: true, name: { zh: '熬夜貓頭鷹', en: 'Wide-Awake Owl' } });
 });
 
 test('owlPhase 邊界', () => {

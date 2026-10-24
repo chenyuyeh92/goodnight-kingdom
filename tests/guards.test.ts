@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { GUARDS_KEY, MAX_GUARDS, createGuardStore, guardFileName, sanitizeGuards } from '../src/draw/guards';
+import { GUARDS_KEY, MAX_GUARDS, createGuardStore, guardDisplayName, guardFileName, sanitizeGuards } from '../src/draw/guards';
 import type { StorageLike } from '../src/config/tuning';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgo=';
@@ -38,11 +38,17 @@ test('刪除時也取消選用', () => {
   expect(s.get().selected.A).toBeNull();
 });
 
-test('名字去掉空白、限制長度,沒填就叫守衛', () => {
+test('名字去掉空白、限制長度,沒填就存空的,顯示時依語言叫「守衛」或 Guard', async () => {
+  const { setLang } = await import('../src/i18n/lang');
   const s = createGuardStore(memory());
   const a = s.add('   ', PNG);
   const b = s.add('一二三四五六七八九十十一', PNG);
-  expect(a.ok && a.guard.name).toBe('守衛');
+  expect(a.ok && a.guard.name).toBe('');
+  expect(guardDisplayName('')).toBe('守衛');
+  setLang('en', null);
+  expect(guardDisplayName('')).toBe('Guard');
+  expect(guardDisplayName('小咩')).toBe('小咩');
+  setLang('zh', null);
   expect(b.ok && b.guard.name.length).toBe(8);
 });
 

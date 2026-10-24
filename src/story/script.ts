@@ -18,7 +18,7 @@ export const OPENING: readonly StoryBeat[] = [
   {
     id: 'kingdom',
     zh: ['在很遠很遠的地方,有一個晚安王國。', '這裡的每個晚上,都很安靜、很溫柔。'],
-    en: ['Far, far away, there was a Goodnight Kingdom.', 'Every night there was quiet and gentle.'],
+    en: ['Far, far away, there was a Goodnight Kingdom.', 'Every night, all was quiet and gentle.'],
   },
   {
     id: 'lightsOff',
@@ -62,7 +62,7 @@ export const ENDING: readonly StoryBeat[] = [
   {
     id: 'nightmares',
     zh: ['泡泡裡,是大家的惡夢。', '考試、打破的杯子、黑黑的衣櫥、找不到回家的路……'],
-    en: ["Inside the bubbles were everyone's nightmares.", 'Tests, broken cups, dark closets, the way home lost…'],
+    en: ["Inside the bubbles were everyone's nightmares.", 'Tests, broken cups, dark closets, getting lost on the way home…'],
   },
   {
     id: 'guardsDream',
@@ -72,7 +72,7 @@ export const ENDING: readonly StoryBeat[] = [
   {
     id: 'realize',
     zh: ['原來,大家睡得那麼好,不是因為沒有惡夢——', '是因為每天晚上,都有人替我們吃掉了。'],
-    en: ['Everyone slept so well, not because there were no nightmares—', 'but because every night, someone ate them for us.'],
+    en: ['So that was why everyone slept so well. Not because there were no nightmares—', 'but because every night, someone ate them for us.'],
   },
   {
     id: 'sleepTalk',

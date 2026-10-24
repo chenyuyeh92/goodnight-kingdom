@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { audio } from '../audio/audio';
-import { MAX_GUARDS, createGuardStore, guardFileName, type GuardPlayer, type GuardStore } from '../draw/guards';
+import { MAX_GUARDS, createGuardStore, guardDisplayName, guardFileName, type GuardPlayer, type GuardStore } from '../draw/guards';
 import { DEFAULT_GUARD_KEY, ensureGuardTexture, guardTextureKey } from '../draw/guardTextures';
 import { mountDrawStudio, type DrawMode, type DrawStudio } from '../ui/drawStudio';
 import type { TestRangeData } from './TestRangeScene';
@@ -87,7 +87,7 @@ export class GuardRoomScene extends Phaser.Scene {
     const data = this.store.get();
     const items: Card[] = [
       { id: null, name: tr('小綿羊', 'Little Sheep'), key: DEFAULT_GUARD_KEY },
-      ...data.guards.map((g) => ({ id: g.id, name: g.name, key: guardTextureKey(g.id) })),
+      ...data.guards.map((g) => ({ id: g.id, name: guardDisplayName(g.name), key: guardTextureKey(g.id) })),
     ];
     items.forEach((c, i) => {
       const x = 480 + ((i % COLS) - (COLS - 1) / 2) * GAP_X;
@@ -201,7 +201,7 @@ export class GuardRoomScene extends Phaser.Scene {
     if (!id) return;
     if (this.time.now > this.confirmDeleteUntil) {
       this.confirmDeleteUntil = this.time.now + CONFIRM_MS;
-      this.deleteButton.setLabel(tr('再按一次刪除', 'Press again to delete'));
+      this.deleteButton.setLabel(tr('再按一次刪除', 'Press again'));
       this.time.delayedCall(CONFIRM_MS, () => {
         if (this.time.now >= this.confirmDeleteUntil) this.deleteButton.setLabel(tr('刪除', 'Delete'));
       });

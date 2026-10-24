@@ -58,7 +58,7 @@ export class SettingsScene extends Phaser.Scene {
 
     for (const kind of ['music', 'sfx'] as const) {
       const y = ROW_Y[kind];
-      this.add.text(200, y, kind === 'music' ? tr('音樂', 'Music') : tr('音效', 'Sound'), { fontSize: '24px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0, 0.5);
+      this.add.text(200, y, kind === 'music' ? tr('音樂', 'Music') : tr('音效', 'Sound FX'), { fontSize: '24px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0, 0.5);
       smallButton(this, 340, y, '−', () => this.adjust(kind, -1), 60);
       this.bars[kind] = this.add.text(380, y, '', { fontSize: '24px', color: '#f8e08e', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0, 0.5);
       smallButton(this, 700, y, '+', () => this.adjust(kind, 1), 60);

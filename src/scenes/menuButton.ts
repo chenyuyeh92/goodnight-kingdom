@@ -1,5 +1,6 @@
 import type Phaser from 'phaser';
 import { audio } from '../audio/audio';
+import { fitWidth } from '../ui/fitText';
 
 const W = 240;
 const H = 64;
@@ -24,7 +25,8 @@ export function menuButton(
   if (base) {
     const img = scene.add.image(x, y, base).setInteractive({ useHandCursor: true });
     let pressed = false;
-    const text = withText ? null : scene.add.text(x, y - 3, label, { fontSize: '24px', color: '#3a2a5a' }).setOrigin(0.5);
+    // 留給按鈕圓角邊框的空間(主選單的按鈕會再縮成 0.9 倍)。
+    const text = withText ? null : fitWidth(scene.add.text(x, y - 3, label, { fontSize: '24px', color: '#3a2a5a' }).setOrigin(0.5), img.width * 0.72);
     const set = (state: '' | '-hover' | '-pressed'): void => {
       const key = `${base}${state}`;
       img.setTexture(tex.exists(key) ? key : base);
