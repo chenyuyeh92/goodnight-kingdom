@@ -24,7 +24,7 @@
 | 檔案 | 規格 | 用在哪裡 |
 |---|---|---|
 | `promo-zh-1080p.mp4`、`promo-en-1080p.mp4` | 60 秒,1920×1080,H.264,AAC 立體聲 | 上傳 YouTube(Google Play 只收 YouTube 連結)、網站 |
-| `appstore-zh-iphone.mp4`、`appstore-en-iphone.mp4` | 30 秒,1920×886,30 fps | App Store「App 預覽」iPhone 6.5/6.9 吋(橫式) |
+| `appstore-zh-iphone.mp4`、`appstore-en-iphone.mp4` | 30 秒,1920×886,30 fps(遊戲畫面縮小放中間,左右補夜空色,才不會切到愛心或角色的腳) | App Store「App 預覽」iPhone 6.5/6.9 吋(橫式) |
 | `appstore-zh-ipad.mp4`、`appstore-en-ipad.mp4` | 30 秒,1600×1200,30 fps | App Store「App 預覽」iPad 13 吋(橫式) |
 | `promo-zh-vertical.mp4`、`promo-en-vertical.mp4` | 60 秒,1080×1920 | 社群(Reels/Shorts)、家教網作品卡(跟其他作品的直式影片一樣) |
 

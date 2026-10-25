@@ -72,21 +72,38 @@ async function hold(page, keys, ms) {
   for (const k of keys) await page.keyboard.up(k);
 }
 
-/** 一邊往右走一邊射擊,每隔一下跳一次。 */
-async function runAndGun(page, ms, { jumpEvery = 1300, right = 'KeyD', shoot = 'KeyC', jump = 'KeyV' } = {}) {
-  await page.keyboard.down(right);
-  await page.keyboard.down(shoot);
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    await sleep(Math.min(jumpEvery, end - Date.now()));
-    if (jumpEvery > 0 && Date.now() < end) await hold(page, [jump], 220);
+/**
+ * 一邊往右走一邊射擊,每隔一下跳一次。射擊用連續點按(換到要集氣的武器也射得出來);
+ * walk/stand 可以讓角色走一下、停下來射一下,看得到魔物被哄睡。
+ */
+async function runAndGun(page, ms, { jumpEvery = 1300, right = 'KeyD', shoot = 'KeyC', jump = 'KeyV', walk = 0, stand = 0 } = {}) {
+  const t0 = Date.now();
+  let walking = false;
+  let lastJump = t0;
+  let shotDown = false;
+  while (Date.now() - t0 < ms) {
+    const t = Date.now() - t0;
+    const wantWalk = walk === 0 || t % (walk + stand) < walk;
+    if (wantWalk !== walking) {
+      if (wantWalk) await page.keyboard.down(right);
+      else await page.keyboard.up(right);
+      walking = wantWalk;
+    }
+    if (shotDown) await page.keyboard.up(shoot);
+    else await page.keyboard.down(shoot);
+    shotDown = !shotDown;
+    if (jumpEvery > 0 && Date.now() - lastJump > jumpEvery) {
+      lastJump = Date.now();
+      await hold(page, [jump], 220);
+    }
+    await sleep(shotDown ? 260 : 60);
   }
-  await page.keyboard.up(shoot);
-  await page.keyboard.up(right);
+  if (shotDown) await page.keyboard.up(shoot);
+  if (walking) await page.keyboard.up(right);
 }
 
 /** 在畫布上畫一條線(座標用畫板的 320×512)。 */
-async function stroke(page, pts, steps = 6) {
+async function stroke(page, pts, steps = 3) {
   const box = await page.locator('#draw-canvas').boundingBox();
   const at = ([x, y]) => [box.x + (x / 320) * box.width, box.y + (y / 512) * box.height];
   const [x0, y0] = at(pts[0]);
@@ -142,7 +159,7 @@ const SHOTS = {
   async w1(browser) {
     const page = await newPage(browser, SEEN);
     await openLevel(page, 'w1-1');
-    await record(page, 'w1', () => runAndGun(page, 14000));
+    await record(page, 'w1', () => runAndGun(page, 14000, { walk: 1400, stand: 1200, jumpEvery: 2600 }));
     await page.context().close();
   },
 
@@ -159,9 +176,10 @@ const SHOTS = {
       await tapGame(page, 295, 495);
       await page.waitForSelector('#draw-canvas');
       await sleep(500);
-      await page.click('[data-size="mid"]');
-      await pickColor(page, '#3a2a5a');
-      // 耳朵、頭、身體(深紫色外框)。
+      await page.click('[data-size="thick"]');
+      // 外框用淺紫色(畫板是深色,深色線會看不見)。
+      await pickColor(page, '#b69cff');
+      // 耳朵、頭、身體。
       await stroke(page, ellipse(128, 92, 20, 52));
       await stroke(page, ellipse(192, 92, 20, 52));
       await stroke(page, ellipse(160, 215, 78, 66));

@@ -63,6 +63,8 @@ T = {
 }[LANG]
 
 WORLD_NUM = {f'w{n}': n for n in range(4, 11)}
+# 開場繪本從第幾秒剪(英文字比較多,打字比較久):長版剪「吵翻王國 → 守衛出發」,短版只剪「守衛出發」。
+STORY_AT = {'zh': {'long': 13.2, 'short': 16.4}, 'en': {'long': 26.0, 'short': 32.3}}[LANG]
 
 
 def run(cmd):
@@ -120,35 +122,35 @@ def segment(i: int, shot: str, start: float, dur: float, speed: float = 1.0) -> 
 
 # 分鏡表:(錄影段落或卡片, 從第幾秒開始, 長度, 加速倍數, 配樂, 配樂從第幾秒開始, 字幕)
 LONG = [
-    ('card:title', 0, 3.0, 1, 'menu', 0, None),
-    ('story', 9.0, 6.0, 1, 'menu', 3, None),
+    ('card:title', 0, 2.5, 1, 'menu', 0, None),
+    ('story', 13.2, 6.0, 1, 'menu', 3, None),
     ('w1', 2.0, 6.0, 1, 'w01-day', 0, 'w1'),
-    ('draw', 0.8, 6.0, 2.6, 'w02-day', 0, 'draw'),
+    ('draw', 0.6, 6.0, 4.9, 'w02-day', 0, 'draw'),
     ('drawnPlay', 1.5, 5.0, 1, 'w02-day', 6, 'drawnPlay'),
-    ('weapons', 0.5, 7.0, 1, 'w03-day', 0, 'weapons'),
+    ('weapons', 3.0, 7.0, 1, 'w03-day', 0, 'weapons'),
     ('w4', 1.0, 2.5, 1, 'w04-day', 2, 'w4'),
     ('w5', 1.0, 2.5, 1, 'w05-dusk', 2, 'w5'),
     ('w6', 1.0, 2.5, 1, 'w06-day', 2, 'w6'),
     ('w7', 1.0, 2.5, 1, 'w07-day', 2, 'w7'),
     ('w8', 1.0, 2.5, 1, 'w08-day', 2, 'w8'),
-    ('w9', 1.0, 2.5, 1, 'w09-night', 2, 'w9'),
+    ('w9', 1.6, 2.5, 1, 'w09-night', 2, 'w9'),
     ('w10', 1.0, 2.5, 1, 'w10-day', 2, 'w10'),
     ('duo', 1.0, 4.0, 1, 'w01-boss', 0, 'duo'),
-    ('boss', 0.3, 3.5, 1, 'w10-night', 0, 'boss'),
-    ('card:end', 0, 3.5, 1, 'menu', 20, None),
+    ('boss', 0.0, 3.0, 1, 'w10-night', 0, 'boss'),
+    ('card:end', 0, 3.0, 1, 'menu', 20, None),
 ]
 SHORT = [
-    ('story', 9.0, 3.0, 1, 'menu', 3, None),
+    ('story', 16.4, 3.0, 1, 'menu', 3, None),
     ('w1', 2.0, 3.5, 1, 'w01-day', 0, 'w1'),
-    ('draw', 0.8, 3.5, 4.4, 'w02-day', 0, 'draw'),
+    ('draw', 0.6, 3.5, 8.4, 'w02-day', 0, 'draw'),
     ('drawnPlay', 1.5, 2.5, 1, 'w02-day', 3.5, 'drawnPlay'),
-    ('weapons', 0.5, 3.5, 1, 'w03-day', 0, 'weapons'),
+    ('weapons', 3.0, 3.5, 1, 'w03-day', 0, 'weapons'),
     ('w4', 1.0, 1.3, 1, 'w04-day', 2, 'w4'),
     ('w5', 1.0, 1.3, 1, 'w05-dusk', 2, 'w5'),
     ('w6', 1.0, 1.3, 1, 'w06-day', 2, 'w6'),
     ('w7', 1.0, 1.3, 1, 'w07-day', 2, 'w7'),
     ('w8', 1.0, 1.3, 1, 'w08-day', 2, 'w8'),
-    ('w9', 1.0, 1.3, 1, 'w09-night', 2, 'w9'),
+    ('w9', 1.6, 1.3, 1, 'w09-night', 2, 'w9'),
     ('w10', 1.0, 1.3, 1, 'w10-day', 2, 'w10'),
     ('duo', 1.0, 2.0, 1, 'w01-boss', 0, 'duo'),
     ('card:end', 0, 2.9, 1, 'menu', 20, None),
@@ -166,6 +168,8 @@ def build(plan, name: str) -> tuple[Path, list[tuple[float, float, str]], list[t
         elif shot == 'card:end':
             parts.append(card('end', dur, [(T['end1'], 58, 700), (T['end2'], 40, 800), (T['end3'], 40, 870)], 120))
         else:
+            if shot == 'story':
+                start = STORY_AT[name]
             parts.append(segment(i, shot, start, dur, speed))
         if cap:
             caps.append((t, t + dur, cap))
@@ -222,10 +226,10 @@ def captions(caps, worlds, box: str, size: int, y: str, top_y: str | None) -> st
 
 def export(src: Path, caps, worlds, out: Path, fmt: str):
     if fmt == '1080p':
-        vf = f"{captions(caps, worlds, '', 64, 'h-150', '40')},format=yuv420p"
+        vf = f"{captions(caps, worlds, '', 64, 'h-150', '190')},format=yuv420p"
     elif fmt == 'iphone':
-        # 1920×886:上下各裁掉一點(上面少裁,保留愛心和武器)。
-        vf = f"crop=1920:886:0:70,{captions(caps, worlds, '', 60, 'h-130', '36')},format=yuv420p"
+        # 1920×886 比 16:9 扁:整個畫面縮小放中間,左右補夜空色(裁切會切到上面的愛心或下面角色的腳)。
+        vf = f"scale=1575:886:flags=lanczos,pad=1920:886:172:0:color={NIGHT},{captions(caps, worlds, '', 56, 'h-120', '150')},format=yuv420p"
     elif fmt == 'ipad':
         # 1600×1200:遊戲畫面縮成 1600×900 放中間,字幕放在下面的夜空色帶。
         vf = f"scale=1600:900:flags=lanczos,pad=1600:1200:0:150:color={NIGHT},{captions(caps, worlds, '', 56, 'h-112', '46')},format=yuv420p"
