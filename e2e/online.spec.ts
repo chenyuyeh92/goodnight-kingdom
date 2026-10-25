@@ -29,6 +29,8 @@ async function joinRoom(ctx: BrowserContext, code: string): Promise<Page> {
   const guest = await menu(ctx);
   await guest.keyboard.press('Digit3');
   await guest.waitForFunction(() => window.__GK__?.screen === 'online');
+  // 先清掉自動填好的上次房號。
+  for (let i = 0; i < code.length; i++) await guest.keyboard.press('Backspace');
   for (const d of code) await guest.keyboard.press(`Digit${d}`);
   await guest.waitForFunction((c) => window.__GK__?.online?.code === c, code);
   await guest.keyboard.press('Enter');
@@ -51,6 +53,8 @@ test.describe('線上雙人(兩台裝置)', () => {
 
     await host.keyboard.press('Digit1');
     await host.waitForFunction(() => window.__GK__?.screen === 'range' && window.__GK__.players?.length === 2, undefined, { timeout: 15000 });
+    // 房號一直顯示在畫面角落。
+    expect((await gk(host)).online).toMatchObject({ code, badge: true });
     const before = (await gk(host)).players!;
     await guest.keyboard.down('KeyD');
     await host.waitForFunction((x0) => window.__GK__!.players![1].x - x0 > 80, before[1].x, { timeout: 8000 });
@@ -75,8 +79,8 @@ test.describe('線上雙人(兩台裝置)', () => {
     await guest.keyboard.press('Digit2');
     await guest.waitForFunction(() => window.__GK__?.onlineChoice === true);
     await guest.keyboard.press('Digit3');
-    await guest.waitForFunction(() => window.__GK__?.screen === 'online');
-    for (const d of code) await guest.keyboard.press(`Digit${d}`);
+    // 上次的房號已經填好,直接按加入。
+    await guest.waitForFunction((c) => window.__GK__?.screen === 'online' && window.__GK__.online?.code === c, code);
     await guest.keyboard.press('Enter');
     await guest.waitForFunction(() => window.__GK__?.guest?.state === 'connected', undefined, { timeout: 20000 });
     // 剛連上時操作的通道可能晚一點才開:按住右,等玩家 B 走起來。

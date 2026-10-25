@@ -4,7 +4,8 @@ import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { smallButton } from './menuButton';
 import { tr } from '../i18n/lang';
-import { CODE_LEN, cleanCode, makeRoomCode } from '../net/room';
+import { CODE_LEN, cleanCode, makeRoomCode, recallRoom, rememberRoom } from '../net/room';
+import { safeLocalStorage } from '../config/storage';
 import { openSignal } from '../net/signal';
 import { GuestLink, HostLink, type HostState } from '../net/link';
 import { endOnline, isCurrent, nextGeneration, online } from '../net/session';
@@ -59,7 +60,8 @@ export class OnlineScene extends Phaser.Scene {
     if (this.textures.exists('ui-cover-bg')) this.add.image(0, 0, 'ui-cover-bg').setOrigin(0, 0).setDisplaySize(960, 540).setAlpha(0.35);
     const host = this.data_.role === 'host';
     this.add.text(480, 60, host ? tr('開房間', 'Open a Room') : tr('加入房間', 'Join a Room'), { fontSize: '36px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 6 }).setOrigin(0.5);
-    this.status = this.add.text(480, 440, '', { fontSize: '20px', align: 'center', wordWrap: { width: 760 }, ...TEXT }).setOrigin(0.5);
+    // 朋友那邊下面是數字鍵,訊息放低一點。
+    this.status = this.add.text(480, host ? 440 : 482, '', { fontSize: '20px', align: 'center', wordWrap: { width: 760 }, ...TEXT }).setOrigin(0.5);
     smallButton(this, 110, 500, tr('返回(Esc)', 'Back (Esc)'), () => this.back(), 180);
     onMenuKey(this, (e) => {
       if (this.joined) return;
@@ -104,7 +106,10 @@ export class OnlineScene extends Phaser.Scene {
       }
       if (ok) {
         online.host = link;
+        online.code = code;
         this.code = code;
+        // 角落的房號(之後每個畫面都看得到)。
+        this.scene.launch('OnlineBadge');
         this.showCode(code);
         link.onState = (st) => this.onHostState(st);
         this.onHostState(link.state);
@@ -148,6 +153,12 @@ export class OnlineScene extends Phaser.Scene {
   private showKeypad(): void {
     this.add.text(480, 130, tr('輸入朋友給你的房間號碼', 'Enter the room number from your friend'), { fontSize: '24px', ...TEXT }).setOrigin(0.5);
     this.codeText = this.add.text(480, 195, '', { fontSize: '64px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 8 }).setOrigin(0.5);
+    // 剛剛才加入過(例如中途離開):直接填好上次的房號。
+    const last = recallRoom(safeLocalStorage(), Date.now());
+    if (last) {
+      this.typed = last;
+      this.setStatus(tr('已經填好上次的房號,按「加入」就可以。', 'Your last room number is filled in. Press Join.'));
+    }
     const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', 'OK'];
     keys.forEach((k, i) => {
       const x = 400 + (i % 3) * 80;
@@ -178,6 +189,7 @@ export class OnlineScene extends Phaser.Scene {
       return;
     }
     this.joined = true;
+    rememberRoom(safeLocalStorage(), code, Date.now());
     const link = new GuestLink(openSignal(code, localNet()));
     // 朋友這台不放自己的音樂,聽房主傳來的。
     audio.music(null);

@@ -43,3 +43,18 @@ test('收到的訊號訊息要檢查格式,壞掉或不認得的丟掉', () => {
   expect(isSignalMsg(null)).toBe(false);
   expect(isSignalMsg('hello')).toBe(false);
 });
+
+test('記住上次加入的房號:3 小時內再加入房間會自動填好,太久就不填', async () => {
+  const { rememberRoom, recallRoom } = await import('../src/net/room');
+  const mem = new Map<string, string>();
+  const s = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
+  expect(recallRoom(s, 0)).toBeNull();
+  rememberRoom(s, '042100', 1000);
+  expect(recallRoom(s, 1000 + 60_000)).toBe('042100');
+  expect(recallRoom(s, 1000 + 3 * 3600_000 + 1)).toBeNull();
+  // 壞掉的資料、沒有存檔空間都不會出錯。
+  mem.set('gk.lastRoom.v1', 'oops');
+  expect(recallRoom(s, 0)).toBeNull();
+  expect(recallRoom(null, 0)).toBeNull();
+  expect(() => rememberRoom(null, '123456', 0)).not.toThrow();
+});

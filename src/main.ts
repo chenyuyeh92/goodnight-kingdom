@@ -15,6 +15,7 @@ import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { GuardRoomScene } from './scenes/GuardRoomScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { OnlineScene } from './scenes/OnlineScene';
+import { OnlineBadgeScene } from './scenes/OnlineBadgeScene';
 import { StoryScene } from './scenes/StoryScene';
 import { audio } from './audio/audio';
 import { ModeSelectScene } from './scenes/ModeSelectScene';
@@ -73,7 +74,7 @@ export interface GkDebug {
   ready: boolean;
   screen?: 'boot' | 'mode-select' | 'level-select' | 'range' | 'backpack' | 'complete' | 'guard-room' | 'draw' | 'settings' | 'story' | 'online' | 'guest';
   /** 線上雙人:房主開房間的狀態、號碼;朋友那台的連線狀態與畫面。 */
-  online?: { role: 'host' | 'guest'; state: string; code: string | null };
+  online?: { role: 'host' | 'guest'; state: string; code: string | null; badge?: boolean };
   guest?: { state: string; videoWidth: number; playing: boolean; bits: number };
   onlineChoice?: boolean;
   /** 故事畫面:哪個故事、第幾幕、這一幕打出來的字、打完了沒。 */
@@ -257,6 +258,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   game.scene.add('Online', OnlineScene, false);
   game.scene.add('Story', StoryScene, false);
   game.scene.add('Boot', BootScene, false);
+  // 最後加:畫在所有畫面上面。
+  game.scene.add('OnlineBadge', OnlineBadgeScene, false);
   const noArt = params.get('noart') === '1';
   if (mode) game.scene.start('Boot', { next: 'TestRange', data: { ...data, mode }, noArt });
   else game.scene.start('Boot', { next: 'ModeSelect', data, noArt });

@@ -1,4 +1,5 @@
 import type { Intent } from '../input/intent';
+import type { StorageLike } from '../config/tuning';
 
 /** 房間號碼:6 位數字,念給朋友聽、用數字鍵就能輸入;一百萬種,陌生人很難剛好猜中。 */
 export const CODE_LEN = 6;
@@ -56,5 +57,29 @@ export function isSignalMsg(x: unknown): x is SignalMsg {
       return str(m.from) && str(m.to) && (m.c === null || (typeof m.c === 'object' && m.c !== undefined));
     default:
       return false;
+  }
+}
+
+const LAST_ROOM_KEY = 'gk.lastRoom.v1';
+/** 上次加入的房號記多久(朋友中途離開再加入時不用重新問)。 */
+const LAST_ROOM_MS = 3 * 3600_000;
+
+/** 記下這次加入的房號。 */
+export function rememberRoom(storage: StorageLike | null, code: string, now: number): void {
+  try {
+    storage?.setItem(LAST_ROOM_KEY, JSON.stringify({ code, at: now }));
+  } catch {
+    // 記不住也沒關係,只是要重新輸入。
+  }
+}
+
+/** 3 小時內加入過的房號;沒有或太久就是 null。 */
+export function recallRoom(storage: StorageLike | null, now: number): string | null {
+  try {
+    const raw = JSON.parse(storage?.getItem(LAST_ROOM_KEY) ?? 'null') as { code?: unknown; at?: unknown } | null;
+    if (!raw || typeof raw.code !== 'string' || typeof raw.at !== 'number') return null;
+    return now - raw.at <= LAST_ROOM_MS ? cleanCode(raw.code) : null;
+  } catch {
+    return null;
   }
 }

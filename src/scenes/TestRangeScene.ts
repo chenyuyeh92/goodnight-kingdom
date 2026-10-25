@@ -3772,7 +3772,7 @@ export class TestRangeScene extends Phaser.Scene {
       sfx: { ...audio.counts },
       music: audio.currentTrack(),
       musicSource: audio.musicSource,
-      online: online.host ? { role: 'host', state: online.host.friendHere() ? 'friendHere' : online.host.state, code: null } : undefined,
+      online: online.host ? { role: 'host', state: online.host.friendHere() ? 'friendHere' : online.host.state, code: online.code, badge: this.scene.isActive('OnlineBadge') } : undefined,
       intro: this.intro && !this.intro.ending ? this.intro.text : null,
       introPaused: this.intro !== null,
       bossSay: this.speech?.active ? this.speech.text : null,
