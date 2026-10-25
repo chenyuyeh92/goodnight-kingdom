@@ -4,13 +4,12 @@ import type { PlayMode } from '../input/playMode';
 import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
-import { testModeOn } from '../config/testTools';
 import type { StoryData } from './StoryScene';
 import { lang, pick, tr, type Text } from '../i18n/lang';
 import { endOnline } from '../net/session';
 import { fitWidth } from '../ui/fitText';
 
-type Choice = PlayMode | 'backpack' | 'draw' | 'settings' | 'story';
+type Choice = PlayMode | 'backpack' | 'draw' | 'settings';
 
 /** 按鈕圖上的字是中文;英文版用一般按鈕加上英文字。 */
 const BUTTONS: ReadonlyArray<{ choice: Choice; label: Text; art: string; code: string }> = [
@@ -33,8 +32,8 @@ const SLEEPERS = [
 
 export class ModeSelectScene extends Phaser.Scene {
   private data_: TestRangeData = {};
-  /** 正在顯示的選擇(「故事」選開場/結局、「雙人遊戲」選同一台或連線):按鍵對應的動作與關掉的方法。 */
-  private choice: { kind: 'story' | 'online'; keys: Map<string, () => void>; close: () => void } | null = null;
+  /** 正在顯示的「雙人遊戲」選擇(同一台或連線):按鍵對應的動作與關掉的方法。 */
+  private choice: { keys: Map<string, () => void>; close: () => void } | null = null;
 
   constructor() {
     super('ModeSelect');
@@ -61,20 +60,15 @@ export class ModeSelectScene extends Phaser.Scene {
       (menuButton(this, 480, y, pick(b.label), () => this.choose(b.choice), lang() === 'zh' ? b.art : null) as Phaser.GameObjects.Image).setScale(BUTTON_SCALE);
       this.add.text(620, y, `${i + 1}`, { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     });
-    // 右上角小小的「故事」:重看開場。
-    (menuButton(this, 860, 40, tr('故事', 'Story'), () => this.choose('story')) as Phaser.GameObjects.Image).setScale(0.55);
-    this.add.text(930, 40, '6', { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     this.choice = null;
     // 回到主選單就結束線上房間(朋友那邊會顯示連線中斷)。
     endOnline();
     onMenuKey(this, (e) => {
       if (this.choice) {
-        const close = e.code === 'Escape' || (this.choice.kind === 'story' && e.code === 'Digit6');
-        if (close) this.choice.close();
+        if (e.code === 'Escape') this.choice.close();
         else this.choice.keys.get(e.code)?.();
         return;
       }
-      if (e.code === 'Digit6') this.choose('story');
       const b = BUTTONS.find((x) => x.code === e.code);
       if (b) this.choose(b.choice);
     });
@@ -101,7 +95,6 @@ export class ModeSelectScene extends Phaser.Scene {
     if (choice === 'backpack') this.scene.start('Backpack', this.data_);
     else if (choice === 'draw') this.scene.start('GuardRoom', this.data_);
     else if (choice === 'settings') this.scene.start('Settings', this.data_);
-    else if (choice === 'story') this.storyMenu();
     else if (choice === 'duo') this.duoMenu();
     else this.startPlaying(choice);
   }
@@ -119,23 +112,10 @@ export class ModeSelectScene extends Phaser.Scene {
     this.scene.start('Story', data);
   }
 
-  /** 「故事」:看過結局後(或選關畫面打開了測試模式)可以選開場或結局;不然直接播開場。 */
-  private storyMenu(): void {
-    const back = { scene: 'ModeSelect', data: this.data_ };
-    if (!(this.data_.save?.get().story.ending ?? false) && !testModeOn()) {
-      this.playStory(back);
-      return;
-    }
-    this.showChoice('story', tr('要看哪一段故事?', 'Which story would you like to watch?'), [
-      { label: tr('開場(O)', 'Opening (O)'), code: 'KeyO', run: () => this.playStory(back, 'opening') },
-      { label: tr('結局(E)', 'Ending (E)'), code: 'KeyE', run: () => this.playStory(back, 'ending') },
-    ]);
-  }
-
   /** 「雙人遊戲」:同一台裝置一起玩,或兩支手機連線(一台開房間、一台加入)。 */
   private duoMenu(): void {
     const online = (role: 'host' | 'guest'): void => void this.scene.start('Online', { ...this.data_, role });
-    this.showChoice('online', tr('怎麼一起玩?', 'How do you want to play together?'), [
+    this.showChoice(tr('怎麼一起玩?', 'How do you want to play together?'), [
       { label: tr('同一台裝置(1)', 'Same device (1)'), code: 'Digit1', run: () => this.startPlaying('duo') },
       { label: tr('開房間(2)', 'Open a room (2)'), code: 'Digit2', run: () => online('host') },
       { label: tr('加入房間(3)', 'Join a room (3)'), code: 'Digit3', run: () => online('guest') },
@@ -143,9 +123,8 @@ export class ModeSelectScene extends Phaser.Scene {
   }
 
   /** 蓋在主選單上的選擇:點選項或按對應的鍵;點旁邊或按 Esc 關掉。 */
-  private showChoice(kind: 'story' | 'online', heading: string, options: readonly { label: string; code: string; run: () => void }[]): void {
+  private showChoice(heading: string, options: readonly { label: string; code: string; run: () => void }[]): void {
     if (this.choice) return;
-    const flag = kind === 'story' ? 'storyChoice' : 'onlineChoice';
     const shade = this.add.rectangle(480, 270, 960, 540, 0x0d0b24, 0.75).setDepth(20).setInteractive();
     const title = this.add.text(480, 200, heading, { fontSize: '28px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
     const hint = this.add.text(480, 370, tr('點旁邊或按 Esc 關掉', 'Tap outside or press Esc to close'), { fontSize: '18px', color: '#f3e9d2' }).setOrigin(0.5).setDepth(21);
@@ -164,10 +143,10 @@ export class ModeSelectScene extends Phaser.Scene {
     const close = (): void => {
       [shade, title, hint, ...buttons].forEach((o) => o.destroy());
       this.choice = null;
-      window.__GK__ = { ...window.__GK__, ready: true, [flag]: false };
+      window.__GK__ = { ...window.__GK__, ready: true, onlineChoice: false };
     };
     shade.on('pointerup', close);
-    this.choice = { kind, keys: new Map(options.map((o) => [o.code, o.run])), close };
-    window.__GK__ = { ...window.__GK__, ready: true, [flag]: true };
+    this.choice = { keys: new Map(options.map((o) => [o.code, o.run])), close };
+    window.__GK__ = { ...window.__GK__, ready: true, onlineChoice: true };
   }
 }

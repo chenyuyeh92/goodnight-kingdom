@@ -3,7 +3,7 @@
  *
  * ⚠️ 公開上市前把 TEST_TOOLS 改成 false(docs/release-checklist.md 第一項),按鈕就會整個消失。
  */
-export const TEST_TOOLS = true;
+export const TEST_TOOLS = false;
 
 const KEY = 'gk.test.v1';
 

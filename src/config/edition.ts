@@ -9,7 +9,9 @@ import { testModeOn } from './testTools';
 export const FREE_WORLDS = 3;
 export const FULL_BUILD = import.meta.env.VITE_FULL === '1';
 
-/** 測試用網址(?test=1)也全部開放;TEST_TOOLS 關掉時沒有作用。 */
+/** 自動測試專用的打包(VITE_E2E=1):測試網址(?test=1)可以玩全部。正式網站的打包沒有這個。 */
+export const E2E_BUILD = import.meta.env.VITE_E2E === '1';
+
 let testFull = false;
 
 export function setTestFull(on: boolean): void {

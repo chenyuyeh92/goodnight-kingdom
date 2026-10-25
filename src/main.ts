@@ -15,7 +15,7 @@ import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { GuardRoomScene } from './scenes/GuardRoomScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { OnlineScene } from './scenes/OnlineScene';
-import { needsFullVersion, setTestFull } from './config/edition';
+import { E2E_BUILD, needsFullVersion, setTestFull } from './config/edition';
 import { TEST_TOOLS } from './config/testTools';
 import { OnlineBadgeScene } from './scenes/OnlineBadgeScene';
 import { StoryScene } from './scenes/StoryScene';
@@ -82,7 +82,6 @@ export interface GkDebug {
   /** 故事畫面:哪個故事、第幾幕、這一幕打出來的字、打完了沒。 */
   story?: { id: string; beat: number; beats: number; beatId: string; text: string[]; done: boolean; skippable: boolean };
   /** 主選單「故事」的選擇(開場/結局)正在顯示。 */
-  storyChoice?: boolean;
   /** 世界第一關的開頭句(正在顯示時)。 */
   intro?: string | null;
   /** 開頭句還沒結束(跳過後等按鍵放開時也算),遊戲停著。 */
@@ -246,7 +245,7 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   const save = createSaveStore(safeLocalStorage());
   const touch = params.get('touch') === '1' || isTouchDevice();
   // 測試用網址(?test=1)可以玩全部(加 free=1 測免費版);一般網址不能直接跳到免費版沒有的世界。
-  setTestFull(TEST_TOOLS && testHooks && params.get('free') !== '1');
+  setTestFull((TEST_TOOLS || E2E_BUILD) && testHooks && params.get('free') !== '1');
   const asked = parseLevelId(params.get('level'));
   const level = asked && !needsFullVersion(asked) ? asked : undefined;
   const guards = createGuardStore(safeLocalStorage());
