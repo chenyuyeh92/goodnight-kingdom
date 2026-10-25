@@ -15,6 +15,8 @@ import { LevelSelectScene } from './scenes/LevelSelectScene';
 import { GuardRoomScene } from './scenes/GuardRoomScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { OnlineScene } from './scenes/OnlineScene';
+import { needsFullVersion, setTestFull } from './config/edition';
+import { TEST_TOOLS } from './config/testTools';
 import { OnlineBadgeScene } from './scenes/OnlineBadgeScene';
 import { StoryScene } from './scenes/StoryScene';
 import { audio } from './audio/audio';
@@ -115,6 +117,7 @@ export interface GkDebug {
   summary?: string[];
   /** 結算畫面是不是破關結局(打倒夢貘)。 */
   ending?: boolean;
+  fullTeaser?: boolean;
   /** 選武器畫面:正在選的玩家與選項文字。 */
   /** 背包畫面上的文字列,供測試讀取。 */
   backpackText?: string[];
@@ -242,7 +245,10 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
 
   const save = createSaveStore(safeLocalStorage());
   const touch = params.get('touch') === '1' || isTouchDevice();
-  const level = parseLevelId(params.get('level'));
+  // 測試用網址(?test=1)可以玩全部(加 free=1 測免費版);一般網址不能直接跳到免費版沒有的世界。
+  setTestFull(TEST_TOOLS && testHooks && params.get('free') !== '1');
+  const asked = parseLevelId(params.get('level'));
+  const level = asked && !needsFullVersion(asked) ? asked : undefined;
   const guards = createGuardStore(safeLocalStorage());
   audio.init(safeLocalStorage(), `${import.meta.env.BASE_URL}assets/music/tracks.json`);
   // 測試模式預設不播故事(開場、世界開頭句),故事的測試加 ?story=1。

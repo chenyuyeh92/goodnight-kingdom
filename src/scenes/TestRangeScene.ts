@@ -29,6 +29,12 @@ import type { LevelCompleteData } from './LevelCompleteScene';
 import { ENEMY_ART_TINT, SPRITES, artStatus, assetPath, enemySprite, itemSprite, weaponIcon, worldSpriteKeys } from '../art/sprites';
 import { SCENE_PALETTE, SCENE_TIME, sceneKeys, type TerrainPalette } from '../art/scenes';
 import { isStoryLevel, levelNumber, nextLevel } from '../game/progress';
+import { needsFullVersion } from '../config/edition';
+
+/** 下一關免費版不能玩時,結算畫面不放「下一關」。 */
+function nextOrNull(id: LevelId | null): LevelId | null {
+  return id && !needsFullVersion(id) ? id : null;
+}
 import { DesertHazards } from '../game/desertHazards';
 import { initialCamelBrain, stepCamel, type CamelBrain } from '../game/camel';
 import { initialFennecBrain, stepFennec, type FennecBrain } from '../game/fennec';
@@ -3619,7 +3625,9 @@ export class TestRangeScene extends Phaser.Scene {
       mode: this.mode,
       level: this.level.id,
       levelName: `${levelNumber(this.level.id)} ${pick(this.level.name)}`,
-      next: nextLevel(this.level.id),
+      next: nextOrNull(nextLevel(this.level.id)),
+      // 免費版玩完世界 3:結算畫面告訴玩家完整版還有世界 4–10。
+      fullTeaser: nextLevel(this.level.id) !== null && needsFullVersion(nextLevel(this.level.id)!),
       summary: summaryLines(stats, endedAt),
       // 打倒最終魔王夢貘就是破關,結算畫面變成結局。
       ending: this.level.boss?.type === 'tapir',

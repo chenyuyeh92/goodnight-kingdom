@@ -13,6 +13,8 @@ export interface LevelCompleteData extends TestRangeData {
   summary: string[];
   /** 打倒最終魔王夢貘:結算畫面變成結局。 */
   ending?: boolean;
+  /** 免費版玩完世界 3:下面加一句完整版的介紹。 */
+  fullTeaser?: boolean;
 }
 
 const BUTTON_Y = 450;
@@ -56,6 +58,17 @@ export class LevelCompleteScene extends Phaser.Scene {
       });
     }
 
+    if (this.data_.fullTeaser) {
+      this.add
+        .text(480, 405, tr('免費版到這裡結束!完整版還有世界 4–10 和結局,即將推出。', 'That is the end of the free version! The full version adds Worlds 4–10 and the ending. Coming soon.'), {
+          fontSize: '18px',
+          color: '#ffe08a',
+          align: 'center',
+          wordWrap: { width: 860 },
+        })
+        .setOrigin(0.5);
+    }
+
     // 從結局的故事進來時,一小段時間不收按鍵與點擊(看故事的連點不會直接按到按鈕)。
     const readyAt = ending ? this.time.now + INPUT_LOCK_MS : 0;
     const guard = (go: () => void) => () => void (this.time.now >= readyAt && go());
@@ -73,7 +86,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       if (b) guard(b.go)();
     });
 
-    window.__GK__ = { ready: true, screen: 'complete', summary: [...summary], ending: ending ?? false };
+    window.__GK__ = { ready: true, screen: 'complete', summary: [...summary], ending: ending ?? false, fullTeaser: this.data_.fullTeaser ?? false };
   }
 
   private replay(): void {

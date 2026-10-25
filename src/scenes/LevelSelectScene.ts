@@ -10,6 +10,7 @@ import { onMenuKey } from './menuKeys';
 import { TEST_TOOLS, setTestMode, testModeOn } from '../config/testTools';
 import { menuButton, smallButton } from './menuButton';
 import { pick, tr, type Text } from '../i18n/lang';
+import { FREE_WORLDS, needsFullVersion } from '../config/edition';
 import { fitWidth } from '../ui/fitText';
 
 const CARD_W = 250;
@@ -58,7 +59,19 @@ export class LevelSelectScene extends Phaser.Scene {
     if (world < WORLDS.length) smallButton(this, 860, 70, tr(`世界 ${world + 1} →`, `World ${world + 1} →`) + (touch ? '' : '(E)'), () => go(world + 1), 160);
 
     const testMode = testModeOn();
-    const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: testMode || isUnlocked(id, cleared), best: cleared[id] ?? null }));
+    // 免費版:世界 4–10 鎖住,告訴玩家完整版即將推出。
+    const fullOnly = needsFullVersion(WORLDS[world - 1][0]);
+    if (fullOnly) {
+      this.add
+        .text(480, 116, tr(`免費版可以玩世界 1–${FREE_WORLDS}。世界 ${FREE_WORLDS + 1}–${WORLDS.length} 在完整版,即將推出!`, `The free version has Worlds 1–${FREE_WORLDS}. Worlds ${FREE_WORLDS + 1}–${WORLDS.length} are in the full version, coming soon!`), {
+          fontSize: '18px',
+          color: '#ffe08a',
+          stroke: '#2b2a6b',
+          strokeThickness: 4,
+        })
+        .setOrigin(0.5);
+    }
+    const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: testMode || (!fullOnly && isUnlocked(id, cleared)), best: cleared[id] ?? null }));
     levels.forEach((l, i) => {
       const x = 480 + (i - 1) * CARD_GAP;
       const card = this.textures.exists('ui-panel')
@@ -73,6 +86,8 @@ export class LevelSelectScene extends Phaser.Scene {
       const prev = previousLevel(l.id);
       const status = testMode
         ? tr('測試模式開放', 'Open in test mode')
+        : fullOnly
+        ? tr('完整版', 'Full version')
         : !l.unlocked && prev
         ? tr(`鎖住:先通過 ${levelNumber(prev)}`, `Locked: clear ${levelNumber(prev)} first`)
         : l.best !== null
