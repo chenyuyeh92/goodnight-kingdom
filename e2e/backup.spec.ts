@@ -6,6 +6,8 @@ import fs from 'node:fs';
 const SAVE = JSON.stringify({ version: 1, weapons: {}, cleared: { 'w1-1': 12345, 'w1-2': 23456 }, story: { opening: true } });
 
 const toSettings = async (page: Page): Promise<void> => {
+  // 先開始攔選檔視窗:Playwright 要先通知瀏覽器才攔得到,太晚開始的話選檔視窗已經跳出去了(測試偶爾等不到)
+  page.on('filechooser', () => {});
   await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 15000 });
   await page.locator('canvas').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('Digit5');

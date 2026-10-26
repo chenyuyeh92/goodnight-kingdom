@@ -55,5 +55,12 @@ function createWindow() {
   });
 }
 
+// 同時只開一個：兩個視窗共用同一份存檔會互相蓋掉。再點一次圖示就把原本的視窗拉到前面
+if (!app.requestSingleInstanceLock()) app.quit();
+app.on('second-instance', () => {
+  const w = BrowserWindow.getAllWindows()[0];
+  if (w) { if (w.isMinimized()) w.restore(); w.focus(); }
+});
+
 app.whenReady().then(() => { serveGame(); createWindow(); });
 app.on('window-all-closed', () => app.quit());

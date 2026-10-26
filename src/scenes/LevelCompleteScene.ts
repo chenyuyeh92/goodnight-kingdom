@@ -61,10 +61,13 @@ export class LevelCompleteScene extends Phaser.Scene {
       });
     }
 
-    // App 版(Apple 內購)和開賣後的網頁版(綠界)可以直接去買(選關的世界 4 有購買按鈕);網頁版還沒開賣時說即將推出。
+    // App 版(Apple 內購)可以直接去買;開賣後的網頁版(免費試玩)可以去買 Windows 電腦版(選關的世界 4 有按鈕);還沒開賣時說即將推出。
     const unlockInApp = (this.data_.fullTeaser ?? false) && (isNativeApp() || webShopVisible());
+    const web = import.meta.env.VITE_APP !== '1' && !isNativeApp() && webShopVisible();
     if (this.data_.fullTeaser) {
-      const text = unlockInApp
+      const text = web
+        ? tr('免費試玩到這裡結束!Windows 電腦版可以玩世界 4–10 和結局。', 'That is the end of the free trial! The Windows version has Worlds 4–10 and the ending.')
+        : unlockInApp
         ? tr('免費版到這裡結束!解鎖完整版,就能玩世界 4–10 和結局。', 'That is the end of the free version! Unlock the full version to play Worlds 4–10 and the ending.')
         : tr('免費版到這裡結束!完整版還有世界 4–10 和結局,即將推出。', 'That is the end of the free version! The full version adds Worlds 4–10 and the ending. Coming soon.');
       this.add
@@ -85,7 +88,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       { label: tr('再玩一次(1)', 'Play again (1)'), code: 'Digit1', go: () => this.replay() },
       { label: tr('回到選單(2)', 'Menu (2)'), code: 'Digit2', go: () => this.menu() },
       ...(next ? [{ label: tr('下一關(3)', 'Next level (3)'), code: 'Digit3', go: () => this.playNext(next) }] : []),
-      ...(unlockInApp ? [{ label: tr('解鎖完整版(3)', 'Unlock all (3)'), code: 'Digit3', go: () => this.toStore() }] : []),
+      ...(unlockInApp ? [{ label: web ? tr('買電腦版(3)', 'Get PC version (3)') : tr('解鎖完整版(3)', 'Unlock all (3)'), code: 'Digit3', go: () => this.toStore() }] : []),
     ];
     const gap = 260;
     const left = 480 - ((buttons.length - 1) * gap) / 2;

@@ -28,7 +28,7 @@ for (const name of fs.readdirSync(path.join(tmp, 'assets'))) {
 }
 for (const keep of KEEP.filter(k => k.startsWith('assets/'))) fs.cpSync(path.join(tmp, keep), path.join(game, keep), { recursive: true });
 // 防呆：電腦版是完整版，裡面不能有網頁版的購買程式（解鎖碼、商店網址）
-const FORBIDDEN = /goodnight-shop|workers\.dev|api\/redeem|解鎖碼/;
+const FORBIDDEN = /goodnight-shop|workers\.dev|api\/redeem|解鎖碼|買 Windows 電腦版|Get the Windows version/;
 for (const name of fs.readdirSync(path.join(game, 'assets'))) {
   if (/\.js$/.test(name) && FORBIDDEN.test(fs.readFileSync(path.join(game, 'assets', name), 'utf8'))) throw new Error('電腦版的 ' + name + ' 裡有網頁版購買的程式：確認打包時有設 VITE_APP=1');
 }

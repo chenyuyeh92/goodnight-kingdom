@@ -145,7 +145,10 @@ export class SettingsScene extends Phaser.Scene {
         return;
       }
       if (!window.confirm(tr('匯入以後,這台裝置現在的進度會被換掉。確定要匯入嗎?', 'Importing replaces the progress on this device. Import now?'))) return;
-      restoreBackup(s, b);
+      if (!restoreBackup(s, b)) {
+        this.message.setText(tr('匯入失敗(這台裝置的空間不夠),原本的進度沒有改', 'Import failed (not enough space on this device). Your progress was not changed'));
+        return;
+      }
       window.location.reload();
     });
   }

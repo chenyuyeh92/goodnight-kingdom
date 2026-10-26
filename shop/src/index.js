@@ -134,6 +134,8 @@ function configProblems(env) {
   if (!env.TOKEN_SECRET || env.TOKEN_SECRET.length < 24 || /change-me/i.test(env.TOKEN_SECRET)) bad.push('TOKEN_SECRET');
   if (env.ADMIN_PASSWORD && (env.ADMIN_PASSWORD.length < 12 || /change-me/i.test(env.ADMIN_PASSWORD))) bad.push('ADMIN_PASSWORD');
   if (env.ECPAY_ENV !== 'stage' && env.ECPAY_ENV !== 'prod') bad.push('ECPAY_ENV');
+  // 正式環境一定要能寄信：重寄頁、付款後的信都靠它（沒設的話重寄頁會說「寄出了」其實沒寄）
+  if (env.ECPAY_ENV === 'prod' && (!env.MAIL_URL || !env.MAIL_SECRET)) bad.push('MAIL_URL／MAIL_SECRET');
   // 正式環境還用著綠界公開的測試特店：一定是忘了換
   if (env.ECPAY_ENV === 'prod' && env.ECPAY_MERCHANT_ID === '3002607') bad.push('ECPAY_MERCHANT_ID');
   return bad;
@@ -226,7 +228,7 @@ function helpPage(env) {
 /* ---------- 買家自己重寄下載連結（2026-10-26 負責人：忘記連結不要變成負責人的工作） ----------
    輸入 email → 找這個 email 最近一筆已付款的訂單 → 換新連結（舊的作廢）寄到那個 email。
    不管有沒有找到都顯示同一句話（不讓人查出誰買過）；同一個 email 一小時最多 3 次、全站一小時最多 60 次（防亂按讓 Gmail 被拿來寄信）。 */
-async function resend(env, req, origin) {
+async function resend(env, req, origin, ctx) {
   const form = (msg = '', email = '') => page(env, '重寄下載連結', `<h1>重寄下載連結</h1>
 <p>下載連結過期、次數用完、換了新電腦，或找不到當初的信？輸入購買時填的 email，我們會自動寄一個新的下載連結給你（舊的連結會作廢）。</p>
 ${msg}
@@ -240,10 +242,12 @@ ${msg}
   const hourAgo = new Date(Date.now() - 3600e3).toISOString();
   const mine = await env.DB.prepare('SELECT COUNT(*) AS n FROM resends WHERE email=? AND at>?').bind(email.toLowerCase(), hourAgo).first();
   const all = await env.DB.prepare('SELECT COUNT(*) AS n FROM resends WHERE at>?').bind(hourAgo).first();
-  if ((mine?.n ?? 0) >= 3 || (all?.n ?? 0) >= 60) return form('<p class="err">剛剛已經寄過了，請先看看信箱（包括垃圾郵件）；一小時後可以再試。</p>', email);
+  if ((mine?.n ?? 0) >= 3) return form('<p class="err">剛剛已經寄過了，請先看看信箱（包括垃圾郵件）；一小時後可以再試。</p>', email);
+  if ((all?.n ?? 0) >= 60) return form('<p class="err">現在使用的人比較多，請過一段時間再試；急的話請寫信給我們。</p>', email);
   await env.DB.prepare('INSERT INTO resends(email,at) VALUES(?,?)').bind(email.toLowerCase(), new Date().toISOString()).run();
-  const o = await env.DB.prepare("SELECT * FROM orders WHERE lower(email)=? AND status='paid' ORDER BY paid_at DESC LIMIT 1").bind(email.toLowerCase()).first();
-  if (o) await renewAndMail(env, origin, o);
+  const o = await env.DB.prepare("SELECT * FROM orders WHERE lower(email)=? AND status='paid' AND env=? ORDER BY paid_at DESC LIMIT 1").bind(email.toLowerCase(), env.ECPAY_ENV).first();
+  /* 寄信放到背景：有買、沒買都一樣快回應，不讓人用快慢猜出誰買過 */
+  if (o) { const job = renewAndMail(env, origin, o); if (ctx && ctx.waitUntil) ctx.waitUntil(job); else await job; }
   return form(`<p><b>如果這個 email 買過《晚安王國》電腦版，新的下載連結已經寄出了。</b>請到 ${esc(email)} 的信箱收信。</p>`, email);
 }
 
@@ -256,7 +260,7 @@ export default {
     try {
       if (path === '/' || path === '/buy') return buyPage(env, '', '', url.searchParams.get('test') === '1');
       if (path === '/help') return helpPage(env);
-      if (path === '/resend') return resend(env, req, origin);
+      if (path === '/resend') return resend(env, req, origin, ctx);
 
       if (path === '/api/order' && req.method === 'POST') {
         const f = await readForm(req), email = String(f.email || '').trim();

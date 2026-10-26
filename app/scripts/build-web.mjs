@@ -32,7 +32,7 @@ for (const name of readdirSync(join(dist, 'assets'))) {
 for (const keep of KEEP.filter((k) => k.startsWith('assets/'))) cpSync(join(dist, keep), join(out, keep), { recursive: true });
 
 // Apple 3.1.1 把關:App 裡不能有網頁版的綠界購買。打包出來的程式只要出現商店網址或這些字,就讓打包失敗。
-const FORBIDDEN = /goodnight-shop|workers\.dev|api\/redeem|綠界|ecpay|解鎖碼/i;
+const FORBIDDEN = /goodnight-shop|workers\.dev|api\/redeem|綠界|ecpay|解鎖碼|電腦版|Windows version|PC version/i;
 for (const name of readdirSync(join(out, 'assets'))) {
   const p = join(out, 'assets', name);
   if (/\.(js|html)$/.test(name) && FORBIDDEN.test(readFileSync(p, 'utf8'))) throw new Error(`App 版的 ${name} 裡有網頁版購買的程式(Apple 3.1.1 不允許):確認打包時有設 VITE_APP=1`);

@@ -13,8 +13,7 @@ import { pick, tr, type Text } from '../i18n/lang';
 import { FREE_WORLDS, needsFullVersion } from '../config/edition';
 import { fitWidth } from '../ui/fitText';
 import { isNativeApp, nativeState, onNativeMessage, requestPurchase, type PurchaseResult } from '../platform/native';
-import { onWebShop, redeemMessage, webShopVisible, webState } from '../platform/webShop';
-import { webStoreButtons } from './webStoreButtons';
+import { PRICE_TEXT, openBuyPage, webShopVisible } from '../platform/webShop';
 
 const CARD_W = 250;
 const CARD_H = 230;
@@ -72,7 +71,7 @@ export class LevelSelectScene extends Phaser.Scene {
     if (world < WORLDS.length) smallButton(this, 860, 70, tr(`世界 ${world + 1} →`, `World ${world + 1} →`) + (touch ? '' : '(E)'), () => go(world + 1), 160);
 
     const testMode = testModeOn();
-    // 免費版:世界 4–10 鎖住。App 版用 Apple 內購買;網頁版開賣後用綠界買(還沒開賣時說即將推出)。
+    // 免費版:世界 4–10 鎖住。App 版用 Apple 內購買;網頁版(免費試玩)開賣後有「買 Windows 電腦版」(還沒開賣時說即將推出)。
     const fullOnly = needsFullVersion(WORLDS[world - 1][0]);
     const app = isNativeApp();
     // App 打包(VITE_APP=1)時整段是 false:網頁版的按鈕和文字不會進 App。
@@ -82,23 +81,17 @@ export class LevelSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
     if (fullOnly) {
       banner.setText(
-        app || web
+        web
+          ? tr(`網頁版可以免費玩世界 1–${FREE_WORLDS}。世界 ${FREE_WORLDS + 1}–${WORLDS.length} 和結局在 Windows 電腦版,買一次就能全部玩。`, `The web version is free for Worlds 1–${FREE_WORLDS}. Worlds ${FREE_WORLDS + 1}–${WORLDS.length} and the ending are in the Windows version. Buy once, play them all.`)
+          : app
           ? tr(`世界 ${FREE_WORLDS + 1}–${WORLDS.length} 和結局在完整版,買一次就能全部玩。`, `Worlds ${FREE_WORLDS + 1}–${WORLDS.length} and the ending are in the full version. Buy once, play them all.`)
           : tr(`免費版可以玩世界 1–${FREE_WORLDS}。世界 ${FREE_WORLDS + 1}–${WORLDS.length} 在完整版,即將推出!`, `The free version has Worlds 1–${FREE_WORLDS}. Worlds ${FREE_WORLDS + 1}–${WORLDS.length} are in the full version, coming soon!`),
       );
       fitWidth(banner, 900);
     } else if (this.data_.justUnlocked) {
-      banner.setText(web && webState.test ? pick(redeemMessage('test')) : tr('謝謝你!完整版打開了,十個世界都可以玩。', 'Thank you! The full version is unlocked. All ten worlds are open.'));
-      fitWidth(banner, 900);
+      banner.setText(tr('謝謝你!完整版打開了,十個世界都可以玩。', 'Thank you! The full version is unlocked. All ten worlds are open.'));
     }
-    const store = app && fullOnly ? this.storeButtons(banner, touch) : web && fullOnly ? webStoreButtons(this, banner, touch) : null;
-    // 網頁版:從付款完成頁回來、解鎖碼檢查完了,就重新整理這一頁(卡片打開)。
-    if (web) {
-      const off = onWebShop((r) => {
-        if (r === 'ok' || r === 'test') this.scene.restart({ ...this.data_, justUnlocked: true });
-      });
-      this.events.once('shutdown', off);
-    }
+    const store = app && fullOnly ? this.storeButtons(banner, touch) : web && fullOnly ? this.webStoreButton(touch) : null;
     const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: testMode || (!fullOnly && isUnlocked(id, cleared)), best: cleared[id] ?? null }));
     levels.forEach((l, i) => {
       const x = 480 + (i - 1) * CARD_GAP;
@@ -153,7 +146,7 @@ export class LevelSelectScene extends Phaser.Scene {
       world,
       testMode,
       store: app ? { ...nativeState, shown: store !== null, banner: banner.text } : null,
-      webStore: web ? { shown: store !== null, full: webState.full, test: webState.test, banner: banner.text } : null,
+      webStore: web ? { shown: store !== null, banner: banner.text } : null,
     };
   }
 
@@ -189,6 +182,14 @@ export class LevelSelectScene extends Phaser.Scene {
     });
     this.events.once('shutdown', off);
     return { buy: () => send('buy'), restore: () => send('restore') };
+  }
+
+  /** 網頁版(免費試玩):「買 Windows 電腦版」開小商店的購買頁(新分頁)。App、電腦版裡不會有這個按鈕。 */
+  private webStoreButton(touch: boolean): { buy(): void; restore(): void } {
+    if (import.meta.env.VITE_APP === '1') return { buy: () => {}, restore: () => {} }; // App/電腦版打包:下面的字整段拿掉(Apple 3.1.1)
+    const buy = (): void => openBuyPage();
+    smallButton(this, 480, 146, tr(`買 Windows 電腦版 ${PRICE_TEXT}`, `Get the Windows version ${PRICE_TEXT}`) + (touch ? '' : '(B)'), buy, 360);
+    return { buy, restore: () => {} };
   }
 
   private publishStore(banner: Phaser.GameObjects.Text): void {

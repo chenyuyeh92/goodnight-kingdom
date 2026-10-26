@@ -54,6 +54,20 @@ test('不是晚安王國的檔案:不碰任何資料', () => {
   expect(parseBackup('{"app":"goodnight-kingdom","version":1,"data":[]}')).toBeNull();
 });
 
+test('匯入時空間不夠(寫到一半失敗):原本的進度還原,回傳 false', () => {
+  const pc = memory({ 'gk.save.v1': 'mine', 'gk.lang.v1': 'zh' });
+  const realSet = pc.setItem;
+  let n = 0;
+  pc.setItem = (k, v) => {
+    if (++n === 2) throw new Error('QuotaExceededError');
+    realSet(k, v);
+  };
+  const b = parseBackup(JSON.stringify({ app: 'goodnight-kingdom', version: 1, at: '', data: { 'gk.guards.v1': 'big', 'gk.save.v1': 'theirs' } }))!;
+  expect(restoreBackup(pc, b)).toBe(false);
+  pc.setItem = realSet;
+  expect(pc.data).toEqual({ 'gk.save.v1': 'mine', 'gk.lang.v1': 'zh' });
+});
+
 test('檔名有日期', () => {
   expect(backupFileName(new Date(2026, 9, 6))).toBe('晚安王國存檔-2026-10-06.json');
 });

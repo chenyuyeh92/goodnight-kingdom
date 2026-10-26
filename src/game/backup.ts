@@ -64,10 +64,27 @@ export function parseBackup(text: string): Backup | null {
   return { app: BACKUP_APP, version: b.version, at: typeof b.at === 'string' ? b.at : '', data };
 }
 
-/** 匯入:這台裝置現在的遊戲資料整份換成備份裡的(購買紀錄不動)。 */
-export function restoreBackup(s: BackupStorage, b: Backup): void {
-  for (const k of gameKeys(s)) s.removeItem(k);
-  for (const [k, v] of Object.entries(b.data)) s.setItem(k, v);
+/**
+ * 匯入:這台裝置現在的遊戲資料整份換成備份裡的(購買紀錄不動)。
+ * 先寫進去、都成功了才刪掉備份裡沒有的舊資料;寫到一半失敗(例如空間滿了)就還原原本的,回傳 false。
+ */
+export function restoreBackup(s: BackupStorage, b: Backup): boolean {
+  const old = makeBackup(s).data;
+  try {
+    for (const [k, v] of Object.entries(b.data)) s.setItem(k, v);
+  } catch {
+    for (const k of gameKeys(s)) if (!(k in old)) s.removeItem(k);
+    for (const [k, v] of Object.entries(old)) {
+      try {
+        s.setItem(k, v);
+      } catch {
+        // 還原也失敗就沒辦法了;各存檔讀取時都會清理壞資料,遊戲照樣開得起來。
+      }
+    }
+    return false;
+  }
+  for (const k of gameKeys(s)) if (!(k in b.data)) s.removeItem(k);
+  return true;
 }
 
 /** 存檔檔名:晚安王國存檔-2026-10-26.json */

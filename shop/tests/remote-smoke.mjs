@@ -38,3 +38,7 @@ ok((await fetch(BASE + '/help').then(x => x.text())).includes('Windows 已保護
 ok((await fetch(BASE + '/resend').then(x => x.text())).includes('購買時填的 email'), '重寄下載連結頁打得開');
 
 
+
+console.log(`\n通過 ${pass} 項，失敗 ${fail} 項`);
+console.log('清掉這次留下的測試訂單：npx wrangler d1 execute goodnight-shop --remote --command "DELETE FROM orders WHERE email=\'smoke-test@example.com\'"');
+process.exit(fail ? 1 : 0);
