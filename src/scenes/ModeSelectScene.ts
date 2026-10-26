@@ -58,7 +58,8 @@ export class ModeSelectScene extends Phaser.Scene {
     BUTTONS.forEach((b, i) => {
       const y = FIRST_BUTTON_Y + i * BUTTON_GAP;
       (menuButton(this, 480, y, pick(b.label), () => this.choose(b.choice), lang() === 'zh' ? b.art : null) as Phaser.GameObjects.Image).setScale(BUTTON_SCALE);
-      this.add.text(620, y, `${i + 1}`, { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
+      // 數字是鍵盤快速鍵;手機、平板(觸控)不顯示。
+      if (!this.data_.touch) this.add.text(620, y, `${i + 1}`, { fontSize: '18px', color: '#f3e9d2', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     });
     this.choice = null;
     // 回到主選單就結束線上房間(朋友那邊會顯示連線中斷)。

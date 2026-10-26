@@ -32,13 +32,13 @@ const withSave = (save) => ({ fn: (s) => localStorage.setItem('gk.save.v1', s), 
 async function openMenu(page, lang, extra = '') {
   await page.goto(`${BASE}?test=1&touch=1&lang=${lang}${extra}`);
   await page.waitForFunction(() => window.__GK__?.screen === 'mode-select', undefined, { timeout: 20000 });
-  await page.locator('canvas').click({ position: { x: 5, y: 5 } });
+  await page.locator('canvas').click({ position: { x: 5, y: 5 }, force: true });
 }
 
 async function openLevel(page, lang, level) {
   await page.goto(`${BASE}?mode=single&test=1&touch=1&level=${level}&lang=${lang}`);
   await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 20000 });
-  await page.locator('canvas').click({ position: { x: 5, y: 5 } });
+  await page.locator('canvas').click({ position: { x: 5, y: 5 }, force: true });
   await page.evaluate(() => window.__GK__.setAmbient?.(true));
   await sleep(600);
 }
@@ -50,7 +50,9 @@ const SHOTS = [
     await sleep(1500);
   }],
   ['play', async (page, lang) => {
-    await openLevel(page, lang, 'w1-1');
+    await openLevel(page, lang, 'w1-2');
+    await page.evaluate(() => window.__GK__.warp(1400));
+    await sleep(500);
     await runAndGun(page, 4200, { walk: 1400, stand: 1200, jumpEvery: 0 });
   }],
   ['draw', async (page, lang) => {
