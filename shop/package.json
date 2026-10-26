@@ -7,7 +7,9 @@
   "scripts": {
     "db:local": "wrangler d1 execute goodnight-shop --local --file=./schema.sql",
     "dev": "wrangler dev --port 8789",
-    "test": "node tests/local-flow.mjs"
+    "test": "node tests/unit.mjs && node tests/local-flow.mjs",
+    "test:unit": "node tests/unit.mjs",
+    "smoke": "node tests/remote-smoke.mjs"
   },
   "devDependencies": {
     "wrangler": "4.151.1"
