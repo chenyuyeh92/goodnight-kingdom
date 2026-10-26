@@ -1,20 +1,25 @@
-# 晚安王國網頁版完整版的小商店（設計：shop/README.md）。App 版不用這裡（App 裡只用 Apple／Google 的付款）。
-# 金鑰類（綠界 HashKey／HashIV、寄信密語、管理密碼）不寫在這裡：本機放 .dev.vars（不進版本紀錄），正式的由負責人用 wrangler secret put 自己輸入。
+# 晚安王國 Windows 電腦版（下載版）的小商店（設計：shop/README.md）。App 版不用這裡（App 裡只用 Apple／Google 的付款）。
+# 金鑰類（綠界 HashKey／HashIV、寄信密語、管理密碼）不寫在這裡：本機放 .dev.vars（不進版本紀錄），正式的由負責人在 Cloudflare 網站「變數和祕密」設成 Secret。
 name = "goodnight-shop"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
 
 [vars]
-ECPAY_ENV = "stage"            # stage＝綠界測試環境（接受「模擬付款」，買到的解鎖碼遊戲不存）；prod＝正式
+ECPAY_ENV = "stage"            # stage＝綠界測試環境（接受「模擬付款」，只能放假檔）；prod＝正式
 CHOOSE_PAYMENT = "Credit"      # Credit＝信用卡；綠界開通 ATM 後可改成 ALL（記得排除超商代碼、條碼，見 README）
 PRICE = "100"
-ITEM_NAME = "晚安王國 網頁版完整版（數位內容）"
-MAX_DEVICES = "20"
-GAME_URL = "https://chenyuyeh92.github.io/goodnight-kingdom/"
-GAME_ORIGINS = "https://chenyuyeh92.github.io"
+ITEM_NAME = "晚安王國 Windows 電腦下載版"
+FILE_KEY = "Goodnight-Kingdom-Setup.exe"   # R2 裡的安裝程式（測試環境只放 5 KB 假檔）
+DOWNLOAD_DAYS = "7"
+DOWNLOAD_TIMES = "5"
+GAME_URL = "https://chenyuyeh92.github.io/goodnight-kingdom/"   # 網頁版（免費試玩）
 CONTACT_EMAIL = "chenyouye493@gmail.com"   # 負責人在綠界驗證的信箱（綠界規定銷售頁要標示）
 
 [[d1_databases]]
 binding = "DB"
 database_name = "goodnight-shop"
 database_id = "736bd0ec-e5b2-4544-af7a-09ba67a76876"   # 2026-10-26 在負責人的 Cloudflare 帳號建立（APAC）
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "goodnight-files"

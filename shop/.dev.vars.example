@@ -7,7 +7,6 @@ TOKEN_SECRET=change-me
 ADMIN_PASSWORD=change-me
 # 本機的遊戲網址（vite dev 是 5173）
 GAME_URL=http://localhost:5173/goodnight-kingdom/
-GAME_ORIGINS=http://localhost:5173,http://localhost:4173
 # 不填 MAIL_URL：信不會真的寄出，而是存進資料庫的 outbox 表
 MAIL_URL=
 MAIL_SECRET=

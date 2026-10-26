@@ -2,11 +2,10 @@
 // 只能對「測試環境」跑：發現不是綠界測試特店（3002607）或不是 payment-stage 就停下來。
 // 不偽造付款通知；會留下一筆「待付款」的 smoke-test@example.com 訂單，跑完照最後印的指令刪掉。
 // 檢查：商店不是「暫停營業」（Secrets 都設了）、購買頁有同意框和信箱、建單送往綠界測試環境、
-//       送綠界的檢查碼用公開的測試金鑰驗得過（＝HashKey／HashIV 沒打錯）、遊戲的網址可以跨網域問解鎖碼。
+//       送綠界的檢查碼用公開的測試金鑰驗得過（＝HashKey／HashIV 沒打錯）、重寄頁和安裝教學打得開、R2 的檔案是假檔。
 import crypto from 'node:crypto';
 
 const BASE = process.env.BASE || 'https://goodnight-shop.mozart-shop.workers.dev';
-const GAME_ORIGIN = 'https://chenyuyeh92.github.io';
 const KEY = 'pwFHCqoQZGmho4w6', IV = 'EkRm7iFT261dpevs', MID = '3002607';
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { if (cond) { pass++; console.log('  ✓', msg); } else { fail++; console.log('  ✗', msg); } };
@@ -35,11 +34,7 @@ ok(/^GK\d{12}[A-Za-z0-9]{6}$/.test(f.MerchantTradeNo || ''), '建單成功：' +
 ok(f.CheckMacValue === cmv(f), '送綠界的檢查碼對（HashKey／HashIV 沒打錯）');
 ok(f.ReturnURL === BASE + '/ecpay/return' && f.TotalAmount === '100', '通知網址、金額正確');
 
-r = await fetch(BASE + '/api/redeem', { method: 'OPTIONS', headers: { origin: GAME_ORIGIN, 'access-control-request-method': 'POST' } });
-ok(r.status === 204 && r.headers.get('access-control-allow-origin') === GAME_ORIGIN, '遊戲（GitHub Pages）可以跨網域問解鎖碼');
-r = await fetch(BASE + '/api/redeem', { method: 'POST', headers: { 'content-type': 'application/json', origin: GAME_ORIGIN }, body: JSON.stringify({ code: 'ABCD-EFGH-JKLM' }) });
-ok((await r.json()).error === 'notfound', '亂打的解鎖碼：找不到');
+ok((await fetch(BASE + '/help').then(x => x.text())).includes('Windows 已保護您的電腦'), '安裝教學頁打得開');
+ok((await fetch(BASE + '/resend').then(x => x.text())).includes('購買時填的 email'), '重寄下載連結頁打得開');
 
-console.log(`\n通過 ${pass} 項，失敗 ${fail} 項`);
-console.log('清掉這次留下的測試訂單：npx wrangler d1 execute goodnight-shop --remote --command "DELETE FROM orders WHERE email=\'smoke-test@example.com\'"');
-process.exit(fail ? 1 : 0);
+

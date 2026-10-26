@@ -1,6 +1,6 @@
 // 小商店的單元測試（不用開 wrangler dev）：node tests/unit.mjs
-// 測：檢查碼用綠界官方範例算出官方答案、測試環境只寄信給負責人自己、解鎖碼的格式整理。
-import { checkMac, normalizeCode, reallySend } from '../src/index.js';
+// 測：檢查碼用綠界官方範例算出官方答案、測試環境只寄信給負責人自己。
+import { checkMac, reallySend } from '../src/index.js';
 
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { if (cond) { pass++; console.log('  ✓', msg); } else { fail++; console.log('  ✗', msg); } };
@@ -17,7 +17,6 @@ ok(reallySend(stage, 'stranger@example.com') === false, '測試環境：寄給�
 ok(reallySend({ ...stage, ECPAY_ENV: 'prod' }, 'buyer@example.com') === true, '正式環境：寄給買家');
 ok(reallySend({ ...stage, ECPAY_ENV: 'prod', MAIL_URL: '' }, 'buyer@example.com') === false, '沒設寄信網址：都存進 outbox');
 
-ok(normalizeCode(' z7xg-8nwh 2pfy ') === 'Z7XG8NWH2PFY', '解鎖碼：大小寫、空白、橫線都不管');
 
 console.log(`\n通過 ${pass} 項，失敗 ${fail} 項`);
 process.exit(fail ? 1 : 0);
