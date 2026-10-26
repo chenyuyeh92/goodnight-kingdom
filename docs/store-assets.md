@@ -21,6 +21,10 @@
 
 ## 檔案與用途
 
+**葉宸佑 2026-10-26 決定:統一用 60 秒版。** 家教網作品卡放的是 60 秒直式版(中文、英文各一支,壓成 720×1280:`img/goodnight-kingdom-ad.mp4`、`img/goodnight-kingdom-ad-en.mp4`)。
+App Store 的「App 預覽」規定最長 30 秒,60 秒版傳不上去;App 預覽是選填,可以只放截圖,或上架時改用下面的 30 秒版。
+
+
 | 檔案 | 規格 | 用在哪裡 |
 |---|---|---|
 | `promo-zh-1080p.mp4`、`promo-en-1080p.mp4` | 60 秒,1920×1080,H.264,AAC 立體聲 | 上傳 YouTube(Google Play 只收 YouTube 連結)、網站 |

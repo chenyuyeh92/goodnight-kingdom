@@ -234,8 +234,9 @@ def export(src: Path, caps, worlds, out: Path, fmt: str):
         # 1600×1200:遊戲畫面縮成 1600×900 放中間,字幕放在下面的夜空色帶。
         vf = f"scale=1600:900:flags=lanczos,pad=1600:1200:0:150:color={NIGHT},{captions(caps, worlds, '', 56, 'h-112', '46')},format=yuv420p"
     elif fmt == 'vertical':
+        # 直式只有 1080 寬:字幕用小一點的字,長句才不會被切掉。
         vf = (f"[0:v]split[a][b];[b]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=30:5,eq=brightness=-0.25[bg];"
-              f"[a]scale=1080:608:flags=lanczos[fg];[bg][fg]overlay=0:656,{captions(caps, worlds, '', 64, 'h-560', '470')},format=yuv420p[v]")
+              f"[a]scale=1080:608:flags=lanczos[fg];[bg][fg]overlay=0:656,{captions(caps, worlds, '', 46, 'h-560', '480')},format=yuv420p[v]")
     else:
         raise ValueError(fmt)
     graph = ['-filter_complex', vf, '-map', '[v]', '-map', '0:a'] if fmt == 'vertical' else ['-vf', vf]
