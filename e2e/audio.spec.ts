@@ -131,7 +131,8 @@ test.describe('聲音', () => {
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
     await page.keyboard.press('Digit5');
     await page.waitForFunction(() => window.__GK__!.screen === 'settings');
-    for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown');
+    // 網頁版在「清除」上面多了匯出/匯入存檔那一列:一直往下按到「清除」
+    for (let i = 0; i < 8 && (await page.evaluate(() => window.__GK__!.settingsRow)) !== 'clear'; i++) await page.keyboard.press('ArrowDown');
     await page.waitForFunction(() => window.__GK__!.settingsRow === 'clear');
     await page.keyboard.press('Enter');
     let saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gk.save.v1')!));

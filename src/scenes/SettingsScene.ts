@@ -6,11 +6,13 @@ import { onMenuKey } from './menuKeys';
 import { smallButton } from './menuButton';
 import { safeLocalStorage } from '../config/storage';
 import { lang, pick, setLang, tr, type Text } from '../i18n/lang';
-import { openPage } from '../platform/native';
+import { isNativeApp, openPage } from '../platform/native';
+import { downloadBackup, parseBackup, pickBackupFile, restoreBackup, type BackupStorage } from '../game/backup';
 
-type Row = 'music' | 'sfx' | 'muted' | 'lang' | 'clear' | 'back';
-const ROWS: readonly Row[] = ['music', 'sfx', 'muted', 'lang', 'clear', 'back'];
-const ROW_Y: Record<Row, number> = { music: 130, sfx: 190, muted: 250, lang: 310, clear: 370, back: 455 };
+type Row = 'music' | 'sfx' | 'muted' | 'lang' | 'export' | 'import' | 'clear' | 'back';
+const ROW_Y: Record<Row, number> = { music: 120, sfx: 175, muted: 230, lang: 285, export: 340, import: 340, clear: 395, back: 460 };
+/** 匯出/匯入存檔(換電腦時帶走進度,2026-10-26):網頁版、電腦版有;App 版的 WebView 不能下載檔案,先不放。 */
+const BACKUP_X = { export: 380, import: 580 } as const;
 const UP = new Set(['KeyW', 'ArrowUp']);
 const DOWN = new Set(['KeyS', 'ArrowDown']);
 const LEFT = new Set(['KeyA', 'ArrowLeft']);
@@ -38,6 +40,7 @@ export class SettingsScene extends Phaser.Scene {
   private cursor!: Phaser.GameObjects.Text;
   private confirmClearUntil = 0;
   private message!: Phaser.GameObjects.Text;
+  private rows: readonly Row[] = [];
 
   constructor() {
     super('Settings');
@@ -66,6 +69,12 @@ export class SettingsScene extends Phaser.Scene {
     }
     this.mutedButton = smallButton(this, 480, ROW_Y.muted, '', () => this.toggleMute(), 240);
     smallButton(this, 480, ROW_Y.lang, tr('語言:中文', 'Language: English'), () => this.toggleLang(), 240);
+    const backup = !isNativeApp() && safeLocalStorage() !== null;
+    this.rows = backup ? ['music', 'sfx', 'muted', 'lang', 'export', 'import', 'clear', 'back'] : ['music', 'sfx', 'muted', 'lang', 'clear', 'back'];
+    if (backup) {
+      smallButton(this, BACKUP_X.export, ROW_Y.export, tr('匯出存檔', 'Export save'), () => this.exportSave(), 180);
+      smallButton(this, BACKUP_X.import, ROW_Y.import, tr('匯入存檔', 'Import save'), () => this.importSave(), 180);
+    }
     this.clearButton = smallButton(this, 480, ROW_Y.clear, tr('清除所有存檔', 'Erase all saves'), () => this.clearSaves(), 240);
     this.message = this.add.text(480, ROW_Y.clear + 34, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     smallButton(this, 480, ROW_Y.back, tr('返回(Esc)', 'Back (Esc)'), () => this.back(), 200);
@@ -74,10 +83,12 @@ export class SettingsScene extends Phaser.Scene {
     });
 
     onMenuKey(this, (e) => {
-      const i = ROWS.indexOf(this.row);
+      const rows = this.rows;
+      const i = rows.indexOf(this.row);
       if (e.code === 'Escape') this.back();
-      else if (UP.has(e.code)) this.row = ROWS[(i + ROWS.length - 1) % ROWS.length];
-      else if (DOWN.has(e.code)) this.row = ROWS[(i + 1) % ROWS.length];
+      else if (UP.has(e.code)) this.row = rows[(i + rows.length - 1) % rows.length];
+      else if (DOWN.has(e.code)) this.row = rows[(i + 1) % rows.length];
+      else if ((LEFT.has(e.code) || RIGHT.has(e.code)) && (this.row === 'export' || this.row === 'import')) this.row = this.row === 'export' ? 'import' : 'export';
       else if ((LEFT.has(e.code) || RIGHT.has(e.code)) && (this.row === 'music' || this.row === 'sfx')) this.adjust(this.row, LEFT.has(e.code) ? -1 : 1);
       else if (OK.has(e.code)) this.activate();
       this.refresh();
@@ -88,6 +99,8 @@ export class SettingsScene extends Phaser.Scene {
   private activate(): void {
     if (this.row === 'muted') this.toggleMute();
     else if (this.row === 'lang') this.toggleLang();
+    else if (this.row === 'export') this.exportSave();
+    else if (this.row === 'import') this.importSave();
     else if (this.row === 'clear') this.clearSaves();
     else if (this.row === 'back') this.back();
   }
@@ -111,6 +124,30 @@ export class SettingsScene extends Phaser.Scene {
     document.documentElement.lang = lang() === 'zh' ? 'zh-Hant' : 'en';
     rowAfterRestart = 'lang';
     this.scene.restart(this.data_);
+  }
+
+  /** 匯出:把通關紀錄、背包、畫的守衛存成一個檔案(換電腦時到新電腦按「匯入存檔」)。 */
+  private exportSave(): void {
+    const s = safeLocalStorage() as BackupStorage | null;
+    if (!s) return;
+    downloadBackup(s);
+    this.message.setText(tr('存檔已下載。換電腦時,在新電腦按「匯入存檔」選這個檔案', 'Save downloaded. On your new computer, press "Import save" and choose this file'));
+  }
+
+  /** 匯入:選一個匯出的存檔,確定後整份換掉這台裝置的進度,重新打開遊戲。 */
+  private importSave(): void {
+    const s = safeLocalStorage() as BackupStorage | null;
+    if (!s) return;
+    pickBackupFile((text) => {
+      const b = parseBackup(text);
+      if (!b) {
+        this.message.setText(tr('這不是晚安王國的存檔檔案', 'That is not a Goodnight Kingdom save file'));
+        return;
+      }
+      if (!window.confirm(tr('匯入以後,這台裝置現在的進度會被換掉。確定要匯入嗎?', 'Importing replaces the progress on this device. Import now?'))) return;
+      restoreBackup(s, b);
+      window.location.reload();
+    });
   }
 
   private clearSaves(): void {
@@ -144,7 +181,8 @@ export class SettingsScene extends Phaser.Scene {
       this.confirmClearUntil = 0;
       this.clearButton.setLabel(tr('清除所有存檔', 'Erase all saves'));
     }
-    this.cursor.setY(ROW_Y[this.row]).setX(this.row === 'music' || this.row === 'sfx' ? 170 : 330);
+    const x = this.row === 'music' || this.row === 'sfx' ? 170 : this.row === 'export' || this.row === 'import' ? BACKUP_X[this.row] - 110 : 330;
+    this.cursor.setY(ROW_Y[this.row]).setX(x);
     window.__GK__ = { ready: true, screen: 'settings', settings: { ...this.settings }, settingsRow: this.row, lang: lang() };
   }
 
