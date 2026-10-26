@@ -19,6 +19,13 @@ export type PurchaseResult = 'ok' | 'restored' | 'pending' | 'cancelled' | 'fail
 
 const owns = (purchases: Purchase[]): boolean => purchases.some((p) => p.productId === FULL_VERSION_SKU && p.purchaseState !== 'pending');
 
+/** 錯誤 → 告訴遊戲的結果。「購買前詢問」(孩子的帳號)在 StoreKit 2 是以錯誤 deferred-payment/pending 回來。 */
+function errorResult(error: unknown): PurchaseResult {
+  if (isUserCancelledError(error)) return 'cancelled';
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === 'deferred-payment' || code === 'pending' ? 'pending' : 'failed';
+}
+
 let connecting: Promise<boolean> | null = null;
 function connect(): Promise<boolean> {
   connecting ??= initConnection().then(
@@ -59,7 +66,7 @@ export function listenPurchases(onResult: (result: PurchaseResult, full: boolean
       .then(() => onResult('ok', true));
   });
   const failed = purchaseErrorListener((error) => {
-    if (isRequesting()) onResult(isUserCancelledError(error) ? 'cancelled' : 'failed', false);
+    if (isRequesting()) onResult(errorResult(error), false);
   });
   return () => {
     updated.remove();
@@ -67,14 +74,17 @@ export function listenPurchases(onResult: (result: PurchaseResult, full: boolean
   };
 }
 
-/** 按「解鎖完整版」:跳出 Apple 的購買視窗;結果從 listenPurchases 來。 */
+/**
+ * 按「解鎖完整版」:跳出 Apple 的購買視窗;結果通常從 listenPurchases 來。
+ * 回傳 null 表示購買視窗已經結束、等 listenPurchases(App.tsx 等一下還沒有結果就當作等家長同意)。
+ */
 export async function buyFullVersion(): Promise<PurchaseResult | null> {
   if (!(await connect())) return 'failed';
   try {
     await requestPurchase({ request: { apple: { sku: FULL_VERSION_SKU } }, type: 'in-app' });
     return null;
   } catch (error) {
-    return isUserCancelledError(error) ? 'cancelled' : 'failed';
+    return errorResult(error);
   }
 }
 
@@ -85,7 +95,8 @@ export async function restoreFullVersion(): Promise<{ result: PurchaseResult; fu
     await restorePurchases();
     const full = owns(await getAvailablePurchases());
     return { result: full ? 'restored' : 'nothingToRestore', full };
-  } catch {
-    return { result: 'failed', full: false };
+  } catch (error) {
+    // 登入 Apple 帳號的視窗按了取消,不是網路問題。
+    return { result: isUserCancelledError(error) ? 'cancelled' : 'failed', full: false };
   }
 }

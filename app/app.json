@@ -23,7 +23,8 @@
         "UIViewControllerBasedStatusBarAppearance": false,
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
-        }
+        },
+        "NSLocalNetworkUsageDescription": "雙人遊戲連線時,用來和同一個 Wi-Fi 的另一台裝置直接連線。 / Used to connect directly to the other device on the same Wi-Fi when playing Two Players online."
       }
     },
     "locales": {

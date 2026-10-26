@@ -17,5 +17,10 @@ public class GameServerModule: Module {
         }
       }
     }
+
+    // 回到前景就確認伺服器還在(系統可能在背景把它關了),不用等 JavaScript。
+    OnAppEntersForeground {
+      self.server.start { _ in }
+    }
   }
 }

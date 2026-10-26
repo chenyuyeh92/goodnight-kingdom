@@ -33,6 +33,8 @@ export default function App() {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const requesting = useRef(false);
+  /** WebView 被系統收掉或載入失敗:伺服器重新開好後再載入一次。 */
+  const needsReload = useRef(false);
 
   const toGame = useCallback((m: ToGame) => {
     web.current?.injectJavaScript(`window.__gkNative && window.__gkNative(${JSON.stringify(m)}); true;`);
@@ -50,13 +52,32 @@ export default function App() {
   useEffect(() => {
     const start = (): void => {
       GameServer.start().then(
-        (u) => setUrl((old) => old ?? u),
+        (u) => {
+          setFailed(false);
+          setUrl(u);
+          if (needsReload.current) {
+            needsReload.current = false;
+            web.current?.reload();
+          }
+        },
         () => setFailed(true),
       );
     };
     start();
     const sub = AppState.addEventListener('change', (s) => s === 'active' && start());
     return () => sub.remove();
+  }, []);
+
+  const reloadWhenServerReady = useCallback(() => {
+    needsReload.current = true;
+    GameServer.start().then(
+      () => {
+        if (!needsReload.current) return;
+        needsReload.current = false;
+        web.current?.reload();
+      },
+      () => setFailed(true),
+    );
   }, []);
 
   useEffect(() => listenPurchases(purchaseResult, () => requesting.current), [purchaseResult]);
@@ -75,7 +96,11 @@ export default function App() {
           break;
         case 'buy':
           requesting.current = true;
-          void buyFullVersion().then((r) => r && purchaseResult(r, false));
+          void buyFullVersion().then((r) => {
+            if (r) purchaseResult(r, false);
+            // 購買視窗關了卻沒有結果:多半是「購買前詢問」在等家長,不要讓按鈕一直不能按。
+            else setTimeout(() => requesting.current && purchaseResult('pending', false), 4000);
+          });
           break;
         case 'restore':
           requesting.current = true;
@@ -116,8 +141,10 @@ export default function App() {
           keyboardDisplayRequiresUserAction={false}
           hideKeyboardAccessoryView
           webviewDebuggingEnabled={__DEV__}
-          // WebView 被系統收掉(記憶體不足)時重新載入,遊戲存檔還在。
-          onContentProcessDidTerminate={() => web.current?.reload()}
+          // WebView 被系統收掉(記憶體不足)或載入失敗時,確認伺服器開著再重新載入;遊戲存檔還在。
+          onContentProcessDidTerminate={reloadWhenServerReady}
+          onError={reloadWhenServerReady}
+          onHttpError={reloadWhenServerReady}
         />
       )}
       {failed && (

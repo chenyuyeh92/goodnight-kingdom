@@ -8,7 +8,7 @@ import Network
 /// - 所有工作都在同一個佇列上做,不需要鎖。
 final class LocalGameServer: @unchecked Sendable {
   static let basePath = "/goodnight-kingdom/"
-  /// 第一個被占用時才換下一個(換了埠,之前的存檔會看不到,所以盡量都用第一個)。
+  /// 第一個一直被占用時才換下一個(換了埠,之前的存檔會看不到;用過的埠會記住)。
   static let ports: [UInt16] = [47291, 47292, 47293, 47294]
 
   enum ServerError: LocalizedError {
@@ -27,8 +27,13 @@ final class LocalGameServer: @unchecked Sendable {
   private let root = LocalGameServer.findGameFolder()
   private var listener: NWListener?
   private var readyPort: UInt16?
-  /// 上次開成功的埠:App 從背景回來重開時用同一個,已經載入的遊戲才連得到。
-  private var preferredIndex = 0
+  /// 用過的埠(記在手機裡):每次打開 App 都用同一個,網址才一樣、存檔才看得到。
+  private var savedIndex: Int? = {
+    let i = UserDefaults.standard.object(forKey: "GoodnightGamePortIndex") as? Int
+    return i.flatMap { LocalGameServer.ports.indices.contains($0) ? $0 : nil }
+  }()
+  /// 這次打開 App 已經開好過(從背景回來時伺服器被系統關掉,要用同一個埠重開,已經載入的遊戲才連得到)。
+  private var servedThisLaunch = false
   private var waiting: [(Result<UInt16, Error>) -> Void] = []
 
   func start(_ done: @escaping (Result<UInt16, Error>) -> Void) {
@@ -42,7 +47,7 @@ final class LocalGameServer: @unchecked Sendable {
         return
       }
       self.waiting.append(done)
-      if self.listener == nil { self.listen(portIndex: self.preferredIndex) }
+      if self.listener == nil { self.listen(portIndex: self.savedIndex ?? 0, attempt: 0) }
     }
   }
 
@@ -52,7 +57,7 @@ final class LocalGameServer: @unchecked Sendable {
     callbacks.forEach { $0(result) }
   }
 
-  private func listen(portIndex: Int) {
+  private func listen(portIndex: Int, attempt: Int) {
     guard portIndex < Self.ports.count, let port = NWEndpoint.Port(rawValue: Self.ports[portIndex]) else {
       finish(.failure(ServerError.noFreePort))
       return
@@ -61,7 +66,7 @@ final class LocalGameServer: @unchecked Sendable {
     parameters.requiredInterfaceType = .loopback
     parameters.allowLocalEndpointReuse = true
     guard let listener = try? NWListener(using: parameters, on: port) else {
-      listen(portIndex: portIndex + 1)
+      retry(portIndex: portIndex, attempt: attempt)
       return
     }
     self.listener = listener
@@ -70,23 +75,44 @@ final class LocalGameServer: @unchecked Sendable {
       guard let self, let listener, self.listener === listener else { return }
       switch state {
       case .ready:
-        self.preferredIndex = portIndex
+        self.servedThisLaunch = true
+        if self.savedIndex != portIndex {
+          self.savedIndex = portIndex
+          UserDefaults.standard.set(portIndex, forKey: "GoodnightGamePortIndex")
+        }
         self.readyPort = port.rawValue
         self.finish(.success(port.rawValue))
       case .failed, .waiting:
-        // 還在等開好:埠被占用,換下一個。已經開好過:App 在背景時被系統關掉,下次 start() 再開。
+        // 埠被占用,或 App 在背景時被系統關掉:重開(見 retry)。
         listener.cancel()
         self.listener = nil
         self.readyPort = nil
-        if !self.waiting.isEmpty { self.listen(portIndex: portIndex + 1) }
+        self.retry(portIndex: portIndex, attempt: attempt)
       case .cancelled:
-        self.listener = nil
-        self.readyPort = nil
+        if self.listener === listener {
+          self.listener = nil
+          self.readyPort = nil
+        }
       default:
         break
       }
     }
     listener.start(queue: queue)
+  }
+
+  /// 開不起來時:同一個埠過一下再試。這次已經開好過,就一直用同一個埠;
+  /// 第一次開而且一直被別的 App 占用,才換下一個埠(換了之前的存檔會看不到,所以先等一等)。
+  private func retry(portIndex: Int, attempt: Int) {
+    let keepPort = servedThisLaunch || attempt < 6
+    if !keepPort {
+      listen(portIndex: portIndex + 1, attempt: 0)
+      return
+    }
+    if attempt >= 20 { finish(.failure(ServerError.noFreePort)) }
+    let delay = min(0.25 * Double(attempt + 1), 3)
+    queue.asyncAfter(deadline: .now() + delay) {
+      if self.listener == nil { self.listen(portIndex: portIndex, attempt: attempt + 1) }
+    }
   }
 
   // MARK: - 回應 WebView 的請求
@@ -142,11 +168,14 @@ final class LocalGameServer: @unchecked Sendable {
     // 檔案跟著 App 一起更新,不要讓 WebView 留著舊版的快取。
     head += "Cache-Control: no-store\r\n"
     head += "Connection: close\r\n\r\n"
-    var packet = Data(head.utf8)
-    if includeBody { packet.append(body) }
-    connection.send(content: packet, contentContext: .finalMessage, isComplete: true, completion: .contentProcessed { _ in
-      connection.cancel()
-    })
+    let close = NWConnection.SendCompletion.contentProcessed { _ in connection.cancel() }
+    if includeBody && !body.isEmpty {
+      // 標頭和檔案分開送,大的音樂檔不用再複製一份。
+      connection.send(content: Data(head.utf8), isComplete: false, completion: .idempotent)
+      connection.send(content: body, contentContext: .finalMessage, isComplete: true, completion: close)
+    } else {
+      connection.send(content: Data(head.utf8), contentContext: .finalMessage, isComplete: true, completion: close)
+    }
   }
 
   // MARK: - 找檔案
