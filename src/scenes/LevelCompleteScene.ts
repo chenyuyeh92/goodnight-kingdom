@@ -7,6 +7,7 @@ import type { LevelId } from '../levels/levelDef';
 import { pick, tr, type Text } from '../i18n/lang';
 import { isNativeApp } from '../platform/native';
 import { FREE_WORLDS } from '../config/edition';
+import { webShopVisible } from '../platform/webShop';
 
 export interface LevelCompleteData extends TestRangeData {
   levelName: string;
@@ -60,8 +61,8 @@ export class LevelCompleteScene extends Phaser.Scene {
       });
     }
 
-    // App 版可以直接去買(選關的世界 4 有購買按鈕);網頁版說即將推出。
-    const unlockInApp = (this.data_.fullTeaser ?? false) && isNativeApp();
+    // App 版(Apple 內購)和開賣後的網頁版(綠界)可以直接去買(選關的世界 4 有購買按鈕);網頁版還沒開賣時說即將推出。
+    const unlockInApp = (this.data_.fullTeaser ?? false) && (isNativeApp() || webShopVisible());
     if (this.data_.fullTeaser) {
       const text = unlockInApp
         ? tr('免費版到這裡結束!解鎖完整版,就能玩世界 4–10 和結局。', 'That is the end of the free version! Unlock the full version to play Worlds 4–10 and the ending.')

@@ -1,0 +1,13 @@
+# 本機開發用（複製成 .dev.vars；.dev.vars 不進版本紀錄）。下面三個是綠界官方公開的「測試特店」資料：https://developers.ecpay.com.tw/2856/
+ECPAY_MERCHANT_ID=3002607
+ECPAY_HASH_KEY=pwFHCqoQZGmho4w6
+ECPAY_HASH_IV=EkRm7iFT261dpevs
+# 本機自己亂數產生（24 字以上）；正式上線另外產生，用 wrangler secret put 放進 Cloudflare
+TOKEN_SECRET=change-me
+ADMIN_PASSWORD=change-me
+# 本機的遊戲網址（vite dev 是 5173）
+GAME_URL=http://localhost:5173/goodnight-kingdom/
+GAME_ORIGINS=http://localhost:5173,http://localhost:4173
+# 不填 MAIL_URL：信不會真的寄出，而是存進資料庫的 outbox 表
+MAIL_URL=
+MAIL_SECRET=

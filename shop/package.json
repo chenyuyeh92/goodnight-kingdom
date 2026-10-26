@@ -1,0 +1,15 @@
+{
+  "name": "goodnight-shop",
+  "version": "1.0.0",
+  "description": "晚安王國網頁版完整版的小商店（Cloudflare Worker＋D1、綠界付款、解鎖碼）。設計見 README.md",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:local": "wrangler d1 execute goodnight-shop --local --file=./schema.sql",
+    "dev": "wrangler dev --port 8789",
+    "test": "node tests/local-flow.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.1"
+  }
+}

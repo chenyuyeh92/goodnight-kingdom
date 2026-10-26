@@ -17,6 +17,7 @@ import { SettingsScene } from './scenes/SettingsScene';
 import { OnlineScene } from './scenes/OnlineScene';
 import { E2E_BUILD, needsFullVersion, setTestFull } from './config/edition';
 import { initNativeBridge } from './platform/native';
+import { initWebShop } from './platform/webShop';
 import { TEST_TOOLS } from './config/testTools';
 import { OnlineBadgeScene } from './scenes/OnlineBadgeScene';
 import { StoryScene } from './scenes/StoryScene';
@@ -122,6 +123,8 @@ export interface GkDebug {
   buttons?: string[];
   /** App 版(選關):商店狀態與購買按鈕。 */
   store?: { full: boolean; price: string | null; busy: boolean; lastResult: string | null; shown: boolean; banner: string } | null;
+  /** 網頁版(綠界)的購買按鈕狀態。 */
+  webStore?: { shown: boolean; full: boolean; test: boolean; banner: string } | null;
   /** 選武器畫面:正在選的玩家與選項文字。 */
   /** 背包畫面上的文字列,供測試讀取。 */
   backpackText?: string[];
@@ -253,6 +256,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   setTestFull((TEST_TOOLS || E2E_BUILD) && testHooks && params.get('free') !== '1');
   // App 版(iPhone、iPad):接上 App 的購買與分享;網頁版什麼都不做。
   initNativeBridge(safeLocalStorage());
+  // 網頁版:讀這台裝置的解鎖碼、付款完成頁帶回來的 #unlock=;App 版什麼都不做(App 裡只能用 Apple 的付款)。
+  initWebShop(safeLocalStorage(), params);
   const asked = parseLevelId(params.get('level'));
   const level = asked && !needsFullVersion(asked) ? asked : undefined;
   const guards = createGuardStore(safeLocalStorage());

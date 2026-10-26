@@ -24,7 +24,7 @@
   - 遊戲 → App:`ready`、`buy`(解鎖完整版)、`restore`(恢復購買)、`openUrl`(用 Safari 開說明頁)、`shareImage`(分享畫的守衛)。
   - App → 遊戲:`store`(買過沒有、價格)、`purchase`(購買結果:成功、恢復、等家長同意、取消、失敗、這個帳號沒買過)。
 - 買過的人:App 每次打開都問 Apple;另外也記在手機裡,沒有網路時照樣能玩完整版。
-- 網頁版沒有購買按鈕(還是寫「完整版即將推出」)。
+- 網頁版另外用綠界賣(2026-10-26,`shop/README.md`)。**App 裡不能出現綠界、解鎖碼或「去網站買」**(Apple 3.1.1):App 打包時 `VITE_APP=1` 會把這些整個拿掉;App 用 Safari 開的說明頁(support/privacy/licenses)也不能寫網頁版的購買方式。
 
 ## 第一次上架的步驟
 
