@@ -76,7 +76,7 @@ async function sendMail(env, to, subject, html) {
     /* 寄信程式回的字：denied＝MAIL_SECRET 對不上、error＝Gmail 寄失敗（看 Apps Script「執行作業」）；不印網址和密語 */
     if (!r.ok || said !== 'ok') console.error('寄信失敗：HTTP ' + r.status + '，回應「' + said.slice(0, 80) + '」');
     return r.ok && said === 'ok';
-  } catch (e) { console.error('寄信失敗：' + e); return false; }
+  } catch (e) { console.error('寄信失敗：連線錯誤 ' + (e && e.name)); return false; }   /* 只印錯誤種類：錯誤訊息有時會帶出網址 */
 }
 function mailHtml(env, origin, o, link) {
   return `<p>感謝購買《晚安王國》Windows 電腦版！</p>
