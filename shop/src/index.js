@@ -72,8 +72,11 @@ async function sendMail(env, to, subject, html) {
       return true;
     }
     const r = await fetch(env.MAIL_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ secret: env.MAIL_SECRET, to, subject, html }) });
-    return r.ok && (await r.text()).trim() === 'ok';
-  } catch (_) { return false; }
+    const said = (await r.text()).trim();
+    /* 寄信程式回的字：denied＝MAIL_SECRET 對不上、error＝Gmail 寄失敗（看 Apps Script「執行作業」）；不印網址和密語 */
+    if (!r.ok || said !== 'ok') console.error('寄信失敗：HTTP ' + r.status + '，回應「' + said.slice(0, 80) + '」');
+    return r.ok && said === 'ok';
+  } catch (e) { console.error('寄信失敗：' + e); return false; }
 }
 function mailHtml(env, origin, o, link) {
   return `<p>感謝購買《晚安王國》Windows 電腦版！</p>
