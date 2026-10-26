@@ -411,8 +411,20 @@ const BUILD: Record<string, (s: StoryScene, layer: Phaser.GameObjects.Container)
     s.bg(layer, sceneKeys([FOREST_SCENE]));
     for (const g of s.guards(layer, 300, TEXT_TOP - 10)) {
       const img = g as Phaser.GameObjects.Image;
-      s.tweens.add({ targets: img, x: img.x + 260, y: TEXT_TOP - 70, scale: img.scale * 0.6, duration: 7000, ease: 'Sine.easeInOut' });
-      s.tweens.add({ targets: img, angle: { from: -2, to: 2 }, duration: 380, yoyo: true, repeat: -1 });
+      // 一邊往森林深處走、一邊上下輕輕彈跳。不用旋轉:容器裡的圖一旋轉,WebGL 會畫缺一塊(看起來一閃一閃)。
+      const from = { x: img.x, y: img.y, scale: img.scale };
+      const to = { x: img.x + 260, y: TEXT_TOP - 70, scale: img.scale * 0.6 };
+      s.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: 7000,
+        ease: 'Sine.easeInOut',
+        onUpdate: (tw) => {
+          const k = tw.getValue() ?? 0;
+          const bob = Math.abs(Math.sin((tw.elapsed / 380) * Math.PI)) * 4;
+          img.setPosition(from.x + (to.x - from.x) * k, from.y + (to.y - from.y) * k - bob).setScale(from.scale + (to.scale - from.scale) * k);
+        },
+      });
     }
   },
 

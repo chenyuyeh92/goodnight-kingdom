@@ -662,9 +662,9 @@ describe.each(['w9-1', 'w9-2', 'w9-3'] as const)('世界 9 洞窟:%s', (id) => {
   const dark = L.darkness ?? [];
   const crystals = [...(L.crystals ?? [])].sort((a, b) => a - b);
 
-  test('屬於世界 9,有黑暗區與發光水晶,平台用礦坑木板', () => {
+  test('屬於世界 9,有發光水晶,平台用礦坑木板;白天的 9-1 整關亮,黃昏、晚上的 9-2、9-3 有黑暗區', () => {
     expect(L.world).toBe(9);
-    expect(dark.length).toBeGreaterThan(0);
+    expect(dark.length > 0).toBe(id !== 'w9-1');
     expect(crystals.length).toBeGreaterThan(5);
     expect(L.platformArt).toBe('mine-platform');
     for (const s of L.scenes) expect(s.scene.startsWith('w9-')).toBe(true);
@@ -697,11 +697,11 @@ describe.each(['w9-1', 'w9-2', 'w9-3'] as const)('世界 9 洞窟:%s', (id) => {
   });
 });
 
-test('世界 9 的小頭目是螢火蟲女王、六角恐龍,關主是巨鼴鼠;9-1 教黑暗;9-3 有地下河的淺水', () => {
+test('世界 9 的小頭目是螢火蟲女王、六角恐龍,關主是巨鼴鼠;9-2 教黑暗;9-3 有地下河的淺水', () => {
   expect(LEVELS['w9-1'].boss!.type).toBe('queen');
   expect(LEVELS['w9-2'].boss!.type).toBe('axolotl');
   expect(LEVELS['w9-3'].boss!.type).toBe('mole');
-  expect(LEVELS['w9-1'].hints!.map((h) => h.kind)).toContain('dark');
+  expect(LEVELS['w9-2'].hints!.map((h) => h.kind)).toContain('dark');
   expect((LEVELS['w9-3'].water?.shallow ?? []).length).toBeGreaterThan(0);
   expect(LEVELS['w9-3'].scenes.map((s) => s.scene)).toEqual(['w9-s3', 'w9-s4']);
 });

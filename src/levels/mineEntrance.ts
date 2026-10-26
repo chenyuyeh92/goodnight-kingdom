@@ -40,10 +40,8 @@ export const MINE_ENTRANCE: LevelDef = {
     { x: 6110, y: 230, w: 120, h: 20 },
     { x: 8460, y: 250, w: 140, h: 20 },
   ],
-  // 黑暗區:只看得到身邊、發光水晶和會發光的魔物附近。
-  darkness: [
-    { x: 4900, w: 5300 },
-  ],
+  // 白天的礦坑入口:整關都是亮的(葉宸佑 2026-10-26:黃昏、晚上的 9-2、9-3 走進洞裡才暗)。水晶是裝飾。
+  darkness: [],
   crystals: [5100, 5480, 5860, 6240, 6620, 7000, 7380, 7760, 8140, 8520, 8900, 9280, 9660, 10040],
   // 新機關:會掉的平台、移動平台、彈跳墊。
   crumbles: [
@@ -59,7 +57,7 @@ export const MINE_ENTRANCE: LevelDef = {
   thorns: [],
   checkpoints: [150, 2100, 4060, 5800, 8100, 9100],
   chests: [
-    { x: 9340, bottom: GROUND_Y }, // 魔王區的武器寶箱(每次打魔王都拿得到;在發光水晶旁邊看得到)
+    { x: 9340, bottom: GROUND_Y }, // 魔王區的武器寶箱(每次打魔王都拿得到)
     { x: 5720, bottom: GROUND_Y },
     { x: 3000, bottom: GROUND_Y },
     { x: 900, bottom: GROUND_Y },
@@ -67,9 +65,7 @@ export const MINE_ENTRANCE: LevelDef = {
     { x: 7950, bottom: GROUND_Y },
   ],
   targets: [],
-  hints: [
-    { x: 4750, kind: 'dark' },
-  ],
+  hints: [],
   trickles: [
     // 1 山腳
     ...wave(200, [['mushroom', 'right', 1]]),

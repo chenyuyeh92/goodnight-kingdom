@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { DARK_ALPHA, LIGHT_RADIUS, fadeDark, inDark } from '../src/game/darkness';
+import { BLACKOUT_ALPHA, DARK_ALPHA, LIGHT_RADIUS, darkTarget, fadeDark, inDark } from '../src/game/darkness';
 import { MAX_FIREFLIES, QUEEN_BOB, QUEEN_HOVER_Y, QUEEN_WINDUP_MS, initialQueenBrain, stepQueen, type QueenBrain, type QueenSense } from '../src/game/queen';
 import { HEAL_AFTER_MS, HEAL_EVERY_MS, AXOLOTL_WINDUP_MS, initialAxolotlBrain, stepAxolotl, type AxolotlBrain, type AxolotlSense } from '../src/game/axolotl';
 import { FENNEC_WARN_MS, initialFennecBrain, stepFennec } from '../src/game/fennec';
@@ -9,6 +9,13 @@ import { DEFAULT_TUNING } from '../src/config/tuning';
 import { GROUND_Y } from '../src/levels/levelDef';
 
 describe('黑暗', () => {
+  test('暗度:黑暗區裡很暗;女王的燈泡一閃後馬上更黑(白天的 9-1 沒有黑暗區也會暫時變黑);其他時候全亮', () => {
+    expect(darkTarget(false, false)).toEqual({ alpha: 0, snap: false });
+    expect(darkTarget(true, false)).toEqual({ alpha: DARK_ALPHA, snap: false });
+    expect(darkTarget(true, true)).toEqual({ alpha: BLACKOUT_ALPHA, snap: true });
+    expect(darkTarget(false, true)).toEqual({ alpha: BLACKOUT_ALPHA, snap: true });
+  });
+
   test('在黑暗區裡;走進去慢慢變暗、走出來慢慢變亮', () => {
     expect(inDark(150, [{ x: 100, w: 100 }])).toBe(true);
     expect(inDark(250, [{ x: 100, w: 100 }])).toBe(false);

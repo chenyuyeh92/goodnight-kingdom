@@ -25,20 +25,21 @@ test.describe('世界 9 地底洞窟', () => {
     });
   }
 
-  test('9-1 前半段亮,走進礦坑變暗,身邊和水晶附近有光', async ({ page }) => {
+  test('9-1 是白天:走到礦坑裡面也是亮的(黃昏、晚上的關卡才暗)', async ({ page }) => {
     await open(page, 'w9-1');
     await page.waitForTimeout(500);
     expect((await gk(page)).darkness!.alpha).toBe(0);
     await page.evaluate(() => window.__GK__!.warp!(5600));
     await calm(page);
+    await page.waitForTimeout(1500);
+    expect((await gk(page)).darkness!.alpha).toBe(0);
+  });
+
+  test('9-2 一開始就是暗的,身邊和水晶附近有光', async ({ page }) => {
+    await open(page, 'w9-2');
     await page.waitForFunction(() => window.__GK__!.darkness!.alpha > 0.85, undefined, { timeout: 4000 });
     // 玩家自己加上畫面裡的水晶。
     expect((await gk(page)).darkness!.lights).toBeGreaterThanOrEqual(3);
-  });
-
-  test('9-2 一開始就是暗的', async ({ page }) => {
-    await open(page, 'w9-2');
-    await page.waitForFunction(() => window.__GK__!.darkness!.alpha > 0.85, undefined, { timeout: 4000 });
   });
 
   for (const [level, boss] of [
@@ -59,12 +60,15 @@ test.describe('世界 9 地底洞窟', () => {
     });
   }
 
-  test('螢火蟲女王叫出會發光的小螢火蟲,燈泡一閃後四周很黑', async ({ page }) => {
+  test('螢火蟲女王叫出會發光的小螢火蟲,燈泡一閃後四周很黑(白天的 9-1 也會暫時變黑)', async ({ page }) => {
     await open(page, 'w9-1');
     await page.evaluate(() => window.__GK__!.warp!(9700));
     await page.waitForFunction(() => window.__GK__!.boss?.type === 'queen', undefined, { timeout: 8000 });
     await page.waitForFunction(() => window.__GK__!.enemies!.some((e) => e.type === 'firefly'), undefined, { timeout: 8000 });
     await page.waitForFunction(() => window.__GK__!.darkness!.blackout, undefined, { timeout: 12000 });
+    expect((await gk(page)).darkness!.alpha).toBeGreaterThan(0.9);
+    // 一陣子後亮回來。
+    await page.waitForFunction(() => !window.__GK__!.darkness!.blackout && window.__GK__!.darkness!.alpha < 0.05, undefined, { timeout: 8000 });
   });
 
   test('六角恐龍一陣子沒被打會回血', async ({ page }) => {

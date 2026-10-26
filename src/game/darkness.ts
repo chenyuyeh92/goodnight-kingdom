@@ -15,6 +15,15 @@ export function inDark(x: number, zones: readonly Span[]): boolean {
   return zones.some((z) => x >= z.x && x <= z.x + z.w);
 }
 
+/**
+ * 現在要多暗:黑暗區裡很暗(慢慢變暗);女王的燈泡一閃後馬上更黑,
+ * 沒有黑暗區的地方(白天的 9-1)也會暫時變黑,一陣子後再慢慢亮回來。
+ */
+export function darkTarget(inDarkZone: boolean, blackout: boolean): { alpha: number; snap: boolean } {
+  if (blackout) return { alpha: BLACKOUT_ALPHA, snap: true };
+  return { alpha: inDarkZone ? DARK_ALPHA : 0, snap: false };
+}
+
 /** 黑暗的濃度慢慢追上目標(走進黑暗區變暗、走出去變亮)。 */
 export function fadeDark(prev: number, target: number, dtMs: number): number {
   const step = (FADE_PER_S * Math.min(dtMs, MAX_DT_MS)) / 1000;

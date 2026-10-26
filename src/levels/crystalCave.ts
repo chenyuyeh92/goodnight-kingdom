@@ -67,6 +67,8 @@ export const CRYSTAL_CAVE: LevelDef = {
     { x: 7990, bottom: GROUND_Y },
   ],
   targets: [],
+  // 走進洞裡第一次變暗:告示牌教玩家跟著水晶的光走。
+  hints: [{ x: 460, kind: 'dark' }],
   trickles: [
     // 1 水晶洞口
     ...wave(200, [['mushroom', 'right', 2]]),

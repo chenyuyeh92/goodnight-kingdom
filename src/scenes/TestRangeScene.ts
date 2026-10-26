@@ -59,7 +59,7 @@ import { BOSS_GUST_PUSH, WIND_PUSH, inWind, windStrength, windVx } from '../game
 import { ROCK_GRAVITY, initialGoatBrain, stepGoat, type GoatBrain } from '../game/goat';
 import { BAMBOO_AX, BAMBOO_VX, BAMBOO_Y, initialPandaBrain, stepPanda, type PandaBrain } from '../game/panda';
 import { THUNDER_HOVER_Y, initialThunderBrain, stepThunder, type ThunderBrain } from '../game/thunderbird';
-import { BLACKOUT_ALPHA, BLACKOUT_PLAYER_RADIUS, DARK_ALPHA, LIGHT_RADIUS, fadeDark, inDark } from '../game/darkness';
+import { BLACKOUT_PLAYER_RADIUS, LIGHT_RADIUS, darkTarget, fadeDark, inDark } from '../game/darkness';
 import { QUEEN_HOVER_Y, initialQueenBrain, stepQueen, type QueenBrain } from '../game/queen';
 import { initialAxolotlBrain, stepAxolotl, type AxolotlBrain } from '../game/axolotl';
 import { MOCHI_GRAVITY, initialRabbitBrain, stepRabbit, type RabbitBrain } from '../game/rabbit';
@@ -867,7 +867,8 @@ export class TestRangeScene extends Phaser.Scene {
     this.nightmare = null;
     this.nightmareHits = 0;
     this.createStars();
-    if (this.level.darkness?.length) {
+    // 黑暗區,或是會讓四周變黑的火螢女王(白天的 9-1 也有)。
+    if (this.level.darkness?.length || this.level.boss?.type === 'queen') {
       this.makeLightTexture();
       this.darkRt = this.add.renderTexture(0, 0, VIEW_W, WORLD_H).setOrigin(0, 0).setScrollFactor(0).setDepth(DARK_DEPTH).setVisible(false);
     }
@@ -1394,8 +1395,8 @@ export class TestRangeScene extends Phaser.Scene {
     if (!rt) return;
     const dark = inDark(this.scrollX + VIEW_W / 2, this.level.darkness ?? []);
     const blackout = this.blackoutMs > 0;
-    const target = !dark ? 0 : blackout ? BLACKOUT_ALPHA : DARK_ALPHA;
-    this.darkAlpha = blackout && dark ? target : fadeDark(this.darkAlpha, target, dtMs);
+    const target = darkTarget(dark, blackout);
+    this.darkAlpha = target.snap ? target.alpha : fadeDark(this.darkAlpha, target.alpha, dtMs);
     if (this.darkAlpha <= 0.01) {
       rt.setVisible(false);
       this.lightCount = 0;
