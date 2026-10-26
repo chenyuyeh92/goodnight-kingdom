@@ -16,6 +16,7 @@ import { GuardRoomScene } from './scenes/GuardRoomScene';
 import { SettingsScene } from './scenes/SettingsScene';
 import { OnlineScene } from './scenes/OnlineScene';
 import { E2E_BUILD, needsFullVersion, setTestFull } from './config/edition';
+import { initNativeBridge } from './platform/native';
 import { TEST_TOOLS } from './config/testTools';
 import { OnlineBadgeScene } from './scenes/OnlineBadgeScene';
 import { StoryScene } from './scenes/StoryScene';
@@ -117,6 +118,10 @@ export interface GkDebug {
   /** 結算畫面是不是破關結局(打倒夢貘)。 */
   ending?: boolean;
   fullTeaser?: boolean;
+  /** 結算畫面的按鈕文字。 */
+  buttons?: string[];
+  /** App 版(選關):商店狀態與購買按鈕。 */
+  store?: { full: boolean; price: string | null; busy: boolean; lastResult: string | null; shown: boolean; banner: string } | null;
   /** 選武器畫面:正在選的玩家與選項文字。 */
   /** 背包畫面上的文字列,供測試讀取。 */
   backpackText?: string[];
@@ -246,6 +251,8 @@ function startGame(tuneMode: boolean, mode: PlayMode | null, testHooks: boolean)
   const touch = params.get('touch') === '1' || isTouchDevice();
   // 測試用網址(?test=1)可以玩全部(加 free=1 測免費版);一般網址不能直接跳到免費版沒有的世界。
   setTestFull((TEST_TOOLS || E2E_BUILD) && testHooks && params.get('free') !== '1');
+  // App 版(iPhone、iPad):接上 App 的購買與分享;網頁版什麼都不做。
+  initNativeBridge(safeLocalStorage());
   const asked = parseLevelId(params.get('level'));
   const level = asked && !needsFullVersion(asked) ? asked : undefined;
   const guards = createGuardStore(safeLocalStorage());

@@ -12,6 +12,7 @@ import { menuButton, smallButton } from './menuButton';
 import { pick, tr, type Text } from '../i18n/lang';
 import { FREE_WORLDS, needsFullVersion } from '../config/edition';
 import { fitWidth } from '../ui/fitText';
+import { isNativeApp, nativeState, onNativeMessage, requestPurchase, type PurchaseResult } from '../platform/native';
 
 const CARD_W = 250;
 const CARD_H = 230;
@@ -29,7 +30,17 @@ const NEXT_WORLD = new Set(['KeyE', 'ArrowRight']);
 export interface LevelSelectData extends TestRangeData {
   /** 要顯示第幾個世界(1 起算);沒有時顯示最後一個已開放的世界。 */
   world?: number;
+  /** App 版剛買到完整版:顯示謝謝。 */
+  justUnlocked?: boolean;
 }
+
+/** App 版購買沒有成功時的說明。 */
+const PURCHASE_TEXT: Record<Exclude<PurchaseResult, 'ok' | 'restored'>, Text> = {
+  pending: { zh: '已經請家長同意了。家長同意後,完整版會自動打開。', en: 'Waiting for a parent to approve. The full version opens as soon as they do.' },
+  cancelled: { zh: '沒有購買。想玩的時候再按一次就好。', en: 'Not purchased. Tap again whenever you are ready.' },
+  failed: { zh: '購買沒有完成,請檢查網路後再試一次。', en: 'The purchase did not go through. Check your connection and try again.' },
+  nothingToRestore: { zh: '這個 Apple 帳號還沒有買過完整版。', en: 'This Apple Account has not bought the full version yet.' },
+};
 
 /** 選關:可以切換世界;所有小關依序解鎖,顯示最佳時間。 */
 export class LevelSelectScene extends Phaser.Scene {
@@ -59,18 +70,23 @@ export class LevelSelectScene extends Phaser.Scene {
     if (world < WORLDS.length) smallButton(this, 860, 70, tr(`世界 ${world + 1} →`, `World ${world + 1} →`) + (touch ? '' : '(E)'), () => go(world + 1), 160);
 
     const testMode = testModeOn();
-    // 免費版:世界 4–10 鎖住,告訴玩家完整版即將推出。
+    // 免費版:世界 4–10 鎖住。網頁版說完整版即將推出;App 版可以直接買。
     const fullOnly = needsFullVersion(WORLDS[world - 1][0]);
+    const app = isNativeApp();
+    const banner = this.add
+      .text(480, app && fullOnly ? 104 : 116, '', { fontSize: '18px', color: '#ffe08a', stroke: '#2b2a6b', strokeThickness: 4, align: 'center' })
+      .setOrigin(0.5);
     if (fullOnly) {
-      this.add
-        .text(480, 116, tr(`免費版可以玩世界 1–${FREE_WORLDS}。世界 ${FREE_WORLDS + 1}–${WORLDS.length} 在完整版,即將推出!`, `The free version has Worlds 1–${FREE_WORLDS}. Worlds ${FREE_WORLDS + 1}–${WORLDS.length} are in the full version, coming soon!`), {
-          fontSize: '18px',
-          color: '#ffe08a',
-          stroke: '#2b2a6b',
-          strokeThickness: 4,
-        })
-        .setOrigin(0.5);
+      banner.setText(
+        app
+          ? tr(`世界 ${FREE_WORLDS + 1}–${WORLDS.length} 和結局在完整版,買一次就能全部玩。`, `Worlds ${FREE_WORLDS + 1}–${WORLDS.length} and the ending are in the full version. Buy once, play them all.`)
+          : tr(`免費版可以玩世界 1–${FREE_WORLDS}。世界 ${FREE_WORLDS + 1}–${WORLDS.length} 在完整版,即將推出!`, `The free version has Worlds 1–${FREE_WORLDS}. Worlds ${FREE_WORLDS + 1}–${WORLDS.length} are in the full version, coming soon!`),
+      );
+      fitWidth(banner, 900);
+    } else if (this.data_.justUnlocked) {
+      banner.setText(tr('謝謝你!完整版打開了,十個世界都可以玩。', 'Thank you! The full version is unlocked. All ten worlds are open.'));
     }
+    const store = app && fullOnly ? this.storeButtons(banner, touch) : null;
     const levels = WORLDS[world - 1].map((id) => ({ id, unlocked: testMode || (!fullOnly && isUnlocked(id, cleared)), best: cleared[id] ?? null }));
     levels.forEach((l, i) => {
       const x = 480 + (i - 1) * CARD_GAP;
@@ -110,13 +126,54 @@ export class LevelSelectScene extends Phaser.Scene {
       if (PREV_WORLD.has(e.code)) go(world - 1);
       if (NEXT_WORLD.has(e.code)) go(world + 1);
       if (e.code === 'KeyT' && TEST_TOOLS) this.toggleTest();
+      if (store && e.code === 'KeyB') store.buy();
+      if (store && e.code === 'KeyR') store.restore();
       const i = /^Digit([1-3])$/.exec(e.code);
       if (i) {
         const l = levels[Number(i[1]) - 1];
         this.play(l.id, l.unlocked, testMode && e.shiftKey);
       }
     });
-    window.__GK__ = { ready: true, screen: 'level-select', levels, world, testMode };
+    window.__GK__ = { ready: true, screen: 'level-select', levels, world, testMode, store: app ? { ...nativeState, shown: store !== null, banner: banner.text } : null };
+  }
+
+  /** App 版:「解鎖完整版」與「恢復購買」。買到後重新整理這一頁(卡片打開)。 */
+  private storeButtons(banner: Phaser.GameObjects.Text, touch: boolean): { buy(): void; restore(): void } {
+    const buyLabel = (): string => (nativeState.price ? tr(`解鎖完整版 ${nativeState.price}`, `Unlock full version ${nativeState.price}`) : tr('解鎖完整版', 'Unlock full version')) + (touch ? '' : '(B)');
+    const buyButton = smallButton(this, 355, 146, buyLabel(), () => send('buy'), 290);
+    const restoreButton = smallButton(this, 630, 146, tr('恢復購買', 'Restore purchase') + (touch ? '' : '(R)'), () => send('restore'), 200);
+    const setBusy = (busy: boolean): void => {
+      buyButton.setEnabled(!busy);
+      restoreButton.setEnabled(!busy);
+    };
+    const send = (kind: 'buy' | 'restore'): void => {
+      if (nativeState.busy) return;
+      requestPurchase(kind);
+      setBusy(true);
+      banner.setText(tr('正在連線到 App Store…', 'Connecting to the App Store…'));
+      this.publishStore(banner);
+    };
+    setBusy(nativeState.busy);
+    const off = onNativeMessage((m) => {
+      if (nativeState.full) {
+        this.scene.restart({ ...this.data_, justUnlocked: true });
+        return;
+      }
+      if (m.type === 'store') buyButton.setLabel(buyLabel());
+      else if (m.result !== 'ok' && m.result !== 'restored') {
+        setBusy(false);
+        banner.setText(pick(PURCHASE_TEXT[m.result]));
+        fitWidth(banner, 900);
+      }
+      this.publishStore(banner);
+    });
+    this.events.once('shutdown', off);
+    return { buy: () => send('buy'), restore: () => send('restore') };
+  }
+
+  private publishStore(banner: Phaser.GameObjects.Text): void {
+    const gk = window.__GK__;
+    if (gk?.store) gk.store = { ...nativeState, shown: true, banner: banner.text };
   }
 
   /** atBoss(測試模式):從最後一個檢查點出發,戰鬥區當作已經清完,走幾步就是關主。 */

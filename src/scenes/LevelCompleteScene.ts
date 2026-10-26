@@ -5,6 +5,8 @@ import { onMenuKey } from './menuKeys';
 import { menuButton } from './menuButton';
 import type { LevelId } from '../levels/levelDef';
 import { pick, tr, type Text } from '../i18n/lang';
+import { isNativeApp } from '../platform/native';
+import { FREE_WORLDS } from '../config/edition';
 
 export interface LevelCompleteData extends TestRangeData {
   levelName: string;
@@ -58,9 +60,14 @@ export class LevelCompleteScene extends Phaser.Scene {
       });
     }
 
+    // App 版可以直接去買(選關的世界 4 有購買按鈕);網頁版說即將推出。
+    const unlockInApp = (this.data_.fullTeaser ?? false) && isNativeApp();
     if (this.data_.fullTeaser) {
+      const text = unlockInApp
+        ? tr('免費版到這裡結束!解鎖完整版,就能玩世界 4–10 和結局。', 'That is the end of the free version! Unlock the full version to play Worlds 4–10 and the ending.')
+        : tr('免費版到這裡結束!完整版還有世界 4–10 和結局,即將推出。', 'That is the end of the free version! The full version adds Worlds 4–10 and the ending. Coming soon.');
       this.add
-        .text(480, 405, tr('免費版到這裡結束!完整版還有世界 4–10 和結局,即將推出。', 'That is the end of the free version! The full version adds Worlds 4–10 and the ending. Coming soon.'), {
+        .text(480, 405, text, {
           fontSize: '18px',
           color: '#ffe08a',
           align: 'center',
@@ -77,6 +84,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       { label: tr('再玩一次(1)', 'Play again (1)'), code: 'Digit1', go: () => this.replay() },
       { label: tr('回到選單(2)', 'Menu (2)'), code: 'Digit2', go: () => this.menu() },
       ...(next ? [{ label: tr('下一關(3)', 'Next level (3)'), code: 'Digit3', go: () => this.playNext(next) }] : []),
+      ...(unlockInApp ? [{ label: tr('解鎖完整版(3)', 'Unlock all (3)'), code: 'Digit3', go: () => this.toStore() }] : []),
     ];
     const gap = 260;
     const left = 480 - ((buttons.length - 1) * gap) / 2;
@@ -86,7 +94,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       if (b) guard(b.go)();
     });
 
-    window.__GK__ = { ready: true, screen: 'complete', summary: [...summary], ending: ending ?? false, fullTeaser: this.data_.fullTeaser ?? false };
+    window.__GK__ = { ready: true, screen: 'complete', summary: [...summary], ending: ending ?? false, fullTeaser: this.data_.fullTeaser ?? false, buttons: buttons.map((b) => b.label) };
   }
 
   private replay(): void {
@@ -95,6 +103,12 @@ export class LevelCompleteScene extends Phaser.Scene {
 
   private playNext(next: LevelId): void {
     this.scene.start('TestRange', { ...sessionData(this.data_), level: next });
+  }
+
+  /** 到選關的世界 4,那裡有「解鎖完整版」按鈕。 */
+  private toStore(): void {
+    const { mode: _mode, ...rest } = sessionData(this.data_);
+    this.scene.start('LevelSelect', { ...rest, world: FREE_WORLDS + 1 });
   }
 
   private menu(): void {

@@ -7,6 +7,7 @@ import type { TestRangeData } from './TestRangeScene';
 import { onMenuKey } from './menuKeys';
 import { smallButton } from './menuButton';
 import { tr } from '../i18n/lang';
+import { isNativeApp, sendToNative } from '../platform/native';
 
 const COLS = 5;
 const CARD = 140;
@@ -173,6 +174,11 @@ export class GuardRoomScene extends Phaser.Scene {
     const g = this.store.get().guards.find((x) => x.id === id);
     if (!g) return;
     const name = guardFileName(g.name);
+    // App 裡交給系統的分享選單(存到照片、傳給家人)。
+    if (isNativeApp()) {
+      sendToNative({ type: 'shareImage', dataUrl: g.png, name });
+      return;
+    }
     void fetch(g.png)
       .then((r) => r.blob())
       .then(async (blob) => {

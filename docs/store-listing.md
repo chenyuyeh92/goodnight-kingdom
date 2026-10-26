@@ -1,6 +1,6 @@
 # 商店介紹文字(中文、English)
 
-給上架用的文字草稿。平台與價格還沒決定(目前規劃:世界 1–3 免費、NT$100 解鎖全部),定了以後再補「價格」那幾句。
+給上架用的文字。價格(2026-10-26 定案):免費下載,世界 1–3 免費;App 內購買「完整版」NT$100 解鎖世界 4–10 和結局。網頁版也是世界 1–3 免費。
 字數限制以 Google Play 為準(名稱 30 字、簡短說明 80 字、完整說明 4000 字);App Store 的副標題是 30 字。
 
 ---
@@ -36,6 +36,9 @@
 
 ✨ 安心給孩子玩
 沒有廣告、不收集任何個人資料、不需要帳號(線上雙人只用來連線,不存任何資料)。進度只存在你的裝置裡。支援中文與 English。
+
+💎 免費玩世界 1–3
+世界 1–3(九關)免費玩。喜歡的話,App 內購買「完整版」(NT$100,買一次永久遊玩)就能解鎖世界 4–10 和結局,沒有其他付費。
 
 **關鍵字:** 射擊, 橫向卷軸, 平台跳躍, 療癒, 可愛, 親子, 雙人, 繪本, 睡覺, 魔物
 
@@ -74,6 +77,9 @@ Link two phones with a 6-digit room number and play together, or share one compu
 
 ✨ Made for families
 No ads, no personal data collected, no account needed. Progress stays on your device. Available in English and Chinese.
+
+💎 Worlds 1–3 are free
+Play Worlds 1–3 (nine levels) for free. If you love it, one in-app purchase of the Full Version unlocks Worlds 4–10 and the ending forever. Nothing else to buy.
 
 **Keywords:** shooter, side-scroller, platformer, cozy, cute, family, co-op, picture book, bedtime, monsters
 

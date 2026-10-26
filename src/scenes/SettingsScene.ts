@@ -6,6 +6,7 @@ import { onMenuKey } from './menuKeys';
 import { smallButton } from './menuButton';
 import { safeLocalStorage } from '../config/storage';
 import { lang, pick, setLang, tr, type Text } from '../i18n/lang';
+import { openPage } from '../platform/native';
 
 type Row = 'music' | 'sfx' | 'muted' | 'lang' | 'clear' | 'back';
 const ROWS: readonly Row[] = ['music', 'sfx', 'muted', 'lang', 'clear', 'back'];
@@ -69,7 +70,7 @@ export class SettingsScene extends Phaser.Scene {
     this.message = this.add.text(480, ROW_Y.clear + 34, '', { fontSize: '16px', color: '#ffb3c7', stroke: '#2b2a6b', strokeThickness: 4 }).setOrigin(0.5);
     smallButton(this, 480, ROW_Y.back, tr('返回(Esc)', 'Back (Esc)'), () => this.back(), 200);
     PAGES.forEach((p, i) => {
-      smallButton(this, 300 + i * 180, 515, pick(p.label), () => window.open(`${import.meta.env.BASE_URL}${p.file}`, '_blank', 'noopener'), 160);
+      smallButton(this, 300 + i * 180, 515, pick(p.label), () => openPage(p.file), 160);
     });
 
     onMenuKey(this, (e) => {

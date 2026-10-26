@@ -135,6 +135,37 @@ async function fill(page, x, y) {
   await sleep(250);
 }
 
+/** 畫一隻白色小兔(畫布要已經打開)。 */
+async function drawBunny(page) {
+  await page.click('[data-size="thick"]');
+  // 外框用淺紫色(畫板是深色,深色線會看不見)。
+  await pickColor(page, '#b69cff');
+  // 耳朵、頭、身體。
+  await stroke(page, ellipse(128, 92, 20, 52));
+  await stroke(page, ellipse(192, 92, 20, 52));
+  await stroke(page, ellipse(160, 215, 78, 66));
+  await stroke(page, ellipse(160, 375, 68, 88));
+  // 塗顏色:白色的臉和身體、粉紅色的耳朵。
+  await pickColor(page, '#ffffff');
+  await fill(page, 160, 215);
+  await fill(page, 160, 380);
+  await pickColor(page, '#f7a8c4');
+  await fill(page, 128, 92);
+  await fill(page, 192, 92);
+  // 睡眼、腮紅、肚子上的星星。
+  await page.click('[data-size="mid"]');
+  await pickColor(page, '#3a2a5a');
+  await stroke(page, [[118, 210], [130, 218], [142, 210]], 4);
+  await stroke(page, [[178, 210], [190, 218], [202, 210]], 4);
+  await stroke(page, [[150, 240], [160, 248], [170, 240]], 4);
+  await pickColor(page, '#f7a8c4');
+  await stroke(page, ellipse(112, 236, 9, 6, 10), 3);
+  await stroke(page, ellipse(208, 236, 9, 6, 10), 3);
+  await pickColor(page, '#f8e08e');
+  await stroke(page, [[160, 340], [168, 362], [190, 364], [172, 378], [180, 400], [160, 386], [140, 400], [148, 378], [130, 364], [152, 362], [160, 340]], 4);
+  await fill(page, 160, 372);
+}
+
 const SHOTS = {
   /** 開場的動態繪本(6 幕)。 */
   async story(browser) {
@@ -176,33 +207,7 @@ const SHOTS = {
       await tapGame(page, 295, 495);
       await page.waitForSelector('#draw-canvas');
       await sleep(500);
-      await page.click('[data-size="thick"]');
-      // 外框用淺紫色(畫板是深色,深色線會看不見)。
-      await pickColor(page, '#b69cff');
-      // 耳朵、頭、身體。
-      await stroke(page, ellipse(128, 92, 20, 52));
-      await stroke(page, ellipse(192, 92, 20, 52));
-      await stroke(page, ellipse(160, 215, 78, 66));
-      await stroke(page, ellipse(160, 375, 68, 88));
-      // 塗顏色:白色的臉和身體、粉紅色的耳朵。
-      await pickColor(page, '#ffffff');
-      await fill(page, 160, 215);
-      await fill(page, 160, 380);
-      await pickColor(page, '#f7a8c4');
-      await fill(page, 128, 92);
-      await fill(page, 192, 92);
-      // 睡眼、腮紅、肚子上的星星。
-      await page.click('[data-size="mid"]');
-      await pickColor(page, '#3a2a5a');
-      await stroke(page, [[118, 210], [130, 218], [142, 210]], 4);
-      await stroke(page, [[178, 210], [190, 218], [202, 210]], 4);
-      await stroke(page, [[150, 240], [160, 248], [170, 240]], 4);
-      await pickColor(page, '#f7a8c4');
-      await stroke(page, ellipse(112, 236, 9, 6, 10), 3);
-      await stroke(page, ellipse(208, 236, 9, 6, 10), 3);
-      await pickColor(page, '#f8e08e');
-      await stroke(page, [[160, 340], [168, 362], [190, 364], [172, 378], [180, 400], [160, 386], [140, 400], [148, 378], [130, 364], [152, 362], [160, 340]], 4);
-      await fill(page, 160, 372);
+      await drawBunny(page);
       await sleep(400);
       await page.fill('#draw-name', LANG === 'zh' ? '小兔' : 'Bunny');
       await sleep(500);
@@ -295,7 +300,9 @@ const SHOTS = {
   },
 };
 
-(async () => {
+module.exports = { sleep, tapGame, hold, runAndGun, drawBunny };
+
+if (require.main === module) (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch({ executablePath: EXEC });
   for (const [name, shot] of Object.entries(SHOTS)) {

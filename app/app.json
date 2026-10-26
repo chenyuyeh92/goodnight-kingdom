@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "晚安王國",
+    "slug": "goodnight-kingdom",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "com.chenyuyeh.goodnightkingdom",
+      "supportsTablet": true,
+      "requireFullScreen": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "zh_TW",
+        "CFBundleLocalizations": [
+          "zh_TW",
+          "en"
+        ],
+        "UIStatusBarHidden": true,
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "locales": {
+      "en": "./locales/en.json",
+      "zh-Hant": "./locales/zh-Hant.json"
+    },
+    "plugins": [
+      "expo-iap",
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 320,
+          "resizeMode": "contain",
+          "backgroundColor": "#1d1a3a"
+        }
+      ]
+    ]
+  }
+}
