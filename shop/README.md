@@ -41,7 +41,7 @@
 
 ## 負責人要做的事（Cloudflare 網站 → Workers 和 Pages → goodnight-shop → 設定 → 變數和祕密 → 新增，類型選 Secret；可以把 `KEY=值` 整段貼在 Key 欄）
 - [x] 2026-10-26 測試環境的 5 個（ECPAY_MERCHANT_ID 3002607、ECPAY_HASH_KEY、ECPAY_HASH_IV、TOKEN_SECRET、ADMIN_PASSWORD）
-- [ ] **寄信** `MAIL_URL`、`MAIL_SECRET`（跟莫札特商店一樣的值）：沒設的話重寄頁寄不出信（信存在 outbox），**開賣前一定要設**。
+- [x] 2026-10-27 **寄信** `MAIL_URL`、`MAIL_SECRET`（跟莫札特商店一樣的值）：用負責人信箱測重寄，真的寄出（第一次貼錯密語時寄信程式回 denied，重貼後好了）。
 - [ ] **換正式**：綠界廠商後台「系統開發管理 → 系統介接設定」的正式 MerchantID、HashKey、HashIV，蓋掉那三個 → 告訴 Claude「換正式」：Claude 上傳正式安裝程式到 R2、`ECPAY_ENV` 改 prod 部署、網頁版 `SHOP_OPEN=true` 推上 GitHub。
 - [ ] 換正式後自己買一次 NT$100：下載、安裝、玩，再到綠界後台退款。
 - [ ] 問綠界客服：多賣一個商品（晚安王國電腦版），要不要報備販售網址（未查證）。
