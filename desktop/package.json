@@ -1,0 +1,17 @@
+{
+  "name": "goodnight-kingdom-desktop",
+  "version": "1.0.0",
+  "description": "晚安王國 Windows 電腦版外殼（Electron 開同一份網頁版遊戲，完整版、離線可玩；雙人連線要網路）。打包：node scripts/pack.mjs",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "node scripts/pack.mjs"
+  },
+  "devDependencies": {
+    "@electron/packager": "18.3.6",
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "png-to-ico": "2.1.8"
+  }
+}
