@@ -68,7 +68,7 @@ export const normalizeCode = s => String(s || '').toUpperCase().replace(/[^A-Z0-
 const codeHash = code => sha256('gk-unlock:' + normalizeCode(code));
 
 // 測試環境：測試特店金鑰是公開的，任何人都能偽造付款通知 → 只真的寄給負責人自己的信箱，其他的存進 outbox（不讓負責人的 Gmail 被拿來寄信給陌生人）
-export const reallySend = (env, to) => !!env.MAIL_URL && (env.ECPAY_ENV === 'prod' || String(to).trim().toLowerCase() === String(env.CONTACT_EMAIL).trim().toLowerCase());
+export const reallySend = (env, to) => !!env.MAIL_URL && (env.ECPAY_ENV === 'prod' || !!env.CONTACT_EMAIL && String(to).trim().toLowerCase() === String(env.CONTACT_EMAIL).trim().toLowerCase());
 async function sendMail(env, to, subject, html) {
   try {
     if (!reallySend(env, to)) {   // 還沒設寄信網址（本機測試、或負責人還沒設定）：信放進 outbox 表

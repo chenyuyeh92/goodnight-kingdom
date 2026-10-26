@@ -22,6 +22,8 @@ let r = await fetch(BASE + '/buy'); let t = await r.text();
 if (r.status === 503) { console.log('  ✗ 商店還是「暫停營業」：Secrets 還沒設完（要有 ECPAY_MERCHANT_ID、ECPAY_HASH_KEY、ECPAY_HASH_IV、TOKEN_SECRET；ADMIN_PASSWORD 有設的話要 12 字以上）'); process.exit(1); }
 ok(r.status === 200 && t.includes('即將開賣') && t.includes('NT$100'), '購買頁打得開；測試環境一般訪客看到「即將開賣」');
 r = await fetch(BASE + '/buy?test=1'); t = await r.text();
+// 建單之前先確定是測試環境（只有測試環境有「測試環境：」橫幅），不然不在正式的資料庫留下測試訂單
+if (!t.includes('<div class="test">測試環境：')) { console.log('  ✗ 這不是綠界測試環境，停止（沒有建任何訂單）。正式環境請負責人自己付一筆真的錢來測。'); process.exit(1); }
 ok(t.includes('我了解本商品為數位內容，付款後立即提供，依規定不適用七日解除權') && t.includes('id="go" disabled'), '加 ?test=1：有必勾的同意框，沒勾不能按');
 ok(t.includes('@gmail.com'), '購買頁標示聯絡信箱');
 
