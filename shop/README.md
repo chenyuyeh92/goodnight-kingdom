@@ -58,8 +58,8 @@ npx wrangler secret put ECPAY_HASH_IV
 
 ## 本機測試
 1. `npm install`、`cp .dev.vars.example .dev.vars`（TOKEN_SECRET、ADMIN_PASSWORD 換成亂數）、`npm run db:local`
-2. `npm run test:unit`（7 項，不用開伺服器：官方檢查碼範例、測試環境只寄給負責人）；`npm run dev`（埠 8789）→ 另一個終端機 `npm test`（單元 7 項＋流程 47 項）
 4. 負責人設好 Secrets 後：`npm run smoke`（只對測試環境；確認不是暫停營業、金鑰沒打錯、遊戲網址能跨網域），跑完照最後一行刪掉測試訂單
+2. `npm run test:unit`（7 項，不用開伺服器：官方檢查碼範例、測試環境只寄給負責人）；`npm run dev`（埠 8789）→ 另一個終端機 `npm test`（單元 7 項＋流程 47 項）
 3. 遊戲接本機商店：`node shop/dev-game.cjs`（vite 埠 5173，`VITE_SHOP_URL=http://localhost:8789`），打開 `http://localhost:5173/goodnight-kingdom/?shop=1`
 - 換了 `wrangler.toml` 的 database_id 後，本機 `.wrangler` 會變成另一個空資料庫 → 重跑 `npm run db:local`。
 
