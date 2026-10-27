@@ -123,6 +123,19 @@ ok((await post('/admin', form({ pw: 'wrong-password-123', q: C.id })).then(x => 
 const oldC = (await status(C.id, C.k)).link;
 t = await post('/admin', form({ pw: vars.ADMIN_PASSWORD, q: C.id, send: 'yes' })).then(x => x.text());
 ok(t.includes('已寄出') && (await status(C.id, C.k)).link !== oldC, '管理頁重寄：新連結');
+const linkC = (await status(C.id, C.k)).link;
+t = await post('/admin', form({ pw: vars.ADMIN_PASSWORD, q: C.id, refund: 'yes' })).then(x => x.text());
+ok(t.includes('已標記退款') && (await status(C.id, C.k)).status === 'refunded', '管理頁標記已退款');
+ok((await fetch(local(linkC)).then(x => x.text())).includes('失效'), '退款後：原本的下載連結失效');
+t = await post('/admin', form({ pw: vars.ADMIN_PASSWORD, q: C.id, send: 'yes' })).then(x => x.text());
+ok(t.includes('已退款，不能寄'), '退款後：管理頁不能重寄');
+const mailsC = mailsTo('c@example.com').length;
+await post('/resend', form({ email: 'c@example.com' }));
+ok(mailsTo('c@example.com').length === mailsC, '退款後：買家自己重寄也不會寄出');
+await post('/ecpay/return', form(notify(C.id)));
+ok((await status(C.id, C.k)).status === 'refunded', '退款後：綠界重送付款通知也不會再出貨');
+t = await post('/admin', form({ pw: vars.ADMIN_PASSWORD, q: B.id, refund: 'yes' })).then(x => x.text());
+ok(t.includes('沒有標記'), '沒付款的訂單不能標記退款');
 for (let i = 0; i < 5; i++) await newOrder('spam@example.com');
 ok((await post('/api/order', form({ email: 'spam@example.com', consent: 'yes' })).then(x => x.text())).includes('下單次數太多'), '同一個 email 一小時第 6 筆：擋下');
 

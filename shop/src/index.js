@@ -100,7 +100,7 @@ async function ship(env, origin, p, ctx) {
     .bind(new Date().toISOString(), p.TradeNo || '', p.PaymentType || '', p.SimulatePaid === '1' ? 1 : 0, Date.now() + days(env) * 864e5,
       o0.id, parseInt(p.TradeAmt, 10)).run();
   if (!r.meta || !r.meta.changes) {   // 已經出過貨：什麼都不做；金額不對：記下來讓負責人在管理頁看到（買家付了錢卻沒拿到遊戲）
-    if (o0.status !== 'paid') {
+    if (o0.status !== 'paid' && o0.status !== 'refunded') {   // 已退款的訂單：綠界重送通知也不再出貨
       console.error('付款沒有出貨：' + o0.id + ' 金額 ' + p.TradeAmt + '／訂單 ' + o0.amount + '／狀態 ' + o0.status);
       await env.DB.prepare('UPDATE orders SET note=? WHERE id=?').bind('收到付款通知但沒出貨：金額 ' + p.TradeAmt + '（訂單 ' + o0.amount + '）', o0.id).run();
     }
@@ -405,6 +405,7 @@ async function admin(env, req, origin) {
 <form method="post"><label>管理密碼<input type="password" name="pw" required autocomplete="current-password"></label>
 <label>訂單編號或 email<input type="text" name="q" value="${esc(q)}" required></label>
 <label><input type="checkbox" name="send" value="yes"> 產生新的連結並寄出（舊連結作廢、次數重算；只能用訂單編號）</label>
+<label><input type="checkbox" name="refund" value="yes"> 標記已退款（在綠界後台退刷以後勾；下載連結、重寄都停掉，不能復原；只能用訂單編號）</label>
 <p><button type="submit">查詢</button></p></form>`, true);
   if (req.method !== 'POST') return form();
   const f = await readForm(req);
@@ -413,9 +414,18 @@ async function admin(env, req, origin) {
   const rows = (await env.DB.prepare('SELECT * FROM orders WHERE id=? OR lower(email)=? ORDER BY created_at DESC LIMIT 20').bind(q, q.toLowerCase()).all()).results || [];
   if (!rows.length) return form('<p class="err">找不到訂單。</p>', q);
   let msg = '<div class="box"><ul>' + rows.map(o => `<li>${esc(o.id)}｜${esc(o.email)}｜${esc(o.status)}｜下載 ${o.dl_count} 次｜信：${esc(o.mail_status || '')}${o.simulate ? '｜模擬付款' : ''}${o.env !== 'prod' ? '｜測試環境' : ''}${o.note ? '｜<span class="err">' + esc(o.note) + '</span>' : ''}</li>`).join('') + '</ul></div>';
+  if (f.refund === 'yes') {
+    /* 退刷後：狀態改 refunded（下載、重寄都只認 paid），token_gen 加一讓舊連結立刻失效 */
+    const r = await env.DB.prepare("UPDATE orders SET status='refunded', token_gen=token_gen+1, note=? WHERE id=? AND status='paid'")
+      .bind('已退款（' + new Date().toISOString().slice(0, 10) + ' 在管理頁標記）', q).run();
+    msg += r.meta && r.meta.changes ? `<p>已標記退款（訂單 ${esc(q)}）：下載連結已失效，也不能重寄。</p>`
+      : '<p class="err">沒有標記：請輸入「已付款」那筆的訂單編號（GK 開頭）。</p>';
+    return form(msg, q);
+  }
   if (f.send === 'yes') {
     const o = rows.find(x => x.id === q && x.status === 'paid');
-    if (!o) msg += rows.some(x => x.id === q) ? '<p class="err">這筆訂單還沒付款，不能寄下載連結。</p>' : '<p class="err">重寄請輸入「訂單編號」（上面列表裡的 GK 開頭那一串）。</p>';
+    if (!o) msg += rows.some(x => x.id === q && x.status === 'refunded') ? '<p class="err">這筆訂單已退款，不能寄下載連結。</p>'
+      : rows.some(x => x.id === q) ? '<p class="err">這筆訂單還沒付款，不能寄下載連結。</p>' : '<p class="err">重寄請輸入「訂單編號」（上面列表裡的 GK 開頭那一串）。</p>';
     else {
       const { ok, link } = await renewAndMail(env, origin, o);
       msg += `<p>${ok ? '已寄出' : '<span class="err">寄信失敗</span>'}新的連結（訂單 ${esc(o.id)}）：<br><a href="${esc(link)}">${esc(link)}</a></p>`;

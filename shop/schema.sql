@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS orders (
   k_hash        TEXT NOT NULL,         -- 訂單密碼的 SHA-256（付款完成頁、狀態查詢要帶訂單密碼）
   email         TEXT NOT NULL,
   amount        INTEGER NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'pending',   -- pending／atm（已取號，等繳費）／paid／failed
+  status        TEXT NOT NULL DEFAULT 'pending',   -- pending／atm（已取號，等繳費）／paid／failed／refunded（負責人在管理頁標記已退款）
   env           TEXT NOT NULL,         -- 建單時的綠界環境：stage（測試）／prod（正式）。換正式後，測試環境的訂單不能下載正式檔案
   consent_at    TEXT NOT NULL,         -- 勾選「不適用七日解除權」的時間（ISO）
   created_at    TEXT NOT NULL,
