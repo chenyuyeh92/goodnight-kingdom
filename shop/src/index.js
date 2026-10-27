@@ -358,6 +358,7 @@ async function poll(){ n++;
     if(j.status==='paid'){ box.innerHTML='<p><b>付款成功！</b></p><p><a class="btn" href="'+e(j.link)+'">下載安裝程式</a></p><p class="muted">這個連結到 '+new Date(j.expires).toLocaleString('zh-TW')+' 前有效，還可以下載 '+j.left+' 次。下載後雙擊安裝程式，按「下一步」→「安裝」，桌面就會出現「晚安王國」。跳出警告時請看 <a href="/help" target="_blank">安裝教學（有圖）</a>。</p>'; return; }
     if(j.status==='atm'){ box.innerHTML='<p><b>已取得 ATM 繳費帳號</b></p><p>請在 '+e(j.expire)+' 以前轉帳 NT$'+e(j.amount)+'。<br>銀行代碼：'+e(j.bank)+'<br>帳號：'+e(j.account)+'</p><p class="muted">轉帳完成後這一頁會自動出現下載按鈕，也會寄信給你。</p>'; }
     if(j.status==='failed'){ box.innerHTML='<p><b>付款沒有成功</b>，沒有扣款。</p><p><a class="btn" href="/buy">回到購買頁重新購買</a></p>'; return; }
+    if(j.status==='refunded'){ box.innerHTML='<p><b>這筆訂單已經退款</b>，下載連結已停用。</p>'; return; }
     if(j.error){ box.innerHTML='<p>找不到這筆訂單，請檢查信箱或寫信給我們。</p>'; return; }
   }catch(_){}
   if(n<600) setTimeout(poll, n<20?3000:15000);
@@ -418,8 +419,9 @@ async function admin(env, req, origin) {
     /* 退刷後：狀態改 refunded（下載、重寄都只認 paid），token_gen 加一讓舊連結立刻失效 */
     const r = await env.DB.prepare("UPDATE orders SET status='refunded', token_gen=token_gen+1, note=? WHERE id=? AND status='paid'")
       .bind('已退款（' + new Date().toISOString().slice(0, 10) + ' 在管理頁標記）', q).run();
-    msg += r.meta && r.meta.changes ? `<p>已標記退款（訂單 ${esc(q)}）：下載連結已失效，也不能重寄。</p>`
-      : '<p class="err">沒有標記：請輸入「已付款」那筆的訂單編號（GK 開頭）。</p>';
+    /* 上面的列表是標記前查的，這裡直接寫標記後的狀態；同時勾了重寄也不寄 */
+    msg += r.meta && r.meta.changes ? `<p>已標記退款（訂單 ${esc(q)}，現在狀態：refunded）：下載連結已失效，也不能重寄。${f.send === 'yes' ? '（重寄沒有做）' : ''}</p>`
+      : '<p class="err">沒有標記：只有「已付款」（paid）的訂單能標記，請輸入那筆的訂單編號（GK 開頭）。</p>';
     return form(msg, q);
   }
   if (f.send === 'yes') {
