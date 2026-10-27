@@ -5,7 +5,7 @@ main = "src/index.js"
 compatibility_date = "2025-09-01"
 
 [vars]
-ECPAY_ENV = "stage"            # stage＝綠界測試環境（接受「模擬付款」，只能放假檔）；prod＝正式
+ECPAY_ENV = "prod"            # stage＝綠界測試環境（接受「模擬付款」，只能放假檔）；prod＝正式
 CHOOSE_PAYMENT = "Credit"      # Credit＝信用卡；綠界開通 ATM 後可改成 ALL（記得排除超商代碼、條碼，見 README）
 PRICE = "100"
 ITEM_NAME = "晚安王國 Windows 電腦下載版"

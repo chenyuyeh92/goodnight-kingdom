@@ -5,6 +5,7 @@
  */
 
 import type { StorageLike } from '../config/tuning';
+import { tr } from '../i18n/lang';
 
 export const BACKUP_APP = 'goodnight-kingdom';
 export const BACKUP_VERSION = 1;
@@ -87,10 +88,10 @@ export function restoreBackup(s: BackupStorage, b: Backup): boolean {
   return true;
 }
 
-/** 存檔檔名:晚安王國存檔-2026-10-26.json */
+/** 存檔檔名:晚安王國存檔-2026-10-26.json(英文:GoodnightKingdom-save-2026-10-26.json) */
 export function backupFileName(now: Date = new Date()): string {
   const p = (n: number): string => String(n).padStart(2, '0');
-  return `晚安王國存檔-${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}.json`;
+  return `${tr('晚安王國存檔', 'GoodnightKingdom-save')}-${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}.json`;
 }
 
 /** 下載備份檔(網頁版:瀏覽器的下載;電腦版:跳出「另存新檔」)。 */

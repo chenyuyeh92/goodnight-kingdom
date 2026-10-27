@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // 網頁版是免費試玩(2026-10-26 定案):世界 4 有「買 Windows 電腦版 NT$100」,開小商店的購買頁(新分頁)。
-// 還沒開賣(SHOP_OPEN=false)時,要加 ?shop=1 才看得到;App 裡永遠不會出現(Apple 3.1.1)。網頁版本身不能解鎖完整版。
+// 2026-10-27 開賣(SHOP_OPEN=true);App 裡永遠不會出現(Apple 3.1.1)。網頁版本身不能解鎖完整版。
 
 const SHOP = 'https://goodnight-shop.mozart-shop.workers.dev';
 const CLEARED_1_TO_3 = Object.fromEntries(['w1-1', 'w1-2', 'forest', 'w2-1', 'w2-2', 'w2-3', 'w3-1', 'w3-2', 'w3-3'].map((id) => [id, 100000]));
@@ -19,23 +19,16 @@ test.beforeEach(async ({ page }) => {
   await page.context().route(`${SHOP}/**`, (route) => route.fulfill({ contentType: 'text/html', body: '<h1>shop</h1>' }));
 });
 
-test('還沒開賣:網頁版照舊寫「即將推出」,沒有購買按鈕', async ({ page }) => {
+test('開賣了:世界 4 有「買 Windows 電腦版」,按了在新分頁開正式購買頁,關卡照樣鎖著', async ({ page }) => {
   await toWorld4(page, '');
   const s = await page.evaluate(() => window.__GK__!);
   expect(s.world).toBe(4);
-  expect(s.webStore).toBeNull();
-  expect(s.levels!.every((l) => !l.unlocked)).toBe(true);
-});
-
-test('?shop=1:世界 4 有「買 Windows 電腦版」,按了在新分頁開購買頁,關卡照樣鎖著', async ({ page }) => {
-  await toWorld4(page, '?shop=1');
-  const s = await page.evaluate(() => window.__GK__!);
   expect(s.webStore).toMatchObject({ shown: true });
   expect(s.webStore!.banner).toContain('Windows 電腦版');
   expect(s.levels!.every((l) => !l.unlocked)).toBe(true);
   const [shop] = await Promise.all([page.context().waitForEvent('page'), page.keyboard.press('KeyB')]);
   await shop.waitForLoadState();
-  expect(shop.url()).toBe(`${SHOP}/buy?test=1`);
+  expect(shop.url()).toBe(`${SHOP}/buy`);
   expect(await page.evaluate(() => window.__GK__!.screen)).toBe('level-select');
 });
 

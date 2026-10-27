@@ -10,10 +10,10 @@ import { isNativeApp } from './native';
 /** 小商店的網址(本機測試可以用 VITE_SHOP_URL 換成 http://localhost:8789)。App/電腦版打包時是空的。 */
 export const SHOP_URL: string = import.meta.env.VITE_APP === '1' ? '' : (import.meta.env.VITE_SHOP_URL ?? 'https://goodnight-shop.mozart-shop.workers.dev');
 /**
- * 開賣了沒:綠界正式環境上線後改成 true(shop/README.md「換正式」)。
- * 還沒開賣時,網頁版照舊寫「完整版即將推出」;網址加 ?shop=1 才看得到購買按鈕(測試用)。
+ * 開賣了沒:2026-10-27 綠界正式環境上線,改成 true(shop/README.md「換正式」)。
+ * 改回 false 時,網頁版照舊寫「完整版即將推出」;網址加 ?shop=1 才看得到購買按鈕(測試用)。
  */
-export const SHOP_OPEN = false;
+export const SHOP_OPEN = true;
 export const PRICE_TEXT = 'NT$100';
 
 let shown = false;

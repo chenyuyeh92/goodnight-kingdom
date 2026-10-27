@@ -48,7 +48,7 @@ function textOf(node: ts.Node): string | null {
 test('原始碼裡畫面上的中文都有英文翻譯', () => {
   const missing: string[] = [];
   for (const f of files('src')) {
-    if (DEV_ONLY.has(f)) continue;
+    if (DEV_ONLY.has(f.replace(/\\/g, '/'))) continue; // Windows 的路徑是反斜線
     const src = ts.createSourceFile(f, readFileSync(f, 'utf8'), ts.ScriptTarget.Latest, true);
     const visit = (node: ts.Node): void => {
       const text = textOf(node);

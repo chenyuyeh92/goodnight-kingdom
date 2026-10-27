@@ -36,13 +36,13 @@
 
 ## 網址與設定
 - 小商店：https://goodnight-shop.mozart-shop.workers.dev （D1 `goodnight-shop`、R2 `goodnight-files`）
-- 網頁版：https://chenyuyeh92.github.io/goodnight-kingdom/ ；`SHOP_OPEN`（`src/platform/webShop.ts`）是 `false` 時照舊寫「完整版即將推出」，網址加 `?shop=1` 才看得到購買按鈕。
+- 網頁版：https://chenyuyeh92.github.io/goodnight-kingdom/ ；`SHOP_OPEN`（`src/platform/webShop.ts`）2026-10-27 起是 `true`（開賣）；改回 `false` 時照舊寫「完整版即將推出」，網址加 `?shop=1` 才看得到購買按鈕。
 - 電腦版存檔：`%APPDATA%\goodnight-kingdom-desktop`（解除安裝不會刪，重新安裝還在）。
 
 ## 負責人要做的事（Cloudflare 網站 → Workers 和 Pages → goodnight-shop → 設定 → 變數和祕密 → 新增，類型選 Secret；可以把 `KEY=值` 整段貼在 Key 欄）
 - [x] 2026-10-26 測試環境的 5 個（ECPAY_MERCHANT_ID 3002607、ECPAY_HASH_KEY、ECPAY_HASH_IV、TOKEN_SECRET、ADMIN_PASSWORD）
 - [x] 2026-10-27 **寄信** `MAIL_URL`、`MAIL_SECRET`（跟莫札特商店一樣的值）：用負責人信箱測重寄，真的寄出（第一次貼錯密語時寄信程式回 denied，重貼後好了）。
-- [ ] **換正式**：綠界廠商後台「系統開發管理 → 系統介接設定」的正式 MerchantID、HashKey、HashIV，蓋掉那三個 → 告訴 Claude「換正式」：Claude 上傳正式安裝程式到 R2、`ECPAY_ENV` 改 prod 部署、網頁版 `SHOP_OPEN=true` 推上 GitHub。
+- [x] 2026-10-27 **換正式**（負責人換好三個金鑰；Claude 上傳正式安裝程式、ECPAY_ENV=prod 部署、送一筆未付款訂單給綠界正式環境，付款頁正常打開「葉老師音樂遊戲」NT$100）：綠界廠商後台「系統開發管理 → 系統介接設定」的正式 MerchantID、HashKey、HashIV，蓋掉那三個 → 告訴 Claude「換正式」：Claude 上傳正式安裝程式到 R2、`ECPAY_ENV` 改 prod 部署、網頁版 `SHOP_OPEN=true` 推上 GitHub。
 - [ ] 換正式後自己買一次 NT$100：下載、安裝、玩，再到綠界後台退款。
 - [ ] 問綠界客服：多賣一個商品（晚安王國電腦版），要不要報備販售網址（未查證）。
 
@@ -61,3 +61,4 @@
 - 2026-10-26 晚上：**小商店改賣下載版**：本機 42 項全過；雲端資料表重建、R2 `goodnight-files` 建好放 5 KB 假檔、部署到測試環境、`npm run smoke` 通過。
 - 2026-10-26 晚上：**網頁版改免費試玩**：世界 4「買 Windows 電腦版」、過關畫面「買電腦版(3)」；e2e 4 項。
 - 之後要開 ATM：`CHOOSE_PAYMENT` 改 `ALL` 時要排除超商代碼、條碼（`IgnorePayment`，參數以綠界文件為準）。
+- 2026-10-27：**正式上線**：重新打包安裝程式（打包後的 exe 自動測試 12 項通過）、上傳 R2、商店切正式、綠界正式環境接受檢查碼。網頁版開賣（`SHOP_OPEN=true`）。順手修：存檔檔名改走翻譯（英文 GoodnightKingdom-save-日期.json），翻譯檢查測試在 Windows 認得開發工具檔案。

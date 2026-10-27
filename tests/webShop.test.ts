@@ -9,10 +9,8 @@ afterEach(() => {
   delete (globalThis as { window?: unknown }).window;
 });
 
-test('還沒開賣:沒有購買按鈕;?shop=1 才有', () => {
+test('開賣了(2026-10-27):網頁版不用加 ?shop=1 也有購買按鈕', () => {
   initWebShop(new URLSearchParams(''));
-  expect(webShopVisible()).toBe(false);
-  initWebShop(new URLSearchParams('shop=1'));
   expect(webShopVisible()).toBe(true);
 });
 

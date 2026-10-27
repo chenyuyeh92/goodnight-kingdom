@@ -40,9 +40,10 @@ test.describe('免費版', () => {
     await page.evaluate(() => window.__GK__!.hurtBoss!(99999));
     await page.waitForFunction(() => window.__GK__?.screen === 'complete', undefined, { timeout: 20000 });
     expect(await page.evaluate(() => window.__GK__!.fullTeaser)).toBe(true);
+    // 網頁版開賣後(2026-10-27):按 3 是「買電腦版」,到世界 4 的選關(那裡有購買按鈕),不是下一關
     await page.keyboard.press('Digit3');
-    await page.waitForTimeout(400);
-    expect(await page.evaluate(() => window.__GK__!.screen)).toBe('complete');
+    await page.waitForFunction(() => window.__GK__?.screen === 'level-select');
+    expect(await page.evaluate(() => window.__GK__!.world)).toBe(4);
   });
 });
 
