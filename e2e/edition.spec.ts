@@ -31,7 +31,7 @@ test.describe('免費版', () => {
     expect(await page.evaluate(() => window.__GK__!.level)).not.toBe('w5-1');
   });
 
-  test('3-3 打完:結算畫面沒有「下一關」,寫著完整版還有世界 4–10', async ({ page }) => {
+  test('3-3 打完:結算畫面沒有「下一關」,按 3「買電腦版」到世界 4 選關', async ({ page }) => {
     await page.goto('./?mode=single&test=1&free=1&level=w3-3');
     await page.waitForFunction(() => window.__GK__?.screen === 'range', undefined, { timeout: 15000 });
     await page.locator('canvas').click({ position: { x: 5, y: 5 } });
